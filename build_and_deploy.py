@@ -17,17 +17,19 @@ Run all pending:       python build_and_deploy.py --all
 Dry run (no deploy):   python build_and_deploy.py --dry-run
 
 Requirements:
-    pip install requests gitpython
+    pip install requests
 
 Environment variables (set in .env or your CI secrets):
     SPREADSHEET_ID              Google Sheet ID
     GOOGLE_SERVICE_ACCOUNT_KEY  Path to service account JSON
-    GITHUB_REPO_URL             https://github.com/rimusta-yoshi/money-machine.git
+    GITHUB_REPO_URL             https://github.com/roff-dev/money-machine.git
     NETLIFY_AUTH_TOKEN          Personal access token from app.netlify.com/user/applications
     NETLIFY_SITE_ID             Leave blank to create a new site per client
     SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS   For sending emails
     FROM_EMAIL                  Your business email address
     BASE_DOMAIN                 e.g. "yourbrand.com" (for subdomain links in email)
+    DEPLOYED_URL_COL_LETTER     Sheet column letter for deployed URL (default: T)
+    DEPLOYED_AT_COL_LETTER      Sheet column letter for deploy timestamp (default: U)
 """
 
 import os
@@ -47,7 +49,13 @@ from datetime import datetime
 import requests
 
 # Local modules (same directory)
-from extract_form_data import get_next_submission, get_all_pending_submissions, get_sheets_client
+from extract_form_data import (
+    get_next_submission,
+    get_all_pending_submissions,
+    get_sheets_client,
+    SPREADSHEET_ID as SHEETS_SPREADSHEET_ID,
+    SHEET_NAME,
+)
 from map_to_template_vars import map_to_site_config, write_config_to_repo
 
 logging.basicConfig(
@@ -62,7 +70,7 @@ logger = logging.getLogger(__name__)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-GITHUB_REPO_URL    = os.getenv("GITHUB_REPO_URL", "https://github.com/rimusta-yoshi/money-machine.git")
+GITHUB_REPO_URL    = os.getenv("GITHUB_REPO_URL", "https://github.com/roff-dev/money-machine.git")
 NETLIFY_AUTH_TOKEN = os.getenv("NETLIFY_AUTH_TOKEN", "")
 NETLIFY_TEAM_SLUG  = os.getenv("NETLIFY_TEAM_SLUG", "")   # optional: deploy under a team account
 SPREADSHEET_ID     = os.getenv("SPREADSHEET_ID", "")
@@ -73,6 +81,9 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASS = os.getenv("SMTP_PASS", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", SMTP_USER)
+
+DEPLOYED_URL_COL_LETTER = os.getenv("DEPLOYED_URL_COL_LETTER", "T")
+DEPLOYED_AT_COL_LETTER  = os.getenv("DEPLOYED_AT_COL_LETTER",  "U")
 
 # ── Repo management ───────────────────────────────────────────────────────────
 
@@ -94,18 +105,20 @@ def clone_template(work_dir: Path) -> Path:
 
 # ── Build ─────────────────────────────────────────────────────────────────────
 
-def build_site(repo_dir: Path) -> Path:
+def build_site(repo_dir: Path, template: str = "trades") -> Path:
     """
-    Run npm install + npm run build inside the repo.
+    Run npm install + npm run build inside the correct template subdirectory.
     Returns the path to the built dist/ folder.
     """
-    logger.info("Installing npm dependencies...")
-    _run(["npm", "install", "--prefer-offline"], cwd=repo_dir)
+    template_dir = repo_dir / "templates" / template
+
+    logger.info(f"Installing npm dependencies in {template_dir}...")
+    _run(["npm", "install", "--prefer-offline"], cwd=template_dir)
 
     logger.info("Building site...")
-    _run(["npm", "run", "build"], cwd=repo_dir)
+    _run(["npm", "run", "build"], cwd=template_dir)
 
-    dist = repo_dir / "dist"
+    dist = template_dir / "dist"
     if not dist.exists():
         raise RuntimeError(f"Build succeeded but dist/ not found at {dist}")
     logger.info(f"Build complete → {dist}")
@@ -204,21 +217,20 @@ def send_confirmation_email(config: dict, site_url: str):
         logger.warning("SMTP credentials not set — skipping email.")
         return
 
-    business_name = config["businessName"]
-    client_email  = config["email"]
-    owner_name    = config["ownerName"] or "there"
+    business_name = config["business"]["name"]
+    client_email  = config["business"]["email"]
 
     subject = f"Your new website is live — {business_name}"
-    body = f"""Hi {owner_name},
+    body = f"""Hi,
 
-Great news — your new website is live! 🎉
+Great news — your new website is live!
 
   {site_url}
 
 Here's what happens next:
-  • Check everything looks correct — contact us if anything needs tweaking.
-  • If you have a custom domain, reply to this email and we'll help you set it up.
-  • Save this email — it's got your site link and our contact details.
+  - Check everything looks correct — contact us if anything needs tweaking.
+  - If you have a custom domain, reply to this email and we'll help you set it up.
+  - Save this email — it's got your site link and our contact details.
 
 If you'd like any changes, just reply to this email with the details.
 
@@ -245,19 +257,37 @@ The {FROM_EMAIL.split('@')[0].title()} Team
 # ── Result logging ────────────────────────────────────────────────────────────
 
 def log_result_to_sheet(config: dict, deploy_result: dict):
-    """
-    Write the live URL and deploy timestamp back into the Google Sheet
-    so you have a record against each submission.
-    This assumes you have added 'Site URL' and 'Deployed At' columns
-    to your sheet (adjust column letters as needed).
-    """
-    # This is a simplified implementation — wire up properly using
-    # the same Sheets client from extract_form_data.py
-    logger.info(
-        f"[Sheet logging] {config['businessName']} → {deploy_result['site_url']}"
-    )
-    # TODO: call client.values().update(...) with site_url and timestamp
-    #       using the row number stored alongside the submission
+    """Write the live URL and deploy timestamp back into the Google Sheet."""
+    sheet_row = config.get("sheetRow")
+    if not sheet_row:
+        logger.warning("No sheetRow in config — skipping sheet logging.")
+        return
+    if not SHEETS_SPREADSHEET_ID or SHEETS_SPREADSHEET_ID == "YOUR_SHEET_ID_HERE":
+        logger.warning("SPREADSHEET_ID not set — skipping sheet logging.")
+        return
+
+    try:
+        client    = get_sheets_client()
+        timestamp = datetime.now().isoformat()
+        client.values().batchUpdate(
+            spreadsheetId=SHEETS_SPREADSHEET_ID,
+            body={
+                "valueInputOption": "RAW",
+                "data": [
+                    {
+                        "range": f"{SHEET_NAME}!{DEPLOYED_URL_COL_LETTER}{sheet_row}",
+                        "values": [[deploy_result["site_url"]]],
+                    },
+                    {
+                        "range": f"{SHEET_NAME}!{DEPLOYED_AT_COL_LETTER}{sheet_row}",
+                        "values": [[timestamp]],
+                    },
+                ],
+            },
+        ).execute()
+        logger.info(f"Sheet row {sheet_row} updated with {deploy_result['site_url']}")
+    except Exception as e:
+        logger.error(f"Failed to update sheet row {sheet_row}: {e}")
 
 
 # ── Orchestrator ──────────────────────────────────────────────────────────────
@@ -274,11 +304,12 @@ def process_submission(raw_data: dict, dry_run: bool = False) -> dict | None:
         work_dir = Path(tmp)
 
         try:
-            # 1. Clone template
+            # 1. Clone template repo
             repo_dir = clone_template(work_dir)
 
-            # 2. Map data → config
+            # 2. Map data → config (downloads assets into template_dir/public/assets/)
             config = map_to_site_config(raw_data, output_dir=repo_dir)
+            template = config["template"]
 
             # 3. Write siteConfig.ts into repo
             write_config_to_repo(config, repo_dir)
@@ -288,11 +319,11 @@ def process_submission(raw_data: dict, dry_run: bool = False) -> dict | None:
                 logger.info(f"Config that would be used:\n{json.dumps(config, indent=2)}")
                 return {"dry_run": True, "config": config}
 
-            # 4. Build
-            dist_dir = build_site(repo_dir)
+            # 4. Build — npm install + npm run build in templates/{template}/
+            dist_dir = build_site(repo_dir, template)
 
-            # 5. Deploy
-            site_name     = config["siteSlug"]
+            # 5. Deploy to Netlify
+            site_name     = config["meta"]["slug"]
             deploy_result = deploy_to_netlify(dist_dir, site_name)
 
             # 6. Email client
@@ -332,7 +363,7 @@ def main():
         result = process_submission(raw, dry_run=args.dry_run)
         results.append(result)
 
-    succeeded = sum(1 for r in results if r and not r.get("dry_run") or r and r.get("dry_run"))
+    succeeded = sum(1 for r in results if r)
     logger.info(f"Processed {succeeded}/{len(results)} submission(s).")
 
 

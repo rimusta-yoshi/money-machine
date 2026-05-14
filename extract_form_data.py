@@ -31,33 +31,40 @@ SPREADSHEET_ID = os.getenv("SPREADSHEET_ID", "YOUR_SHEET_ID_HERE")
 SHEET_NAME      = os.getenv("SHEET_NAME", "Form Responses 1")
 KEY_FILE        = os.getenv("GOOGLE_SERVICE_ACCOUNT_KEY", "service_account.json")
 
-# Column mapping: sheet column index (0-based) → internal field name
-# Update these to match your actual Google Form question order.
-# Column 0 is always the timestamp Google Forms adds automatically.
-COLUMN_MAP = {
-    0:  "submitted_at",
-    1:  "business_name",
-    2:  "tagline",
-    3:  "owner_name",
-    4:  "email",
-    5:  "phone",
-    6:  "address_line1",
-    7:  "address_city",
-    8:  "address_postcode",
-    9:  "services",          # comma-separated list from the form
-    10: "opening_hours",     # e.g. "Mon–Fri 9am–5pm"
-    11: "about_text",
-    12: "logo_drive_url",    # Google Drive file URL from file-upload question
-    13: "hero_image_drive_url",
-    14: "primary_colour",    # e.g. "#2a7ae2"
-    15: "facebook_url",
-    16: "instagram_url",
-    17: "site_type",         # e.g. "plumber", "barber", "restaurant"
+# Maps Google Form question text (column header) → internal field name.
+# Form branching means column positions vary per trade — never use index-based mapping.
+HEADER_MAP = {
+    "Timestamp":                                    "submitted_at",
+    "What is your trade?":                          "site_type",
+    "What style suits your business?":              "style_theme",
+    "Business Name":                                "business_name",
+    "Phone Number":                                 "phone",
+    "Email Address":                                "email",
+    "Town / City Served":                           "address_city",
+    "Full Address":                                 "address_line1",
+    "Postcode":                                     "address_postcode",
+    "Services Offered":                             "services",
+    "Opening Hours":                                "opening_hours",
+    "About Your Business":                          "about_text",
+    "Years in Business":                            "years_in_business",
+    "Primary Brand Colour":                         "primary_colour",
+    "Logo":                                         "logo_drive_url",
+    "Hero / Banner Photo":                          "hero_image_drive_url",
+    "Facebook URL":                                 "facebook_url",
+    "Instagram URL":                                "instagram_url",
+    "Would you like a gallery section?":            "want_gallery",
+    "Would you like a testimonials section?":       "want_testimonials",
+    "Would you like to show opening hours?":        "want_opening_hours",
+    "Would you like a trust/credentials section?":  "want_trust",
+    "Contact preference":                           "contact_preference",
+    "Sticky call bar?":                             "want_sticky_bar",
+    "Certifications held":                          "certifications",
+    "Do you offer emergency callouts?":             "emergency_callouts",
+    "Gas Safe registered?":                         "gas_safe",
 }
 
-# Column used to track whether a row has been processed.
-# Add a column called "Processed" to your sheet and note its index here.
-PROCESSED_COL_INDEX = 18
+# Column we add manually to track processing — stays index-based (our own column, not a form question)
+PROCESSED_COL_INDEX  = 18
 PROCESSED_COL_LETTER = "S"   # A=0, B=1 ... S=18
 
 # ── Sheets client ─────────────────────────────────────────────────────────────
@@ -97,12 +104,13 @@ def find_unprocessed_rows(rows: list[list]) -> list[tuple[int, list]]:
     return unprocessed
 
 
-def row_to_dict(row: list) -> dict:
-    """Convert a raw row list into a labelled dict using COLUMN_MAP."""
-    data = {}
-    for idx, field in COLUMN_MAP.items():
-        value = row[idx].strip() if idx < len(row) else ""
-        data[field] = value
+def row_to_dict(row: list, headers: list) -> dict:
+    """Convert a raw row to a labelled dict by matching column header text against HEADER_MAP."""
+    data = {field: "" for field in HEADER_MAP.values()}  # all fields default to ""
+    for col_idx, header_text in enumerate(headers):
+        field_name = HEADER_MAP.get(header_text.strip())
+        if field_name and col_idx < len(row):
+            data[field_name] = row[col_idx].strip()
 
     # Split services string into a proper list
     if data.get("services"):
@@ -128,11 +136,16 @@ def normalise_drive_url(url: str) -> str:
     """
     Convert a Google Drive sharing URL to a direct-download URL so the
     build script can wget/requests.get it without needing auth.
-    Sharing URL format:  https://drive.google.com/open?id=FILE_ID
-    Direct format:       https://drive.google.com/uc?export=download&id=FILE_ID
+    Handles both URL formats produced by Google Forms file-upload questions:
+      /file/d/FILE_ID/view?...   (format from Google Forms uploads)
+      /open?id=FILE_ID           (older sharing link format)
+    Direct format: https://drive.google.com/uc?export=download&id=FILE_ID
     """
     if not url:
         return ""
+    if "/file/d/" in url:
+        file_id = url.split("/file/d/")[1].split("/")[0]
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
     if "id=" in url:
         file_id = url.split("id=")[-1].split("&")[0]
         return f"https://drive.google.com/uc?export=download&id={file_id}"
@@ -161,14 +174,21 @@ def get_next_submission() -> dict | None:
     """
     client = get_sheets_client()
     rows   = fetch_all_rows(client)
-    queue  = find_unprocessed_rows(rows)
+
+    if len(rows) < 2:
+        logger.info("No submissions found.")
+        return None
+
+    headers = rows[0]
+    queue   = find_unprocessed_rows(rows)
 
     if not queue:
         logger.info("No unprocessed submissions found.")
         return None
 
     sheet_row, row_data = queue[0]
-    client_data = row_to_dict(row_data)
+    client_data = row_to_dict(row_data, headers)
+    client_data["_sheet_row"] = sheet_row  # threaded through to log_result_to_sheet()
     mark_row_processed(client, sheet_row)
 
     logger.info(f"Extracted submission for: {client_data.get('business_name', 'unknown')}")
@@ -179,11 +199,18 @@ def get_all_pending_submissions() -> list[dict]:
     """Return ALL unprocessed submissions (useful for batch runs)."""
     client = get_sheets_client()
     rows   = fetch_all_rows(client)
-    queue  = find_unprocessed_rows(rows)
+
+    if len(rows) < 2:
+        logger.info("No submissions found.")
+        return []
+
+    headers = rows[0]
+    queue   = find_unprocessed_rows(rows)
 
     results = []
     for sheet_row, row_data in queue:
-        client_data = row_to_dict(row_data)
+        client_data = row_to_dict(row_data, headers)
+        client_data["_sheet_row"] = sheet_row
         mark_row_processed(client, sheet_row)
         results.append(client_data)
 

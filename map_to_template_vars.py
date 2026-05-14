@@ -9,6 +9,7 @@ This is the layer that handles:
   - Sanitising user input (strip tags, normalise phone numbers, etc.)
   - Downloading assets (logo, hero image) from Google Drive
   - Generating a unique site slug for the client's subdomain
+  - Building the sections object from form toggle answers + style theme
   - Producing the final siteConfig.ts file content ready to write into the repo
 """
 
@@ -24,27 +25,75 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
-# These values are used whenever the client left a field blank.
-# Update to match your brand / sensible fallbacks.
 
 DEFAULTS = {
-    "tagline":          "Quality you can trust",
-    "about_text":       "We are a local business dedicated to serving our community.",
-    "opening_hours":    "Mon–Fri 9am–5pm",
-    "primary_colour":   "#1a1a2e",
-    "facebook_url":     "",
-    "instagram_url":    "",
+    "about_text":         "We are a local business dedicated to serving our community.",
+    "opening_hours":      "Mon–Fri 9am–5pm",
+    "primary_colour":     "#1a1a2e",
+    "facebook_url":       "",
+    "instagram_url":      "",
     "hero_image_drive_url": "",
+    "style_theme":        "modern",
+    "want_sticky_bar":    "Yes",
+    "contact_preference": "Quote form",
 }
 
-# Fallback stock hero images per site type (Unsplash — free, no key needed)
+# Fallback stock hero images per trade (Unsplash — free, no key needed)
 HERO_FALLBACKS = {
-    "plumber":    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600",
-    "barber":     "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1600",
-    "restaurant": "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600",
-    "fitness":    "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1600",
-    "beauty":     "https://images.unsplash.com/photo-1560066984-138daaa4e4e0?w=1600",
-    "default":    "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600",
+    "plumber":     "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600",
+    "barber":      "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1600",
+    "restaurant":  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1600",
+    "fitness":     "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1600",
+    "beauty":      "https://images.unsplash.com/photo-1560066984-138daaa4e4e0?w=1600",
+    "default":     "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1600",
+}
+
+# Maps form answer for "What is your trade?" → internal trade ID
+TRADE_MAP = {
+    "Painter / Decorator": "painter",
+    "Painter":             "painter",
+    "Decorator":           "painter",
+    "Roofer":              "roofer",
+    "Electrician":         "electrician",
+    "Landscaper":          "landscaper",
+    "Plumber":             "plumber",
+    "Barber":              "barber",
+    "Hair Salon":          "barber",
+    "Barber / Hair Salon": "barber",
+}
+
+# Maps form answer for "What style suits your business?" → internal theme name
+STYLE_MAP = {
+    "Modern & Clean":         "modern",
+    "Bold & Industrial":      "industrial",
+    "Classic & Professional": "classic",
+    "Fresh & Natural":        "fresh",
+    "Warm & Earthy":          "warm",
+    "Fresh & Bright":         "fresh",
+    "Bold":                   "industrial",
+    "Modern":                 "modern",
+    "Classic":                "classic",
+    "Warm & Classic":         "warm",
+}
+
+# Maps trade ID → which template directory to use
+TEMPLATE_MAP = {
+    "painter":     "trades",
+    "roofer":      "trades",
+    "electrician": "trades",
+    "landscaper":  "trades",
+    "plumber":     "trades",
+    "barber":      "trades",
+}
+
+# Sections available per trade — gates what can appear in the sections object
+TRADE_AVAILABLE_SECTIONS = {
+    "painter":     ["hero", "services", "gallery", "testimonials", "contact"],
+    "roofer":      ["hero", "trust", "services", "testimonials", "contact"],
+    "electrician": ["hero", "certifications", "services", "trust", "testimonials", "contact"],
+    "landscaper":  ["hero", "services", "gallery", "testimonials", "contact"],
+    "plumber":     ["hero", "trust", "services", "testimonials", "contact"],
+    "barber":      ["hero", "services", "gallery", "testimonials", "contact"],
 }
 
 # ── Sanitisation helpers ──────────────────────────────────────────────────────
@@ -55,10 +104,7 @@ def strip_html(text: str) -> str:
 
 
 def normalise_phone(phone: str) -> str:
-    """
-    Keep only digits, spaces, +, (, ), and -.
-    Makes sure a UK number starting 07 is displayed cleanly.
-    """
+    """Keep only digits, spaces, +, (, ), and -."""
     cleaned = re.sub(r"[^\d\s\+\(\)\-]", "", phone).strip()
     return cleaned
 
@@ -82,15 +128,6 @@ def format_address(line1: str, city: str, postcode: str) -> str:
     return ", ".join(parts)
 
 
-def parse_services(services_list: list[str]) -> list[dict]:
-    """
-    Turn a flat list of service strings into structured objects.
-    ["Boiler repair", "Leak detection"] →
-    [{"name": "Boiler repair", "icon": "wrench"}, ...]
-    """
-    return [{"name": svc, "icon": "default"} for svc in services_list]
-
-
 def ensure_https(url: str) -> str:
     if url and not url.startswith("http"):
         return "https://" + url
@@ -102,7 +139,7 @@ def ensure_https(url: str) -> str:
 def download_asset(url: str, dest_path: Path) -> str:
     """
     Download an asset from a URL to dest_path.
-    Returns the relative path string to embed in config, or "" on failure.
+    Returns the local path string, or "" on failure.
     """
     if not url:
         return ""
@@ -116,117 +153,203 @@ def download_asset(url: str, dest_path: Path) -> str:
         return ""
 
 
-def download_client_assets(data: dict, output_dir: Path) -> dict:
+def download_client_assets(data: dict, template_dir: Path) -> dict:
     """
     Download logo and hero image into the template's public/assets folder.
+    template_dir must point to the Vite project root (e.g. templates/trades/).
     Returns updated data dict with local relative paths filled in.
     """
-    slug = data["site_slug"]
-    asset_dir = output_dir / "public" / "assets"
+    slug      = data["site_slug"]
+    asset_dir = template_dir / "public" / "assets"
 
     # Logo
     logo_url = data.get("logo_drive_url", "")
     if logo_url:
-        ext = ".png"  # Drive exports are usually PNG; could sniff content-type
+        ext       = ".png"
         logo_dest = asset_dir / f"{slug}-logo{ext}"
-        local_path = download_asset(logo_url, logo_dest)
-        data["logo_path"] = f"/assets/{slug}-logo{ext}" if local_path else ""
+        local     = download_asset(logo_url, logo_dest)
+        data["logo_path"] = f"/assets/{slug}-logo{ext}" if local else ""
     else:
         data["logo_path"] = ""
 
     # Hero image — use fallback stock photo if none provided
     hero_url = data.get("hero_image_drive_url", "")
     if not hero_url:
-        site_type = data.get("site_type", "default")
-        hero_url = HERO_FALLBACKS.get(site_type, HERO_FALLBACKS["default"])
+        trade_id = data.get("trade_id", "default")
+        hero_url = HERO_FALLBACKS.get(trade_id, HERO_FALLBACKS["default"])
         data["hero_image_is_external"] = True
     else:
         data["hero_image_is_external"] = False
 
     if not data.get("hero_image_is_external"):
         hero_dest = asset_dir / f"{slug}-hero.jpg"
-        local_path = download_asset(hero_url, hero_dest)
-        data["hero_image_path"] = f"/assets/{slug}-hero.jpg" if local_path else hero_url
+        local     = download_asset(hero_url, hero_dest)
+        data["hero_image_path"] = f"/assets/{slug}-hero.jpg" if local else hero_url
     else:
-        data["hero_image_path"] = hero_url   # external URL used directly
+        data["hero_image_path"] = hero_url  # external URL used directly in CSS
 
     return data
+
+
+# ── Section builder ────────────────────────────────────────────────────────────
+
+def build_sections(data: dict, trade_id: str, style_theme: str) -> dict:
+    """
+    Construct the sections object from form toggle answers and style theme.
+    Only sections listed in TRADE_AVAILABLE_SECTIONS for this trade can appear.
+    """
+    available = TRADE_AVAILABLE_SECTIONS.get(trade_id, TRADE_AVAILABLE_SECTIONS["painter"])
+    sections  = {}
+
+    # Hero — always included; variant influenced by style
+    sections["hero"] = "hero-split" if style_theme == "industrial" else "hero-bold-cta"
+
+    # Trust — if available for this trade AND client selected it
+    if "trust" in available and data.get("want_trust") == "Yes":
+        sections["trust"] = "trust-bold" if style_theme == "industrial" else "trust-badges"
+
+    # Certifications — electricians/plumbers only, shown if client listed any
+    if "certifications" in available and data.get("certifications"):
+        sections["certifications"] = "certs-prominent"
+
+    # Services — always included
+    sections["services"] = "services-cards"
+
+    # Gallery — optional
+    if "gallery" in available and data.get("want_gallery") == "Yes":
+        sections["gallery"] = "gallery-masonry"
+
+    # Testimonials — optional
+    if "testimonials" in available and data.get("want_testimonials") == "Yes":
+        sections["testimonials"] = "testimonials-cards"
+
+    # Contact — always included; variant from form choice
+    sections["contact"] = (
+        "contact-form" if data.get("contact_preference", "Quote form") == "Quote form"
+        else "contact-simple"
+    )
+
+    return sections
 
 
 # ── Core mapping ──────────────────────────────────────────────────────────────
 
 def map_to_site_config(raw: dict, output_dir: Path | None = None) -> dict:
     """
-    Transform raw form data into the siteConfig shape.
+    Transform raw form data into the siteConfig shape (submission JSON schema).
 
     Args:
         raw:        Dict from extract_form_data.row_to_dict()
         output_dir: Root of the cloned template repo — if provided, assets
-                    are downloaded into public/assets/
+                    are downloaded into templates/{template}/public/assets/
 
     Returns:
-        Dict matching the SiteConfig TypeScript interface in the template.
+        Dict matching the submission JSON schema and the SiteConfig TS interface.
     """
     def get(field: str) -> str:
-        val = raw.get(field, "").strip()
+        val = raw.get(field, "")
+        if isinstance(val, str):
+            val = val.strip()
         return val if val else DEFAULTS.get(field, "")
 
-    # Generate a unique site slug from business name + timestamp
-    name_slug   = slugify(get("business_name"))
-    timestamp   = datetime.now().strftime("%Y%m%d%H%M%S")
-    site_slug   = f"{name_slug}-{timestamp}"
+    # Resolve trade ID and template from form answer
+    trade_id    = TRADE_MAP.get(get("site_type"), "painter")
+    template    = TEMPLATE_MAP.get(trade_id, "trades")
+    style_theme = STYLE_MAP.get(get("style_theme"), "modern")
+
+    # Generate unique slug
+    name_slug = slugify(get("business_name") or "site")
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    site_slug = f"{name_slug}-{timestamp}"
+
+    # Build derived fields
+    address = format_address(
+        get("address_line1"),
+        get("address_city"),
+        get("address_postcode"),
+    )
+    services_list = raw.get("services_list", [])
+    show_sticky   = get("want_sticky_bar").lower() not in ("no", "false", "0", "")
+
+    sections = build_sections(raw, trade_id, style_theme)
+
+    section_toggles = {
+        "wantGallery":       raw.get("want_gallery", "") == "Yes",
+        "wantTestimonials":  raw.get("want_testimonials", "") == "Yes",
+        "wantTrust":         raw.get("want_trust", "") == "Yes",
+        "wantOpeningHours":  raw.get("want_opening_hours", "") == "Yes",
+        "contactPreference": get("contact_preference"),
+    }
+
+    business_name = strip_html(get("business_name"))
+    about_text    = strip_html(get("about_text"))
 
     config = {
-        # ── Identity ──
-        "businessName":   strip_html(get("business_name")),
-        "tagline":        strip_html(get("tagline")),
-        "ownerName":      strip_html(get("owner_name")),
-        "siteSlug":       site_slug,
-        "siteType":       get("site_type") or "default",
+        # Pipeline metadata
+        "template":     template,
+        "slug":         site_slug,
+        "status":       "pending",
+        "submittedAt":  raw.get("submitted_at_iso", ""),
+        "generatedAt":  datetime.now().isoformat(),
+        "sheetRow":     raw.get("_sheet_row", 0),
 
-        # ── Contact ──
-        "email":          get("email").lower(),
-        "phone":          normalise_phone(get("phone")),
-        "address":        format_address(
-                              get("address_line1"),
-                              get("address_city"),
-                              get("address_postcode"),
-                          ),
-        "addressLine1":   get("address_line1"),
-        "addressCity":    get("address_city"),
-        "addressPostcode": get("address_postcode"),
+        # Site identity
+        "tradeId":      trade_id,
+        "styleTheme":   style_theme,
+        "showStickyBar": show_sticky,
 
-        # ── Content ──
-        "aboutText":      strip_html(get("about_text")),
-        "openingHours":   strip_html(get("opening_hours")),
-        "services":       parse_services(raw.get("services_list", [])),
+        # Business details
+        "business": {
+            "name":              business_name,
+            "phone":             normalise_phone(get("phone")),
+            "location":          strip_html(get("address_city")),
+            "about":             about_text,
+            "yearsInBusiness":   get("years_in_business"),
+            "email":             get("email").lower(),
+            "address":           address,
+            "openingHours":      strip_html(get("opening_hours")),
+            "emergencyCallouts": get("emergency_callouts").lower() in ("yes", "true", "1"),
+        },
 
-        # ── Assets (paths resolved below if output_dir provided) ──
-        "logoPath":       "",
-        "heroImagePath":  HERO_FALLBACKS.get(get("site_type"), HERO_FALLBACKS["default"]),
+        # Sections computed from form toggles + style theme
+        "sections":        sections,
+        "sectionToggles":  section_toggles,
 
-        # ── Social ──
-        "facebookUrl":    ensure_https(get("facebook_url")),
-        "instagramUrl":   ensure_https(get("instagram_url")),
+        # Services from form (overrides trade config defaults)
+        "services": services_list,
 
-        # ── Styling ──
-        "primaryColour":  get("primary_colour"),
+        # Styling
+        "primaryColour": get("primary_colour"),
 
-        # ── Meta / SEO ──
-        "metaTitle":      f"{strip_html(get('business_name'))} | {strip_html(get('tagline'))}",
-        "metaDescription": strip_html(get("about_text"))[:160],
+        # Assets (paths resolved below if output_dir provided)
+        "logoPath":      "",
+        "heroImagePath": HERO_FALLBACKS.get(trade_id, HERO_FALLBACKS["default"]),
 
-        # ── Internal tracking ──
-        "_submittedAt":   raw.get("submitted_at_iso", ""),
-        "_generatedAt":   datetime.now().isoformat(),
+        # Social links (empty string = hide in template)
+        "social": {
+            "facebook":  ensure_https(get("facebook_url")),
+            "instagram": ensure_https(get("instagram_url")),
+        },
+
+        # SEO
+        "meta": {
+            "title":       f"{business_name} | {strip_html(get('address_city'))}",
+            "description": about_text[:160],
+            "slug":        site_slug,
+        },
+
+        # Deployment (filled in after build-and-deploy)
+        "deployedUrl": "",
+        "deployedAt":  "",
     }
 
     # Download assets if we have a target directory
     if output_dir:
-        config_with_assets = {**raw, **{"site_slug": site_slug}}
-        config_with_assets = download_client_assets(config_with_assets, output_dir)
-        config["logoPath"]      = config_with_assets.get("logo_path", "")
-        config["heroImagePath"] = config_with_assets.get("hero_image_path", config["heroImagePath"])
+        template_dir   = output_dir / "templates" / template
+        asset_data     = {**raw, "site_slug": site_slug, "trade_id": trade_id}
+        asset_data     = download_client_assets(asset_data, template_dir)
+        config["logoPath"]      = asset_data.get("logo_path", "")
+        config["heroImagePath"] = asset_data.get("hero_image_path", config["heroImagePath"])
 
     return config
 
@@ -236,57 +359,66 @@ def map_to_site_config(raw: dict, output_dir: Path | None = None) -> dict:
 def generate_site_config_ts(config: dict) -> str:
     """
     Produce the contents of src/config/siteConfig.ts that the React template
-    imports.  The template reads from this file at build time.
+    imports at build time.
     """
-    services_json = json.dumps(config["services"], ensure_ascii=False, indent=4)
-    services_ts   = services_json.replace('"name"', 'name').replace('"icon"', 'icon')
+    # Services array as TS string[]
+    services_ts = json.dumps(config["services"], ensure_ascii=False)
 
-    # Build social object — omit keys with empty values so the UI can hide them
-    social_entries = []
-    if config["facebookUrl"]:
-        social_entries.append(f'    facebook: "{config["facebookUrl"]}"')
-    if config["instagramUrl"]:
-        social_entries.append(f'    instagram: "{config["instagramUrl"]}"')
-    social_block = "{\n" + ",\n".join(social_entries) + "\n  }" if social_entries else "{}"
+    # Sections object — keys unquoted TS object literal
+    sections_lines = "\n".join(
+        f'    {key}: "{val}",' for key, val in config["sections"].items()
+    )
+    sections_block = f"{{\n{sections_lines}\n  }}"
+
+    # Social — always emit both keys
+    facebook  = config["social"]["facebook"]
+    instagram = config["social"]["instagram"]
+
+    # Business block
+    b = config["business"]
+    emergency_callouts_ts = "true" if b["emergencyCallouts"] else "false"
 
     ts = f"""// AUTO-GENERATED — DO NOT EDIT MANUALLY
-// Generated: {config['_generatedAt']}
-// Source submission: {config['_submittedAt']}
+// Generated: {config['generatedAt']}
+// Submission slug: {config['slug']}
 
 export const siteConfig = {{
-  // Identity
-  businessName: "{config['businessName']}",
-  tagline:      "{config['tagline']}",
-  ownerName:    "{config['ownerName']}",
-  siteSlug:     "{config['siteSlug']}",
-  siteType:     "{config['siteType']}",
+  tradeId:      "{config['tradeId']}",
+  styleTheme:   "{config['styleTheme']}",
+  showStickyBar: {str(config['showStickyBar']).lower()},
 
-  // Contact
-  email:          "{config['email']}",
-  phone:          "{config['phone']}",
-  address:        "{config['address']}",
-  addressLine1:   "{config['addressLine1']}",
-  addressCity:    "{config['addressCity']}",
-  addressPostcode: "{config['addressPostcode']}",
+  business: {{
+    name:              "{b['name']}",
+    phone:             "{b['phone']}",
+    location:          "{b['location']}",
+    about:             "{b['about']}",
+    yearsInBusiness:   "{b['yearsInBusiness']}",
+    email:             "{b['email']}",
+    address:           "{b['address']}",
+    openingHours:      "{b['openingHours']}",
+    emergencyCallouts: {emergency_callouts_ts},
+  }},
 
-  // Content
-  aboutText:    "{config['aboutText']}",
-  openingHours: "{config['openingHours']}",
-  services: {services_json},
+  sections: {sections_block},
 
-  // Assets
+  services: {services_ts},
+
+  primaryColour: "{config['primaryColour']}",
   logoPath:      "{config['logoPath']}",
   heroImagePath: "{config['heroImagePath']}",
 
-  // Social
-  social: {social_block},
+  social: {{
+    facebook:  "{facebook}",
+    instagram: "{instagram}",
+  }},
 
-  // Styling
-  primaryColour: "{config['primaryColour']}",
+  meta: {{
+    title:       "{config['meta']['title']}",
+    description: "{config['meta']['description']}",
+    slug:        "{config['meta']['slug']}",
+  }},
 
-  // SEO
-  metaTitle:       "{config['metaTitle']}",
-  metaDescription: "{config['metaDescription']}",
+  mode: "site",
 }} as const;
 
 export type SiteConfig = typeof siteConfig;
@@ -295,8 +427,9 @@ export type SiteConfig = typeof siteConfig;
 
 
 def write_config_to_repo(config: dict, repo_root: Path):
-    """Write the generated siteConfig.ts into the template repo."""
-    config_dir = repo_root / "src" / "config"
+    """Write the generated siteConfig.ts into the correct template subdirectory."""
+    template   = config.get("template", "trades")
+    config_dir = repo_root / "templates" / template / "src" / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
     dest = config_dir / "siteConfig.ts"
     dest.write_text(generate_site_config_ts(config), encoding="utf-8")
