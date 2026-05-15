@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.business.name }}{% endblock %}
+{% block page_title %}{{ config.business.name }}{% endblock %}
+
+{% block topbar_actions %}
+<span class="badge">{{ config.tradeId }}</span>
+<span class="badge badge-theme">{{ config.styleTheme }}</span>
+<a href="{{ url_for('submissions') }}" class="btn btn-ghost">← Back</a>
+{% endblock %}
+
+{% block content %}
+<div class="submission-layout">
+
+  <!-- Left panel: editable fields -->
+  <aside class="fields-panel">
+    <div class="save-status" id="save-status"></div>
+
+    <section class="field-group">
+      <h3>Business Details</h3>
+      <label>Business Name
+        <input type="text" data-field="business.name" value="{{ config.business.name }}">
+      </label>
+      <label>Phone
+        <input type="text" data-field="business.phone" value="{{ config.business.phone }}">
+      </label>
+      <label>Email
+        <input type="email" data-field="business.email" value="{{ config.business.email }}">
+      </label>
+      <label>Location
+        <input type="text" data-field="business.location" value="{{ config.business.location }}">
+      </label>
+      <label>Address
+        <input type="text" data-field="business.address" value="{{ config.business.address }}">
+      </label>
+      <label>Opening Hours
+        <input type="text" data-field="business.openingHours" value="{{ config.business.openingHours }}">
+      </label>
+      <label>About
+        <textarea data-field="business.about" rows="3">{{ config.business.about }}</textarea>
+      </label>
+    </section>
+
+    <section class="field-group">
+      <h3>Appearance</h3>
+      <label>Style Theme
+        <select data-field="styleTheme">
+          {% for theme in style_themes %}
+          <option value="{{ theme }}" {% if config.styleTheme == theme %}selected{% endif %}>{{ theme }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Primary Colour
+        <div class="colour-row">
+          <input type="color" id="colour-picker" value="{{ config.primaryColour or '#1a1a2e' }}">
+          <input type="text" data-field="primaryColour" id="colour-text" value="{{ config.primaryColour or '#1a1a2e' }}" placeholder="#1a1a2e">
+        </div>
+      </label>
+    </section>
+
+    <section class="field-group">
+      <h3>Sections</h3>
+      {% for section in available_sections %}
+      {% if section in config.sections %}
+      <label>{{ section | capitalize }}
+        <select data-field="sections.{{ section }}">
+          {% for value, label in section_variants.get(section, []) %}
+          <option value="{{ value }}" {% if config.sections[section] == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      {% endfor %}
+    </section>
+
+    <section class="field-group">
+      <h3>Services</h3>
+      <label>One per line
+        <textarea id="services-textarea" rows="5">{{ config.services | join('\n') }}</textarea>
+      </label>
+    </section>
+
+    <section class="field-group">
+      <h3>Social Links</h3>
+      <label>Facebook
+        <input type="url" data-field="social.facebook" value="{{ config.social.facebook }}">
+      </label>
+      <label>Instagram
+        <input type="url" data-field="social.instagram" value="{{ config.social.instagram }}">
+      </label>
+    </section>
+
+    <section class="field-group action-group">
+      <h3>Actions</h3>
+      <div class="dev-controls">
+        <button id="start-dev-btn" class="btn {% if dev_running %}hidden{% endif %}">Start Preview</button>
+        <button id="stop-dev-btn" class="btn btn-ghost {% if not dev_running %}hidden{% endif %}">Stop Preview</button>
+        <span id="dev-status" class="muted">{% if dev_running %}Preview running{% else %}Preview stopped{% endif %}</span>
+      </div>
+      <div class="approve-reject">
+        <button id="approve-btn" class="btn btn-success">Approve &amp; Build</button>
+        <button id="reject-btn" class="btn btn-danger">Reject</button>
+      </div>
+    </section>
+  </aside>
+
+  <!-- Right panel: live preview iframe -->
+  <div class="preview-panel">
+    <div class="preview-bar">
+      <span class="preview-label">Live Preview — localhost:5173</span>
+      <button class="btn btn-sm" onclick="document.getElementById('preview-frame').src='http://localhost:5173'">Reload</button>
+    </div>
+    <iframe id="preview-frame" src="{% if dev_running %}http://localhost:5173{% endif %}" class="preview-iframe"></iframe>
+  </div>
+
+</div>
+
+<script>
+  const SLUG = {{ slug | tojson }};
+
+  // ── Debounce ──────────────────────────────────────────────────────────────
+  const debounce = (fn, delay) => {
+    let timer;
+    return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+  };
+
+  const saveStatus = document.getElementById('save-status');
+  const showStatus = (msg, cls) => {
+    saveStatus.textContent = msg;
+    saveStatus.className = 'save-status ' + cls;
+    if (cls === 'saved') setTimeout(() => { saveStatus.textContent = ''; saveStatus.className = 'save-status'; }, 2000);
+  };
+
+  const sendPatch = async (patch) => {
+    showStatus('Saving…', 'saving');
+    try {
+      const resp = await fetch(`/submissions/${SLUG}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (resp.ok) {
+        showStatus('Saved', 'saved');
+      } else {
+        showStatus('Save failed', 'error');
+      }
+    } catch {
+      showStatus('Save failed', 'error');
+    }
+  };
+
+  const debouncedPatch = debounce(sendPatch, 600);
+
+  // Wire up all data-field inputs
+  document.querySelectorAll('[data-field]').forEach(el => {
+    const handler = () => debouncedPatch({ [el.dataset.field]: el.value });
+    el.addEventListener('input', handler);
+    el.addEventListener('change', handler);
+  });
+
+  // Services textarea
+  const servicesTa = document.getElementById('services-textarea');
+  const patchServices = debounce(() => {
+    const services = servicesTa.value.split('\n').map(s => s.trim()).filter(Boolean);
+    sendPatch({ services });
+  }, 600);
+  servicesTa.addEventListener('input', patchServices);
+
+  // Colour picker syncs with text input
+  const colourPicker = document.getElementById('colour-picker');
+  const colourText = document.getElementById('colour-text');
+  colourPicker.addEventListener('input', () => {
+    colourText.value = colourPicker.value;
+    debouncedPatch({ primaryColour: colourPicker.value });
+  });
+  colourText.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(colourText.value)) {
+      colourPicker.value = colourText.value;
+    }
+  });
+
+  // ── Dev server controls ────────────────────────────────────────────────────
+  const startBtn = document.getElementById('start-dev-btn');
+  const stopBtn  = document.getElementById('stop-dev-btn');
+  const devStatus = document.getElementById('dev-status');
+  const iframe   = document.getElementById('preview-frame');
+
+  startBtn.addEventListener('click', async () => {
+    startBtn.disabled = true;
+    devStatus.textContent = 'Starting…';
+    await fetch('/devserver/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: SLUG }),
+    });
+    // Give Vite ~2s to boot
+    setTimeout(() => {
+      iframe.src = 'http://localhost:5173';
+      startBtn.classList.add('hidden');
+      stopBtn.classList.remove('hidden');
+      startBtn.disabled = false;
+      devStatus.textContent = 'Preview running';
+    }, 2000);
+  });
+
+  stopBtn.addEventListener('click', async () => {
+    await fetch('/devserver/stop', { method: 'POST' });
+    iframe.src = '';
+    stopBtn.classList.add('hidden');
+    startBtn.classList.remove('hidden');
+    devStatus.textContent = 'Preview stopped';
+  });
+
+  // ── Approve / Reject ───────────────────────────────────────────────────────
+  document.getElementById('approve-btn').addEventListener('click', async () => {
+    if (!confirm(`Approve and trigger build for "${SLUG}"?`)) return;
+    const btn = document.getElementById('approve-btn');
+    btn.disabled = true;
+    btn.textContent = 'Dispatching…';
+    const resp = await fetch(`/submissions/${SLUG}/approve`, { method: 'POST' });
+    const data = await resp.json();
+    alert(data.message);
+    if (data.ok) {
+      window.location = '/builds';
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Approve & Build';
+    }
+  });
+
+  document.getElementById('reject-btn').addEventListener('click', async () => {
+    if (!confirm('Reject this submission and move it to completed?')) return;
+    const resp = await fetch(`/submissions/${SLUG}/reject`, { method: 'POST' });
+    const data = await resp.json();
+    if (data.redirect) window.location = data.redirect;
+  });
+</script>
+{% endblock %}

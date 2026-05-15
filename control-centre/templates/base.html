@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Control Centre{% endblock %} — Money Machine</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-mark">MM</span>
+      <span class="logo-text">Control Centre</span>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+      <li><a href="{{ url_for('submissions') }}" class="{% if request.endpoint in ('submissions', 'submission_detail') %}active{% endif %}">Submissions</a></li>
+      <li><a href="{{ url_for('builds') }}" class="{% if request.endpoint == 'builds' %}active{% endif %}">Builds</a></li>
+    </ul>
+  </nav>
+
+  <main class="main">
+    <header class="topbar">
+      <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+      <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+    </header>
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</body>
+</html>

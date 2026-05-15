@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Builds{% endblock %}
+{% block page_title %}Recent Builds{% endblock %}
+
+{% block topbar_actions %}
+<button class="btn" onclick="location.reload()">Refresh</button>
+{% endblock %}
+
+{% block content %}
+{% if runs %}
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Status</th>
+        <th>Conclusion</th>
+        <th>Started</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in runs %}
+      <tr>
+        <td>{{ r.display_title }}</td>
+        <td><span class="badge badge-status-{{ r.status }}">{{ r.status }}</span></td>
+        <td>
+          {% if r.conclusion %}
+          <span class="badge badge-{{ r.conclusion }}">{{ r.conclusion }}</span>
+          {% else %}
+          <span class="muted">—</span>
+          {% endif %}
+        </td>
+        <td class="muted">{{ r.created_at[:16].replace('T', ' ') }}</td>
+        <td><a href="{{ r.html_url }}" target="_blank" class="btn btn-sm">View on GitHub</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif not runs %}
+<div class="empty-state">
+  <p>No build runs found — or GITHUB_PAT is not set.</p>
+</div>
+{% endif %}
+{% endblock %}

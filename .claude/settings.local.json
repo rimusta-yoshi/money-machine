@@ -36,7 +36,8 @@
       "PowerShell(Set-Location *)",
       "Bash(\"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node.exe\" --version)",
       "Bash(python -c \"import ast, sys; ast.parse\\(open\\('ci_queue.py'\\).read\\(\\)\\); print\\('ci_queue.py OK'\\)\")",
-      "Bash(python -c \"import ast, sys; ast.parse\\(open\\('ci_deploy.py'\\).read\\(\\)\\); print\\('ci_deploy.py OK'\\)\")"
+      "Bash(python -c \"import ast, sys; ast.parse\\(open\\('ci_deploy.py'\\).read\\(\\)\\); print\\('ci_deploy.py OK'\\)\")",
+      "Bash(\"C:\\\\Users\\\\kiero\\\\AppData\\\\Local\\\\Programs\\\\Python\\\\Python312\\\\python.exe\" -m pip install -r requirements.txt)"
     ]
   }
 }
