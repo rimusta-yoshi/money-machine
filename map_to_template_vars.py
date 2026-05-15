@@ -341,6 +341,11 @@ def map_to_site_config(raw: dict, output_dir: Path | None = None) -> dict:
         # Deployment (filled in after build-and-deploy)
         "deployedUrl": "",
         "deployedAt":  "",
+
+        # Raw Drive download URLs — used by CI build step to download assets
+        # Not emitted in siteConfig.ts
+        "logoDownloadUrl":  raw.get("logo_drive_url", ""),
+        "heroDownloadUrl":  raw.get("hero_image_drive_url", ""),
     }
 
     # Download assets if we have a target directory
