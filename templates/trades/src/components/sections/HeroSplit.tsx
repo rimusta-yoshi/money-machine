@@ -5,9 +5,10 @@ import { Badge } from '../ui/Badge'
 interface Props {
   business: BusinessInfo
   trade: TradeConfig
+  heroImagePath?: string
 }
 
-export function HeroSplit({ business, trade }: Props) {
+export function HeroSplit({ business, trade, heroImagePath }: Props) {
   return (
     <section style={{
       display: 'grid',
@@ -39,7 +40,10 @@ export function HeroSplit({ business, trade }: Props) {
         </div>
       </div>
       <div style={{
-        backgroundColor: '#d1d5db',
+        backgroundColor: heroImagePath ? 'transparent' : '#d1d5db',
+        backgroundImage: heroImagePath ? `url(${heroImagePath})` : 'none',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         minHeight: '300px',
         display: 'flex',
         alignItems: 'center',
@@ -48,7 +52,7 @@ export function HeroSplit({ business, trade }: Props) {
         fontWeight: 600,
         fontSize: '0.9rem',
       }}>
-        Photo of your work
+        {!heroImagePath && 'Photo of your work'}
       </div>
     </section>
   )

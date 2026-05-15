@@ -1,4 +1,4 @@
-export type TradeId = 'painter' | 'roofer' | 'electrician' | 'landscaper'
+export type TradeId = 'painter' | 'roofer' | 'electrician' | 'landscaper' | 'plumber' | 'barber'
 
 export type SectionType =
   | 'hero'
@@ -51,10 +51,31 @@ export interface BusinessInfo {
   location: string
   about: string
   yearsInBusiness: string
+  email?: string
+  address?: string
+  openingHours?: string
+  emergencyCallouts?: boolean
 }
 
 export interface BuilderState {
   trade: TradeConfig | null
   business: BusinessInfo
   selections: Record<SectionType, string>
+}
+
+export type StyleTheme = 'modern' | 'industrial' | 'classic' | 'fresh' | 'warm'
+
+export interface SiteConfig {
+  tradeId: TradeId
+  styleTheme: StyleTheme
+  showStickyBar: boolean
+  business: BusinessInfo
+  sections: Partial<Record<SectionType, string>>
+  services: string[]
+  primaryColour: string
+  logoPath: string
+  heroImagePath: string
+  social: { facebook: string; instagram: string }
+  meta: { title: string; description: string; slug: string }
+  mode: 'site' | 'builder'
 }

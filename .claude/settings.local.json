@@ -23,7 +23,17 @@
       "PowerShell(& \"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\nvm.exe\" use 23.5.0 2>&1)",
       "PowerShell(node --version 2>&1)",
       "Bash(\"C:/Users/kiero/.config/herd/bin/nvm/v23.5.0/node.exe\" --version)",
-      "Bash(export PATH=\"C:/Users/kiero/.config/herd/bin/nvm/v23.5.0:$PATH\")"
+      "Bash(export PATH=\"C:/Users/kiero/.config/herd/bin/nvm/v23.5.0:$PATH\")",
+      "Bash(not exist *)",
+      "Bash(\"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node.exe\" node_modules/.bin/tsc --noEmit)",
+      "Bash(\"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node.exe\" \"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node_modules\\\\npm\\\\bin\\\\npm-cli.js\" run tsc -- --noEmit)",
+      "Bash(\"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node.exe\" \"C:\\\\Users\\\\kiero\\\\.config\\\\herd\\\\bin\\\\nvm\\\\v23.5.0\\\\node_modules\\\\npm\\\\bin\\\\npm-cli.js\" run build)",
+      "PowerShell(\\(Get-ChildItem \"C:\\\\Users\\\\kiero\\\\Documents\\\\GitHub\\\\money-machine\\\\templates\\\\trades\\\\node_modules\" -ErrorAction SilentlyContinue | Measure-Object\\).Count)",
+      "PowerShell([System.IO.Directory]::Exists\\(\"C:\\\\Users\\\\kiero\\\\Documents\\\\GitHub\\\\money-machine\\\\templates\\\\trades\\\\node_modules\"\\))",
+      "PowerShell(Split-Path *)",
+      "PowerShell([System.IO.Directory]::GetFiles\\(\"C:\\\\Users\\\\kiero\\\\Documents\\\\GitHub\\\\money-machine\\\\templates\\\\trades\\\\node_modules\\\\typescript\\\\bin\"\\))",
+      "PowerShell([System.IO.Directory]::GetFiles\\(\"C:\\\\Users\\\\kiero\\\\Documents\\\\GitHub\\\\money-machine\\\\templates\\\\trades\\\\node_modules\\\\vite\\\\bin\"\\))",
+      "PowerShell(Set-Location *)"
     ]
   }
 }
