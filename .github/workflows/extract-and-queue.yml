@@ -1,0 +1,54 @@
+name: Extract and Queue
+
+on:
+  repository_dispatch:
+    types: [new-form-submission]
+
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write service account key
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > service_account.json
+
+      - name: Extract and queue submission
+        id: queue
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SHEET_NAME: ${{ vars.SHEET_NAME }}
+        run: python ci_queue.py
+
+      - name: Commit submission JSON
+        if: steps.queue.outputs.slug != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add submissions/pending/
+          git commit -m "queue: ${{ steps.queue.outputs.business_name }} (${{ steps.queue.outputs.slug }})"
+          git push
+
+      - name: Create review issue
+        if: steps.queue.outputs.slug != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Review pending: ${{ steps.queue.outputs.business_name }}" \
+            --body "**Slug:** ${{ steps.queue.outputs.slug }}
+          **Trade:** ${{ steps.queue.outputs.trade_id }}
+          **Submitted:** ${{ steps.queue.outputs.submitted_at }}
+
+          Approve via the Control Centre at http://localhost:8000"

@@ -21,11 +21,22 @@ export function ContactSimple({ business, trade }: Props) {
         {business.phone && (
           <Button size="lg">📞 {business.phone}</Button>
         )}
-        <Button size="lg" variant="outline">Send an Email</Button>
+        {business.email ? (
+          <a href={`mailto:${business.email}`} style={{ textDecoration: 'none' }}>
+            <Button size="lg" variant="outline">📧 {business.email}</Button>
+          </a>
+        ) : (
+          <Button size="lg" variant="outline">Send an Email</Button>
+        )}
       </div>
       {business.location && (
         <p style={{ marginTop: '24px', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
           Serving {business.location} and surrounding areas
+        </p>
+      )}
+      {business.address && (
+        <p style={{ marginTop: '8px', color: 'var(--color-text-muted)', fontSize: '0.95rem' }}>
+          {business.address}
         </p>
       )}
     </section>

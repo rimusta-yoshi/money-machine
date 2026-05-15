@@ -56,6 +56,11 @@ export function ContactForm({ business, trade }: Props) {
             Or call us directly: <strong style={{ color: 'var(--color-text)' }}>{business.phone}</strong>
           </p>
         )}
+        {business.email && (
+          <p style={{ textAlign: 'center', marginTop: '8px', color: 'var(--color-text-muted)' }}>
+            Or email: <a href={`mailto:${business.email}`} style={{ color: 'var(--color-primary)' }}>{business.email}</a>
+          </p>
+        )}
       </div>
     </section>
   )

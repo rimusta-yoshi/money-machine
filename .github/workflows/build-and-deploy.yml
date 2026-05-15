@@ -1,0 +1,68 @@
+name: Build and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      submission_slug:
+        description: 'Submission slug (filename without .json)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Write service account key
+        run: echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}' > service_account.json
+
+      - name: Prepare build (download assets + write siteConfig.ts)
+        id: prep
+        run: python ci_deploy.py --step prep --slug ${{ inputs.submission_slug }}
+
+      - name: Install npm dependencies
+        run: npm ci --prefix templates/${{ steps.prep.outputs.template }}
+
+      - name: Build site
+        run: npm run build --prefix templates/${{ steps.prep.outputs.template }}
+
+      - name: Deploy to Netlify, email client, log to sheet
+        id: deploy
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_TEAM_SLUG: ${{ secrets.NETLIFY_TEAM_SLUG }}
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          SHEET_NAME: ${{ vars.SHEET_NAME }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          DEPLOYED_URL_COL_LETTER: ${{ vars.DEPLOYED_URL_COL_LETTER }}
+          DEPLOYED_AT_COL_LETTER: ${{ vars.DEPLOYED_AT_COL_LETTER }}
+        run: python ci_deploy.py --step post --slug ${{ inputs.submission_slug }}
+
+      - name: Move to completed and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p submissions/completed
+          git mv submissions/pending/${{ inputs.submission_slug }}.json submissions/completed/${{ inputs.submission_slug }}.json
+          git add submissions/completed/
+          git commit -m "completed: ${{ inputs.submission_slug }} → ${{ steps.deploy.outputs.site_url }}"
+          git push

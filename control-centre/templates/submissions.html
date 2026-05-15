@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Submissions{% endblock %}
+{% block page_title %}Pending Submissions{% endblock %}
+
+{% block content %}
+{% if submissions %}
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Business</th>
+        <th>Trade</th>
+        <th>Theme</th>
+        <th>Location</th>
+        <th>Submitted</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td><strong>{{ s.business.name }}</strong></td>
+        <td><span class="badge">{{ s.tradeId }}</span></td>
+        <td><span class="badge badge-theme">{{ s.styleTheme }}</span></td>
+        <td class="muted">{{ s.business.location }}</td>
+        <td class="muted">{{ s.submittedAt[:10] if s.submittedAt else '—' }}</td>
+        <td>
+          <a href="{{ url_for('submission_detail', slug=s.slug) }}" class="btn btn-sm">Review</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No submissions pending review.</p>
+</div>
+{% endif %}
+{% endblock %}

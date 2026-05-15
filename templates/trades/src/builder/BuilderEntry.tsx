@@ -1,14 +1,14 @@
 import { useState } from 'react'
-import type { BusinessInfo, TradeConfig } from './types'
-import { trades } from './trades'
-import { TradeCard } from './builder/TradeCard'
-import { SetupForm } from './builder/SetupForm'
-import { BuilderCanvas } from './builder/BuilderCanvas'
-import { StickyCallBar } from './components/ui/StickyCallBar'
+import type { BusinessInfo, TradeConfig } from '../types'
+import { trades } from '../trades'
+import { TradeCard } from './TradeCard'
+import { SetupForm } from './SetupForm'
+import { BuilderCanvas } from './BuilderCanvas'
+import { StickyCallBar } from '../components/ui/StickyCallBar'
 
 type Step = 'pick-trade' | 'setup' | 'build'
 
-export default function App() {
+export function BuilderEntry() {
   const [step, setStep] = useState<Step>('pick-trade')
   const [trade, setTrade] = useState<TradeConfig | null>(null)
   const [business, setBusiness] = useState<BusinessInfo | null>(null)
