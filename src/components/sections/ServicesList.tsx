@@ -1,33 +1,59 @@
 import type { TradeConfig } from '../../types'
+import { Icon } from '../ui/Icon'
 
 interface Props {
   trade: TradeConfig
 }
 
+type IconKey = keyof typeof Icon
+const SERVICE_ICONS: IconKey[] = ['Wrench', 'Bolt', 'Shield', 'Check', 'Star', 'Clock', 'Home', 'Truck']
+
 export function ServicesList({ trade }: Props) {
   return (
-    <section style={{ padding: '64px 32px', backgroundColor: 'var(--color-surface)' }}>
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '32px', color: 'var(--color-text)' }}>
-          What We Do
-        </h2>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {trade.services.map(service => (
-            <li key={service} style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              padding: '16px 0',
-              borderBottom: '1px solid #e2e8f0',
-              fontSize: '1.05rem',
-              fontWeight: 600,
-              color: 'var(--color-text)',
+    <section style={{ backgroundColor: 'var(--surface)', padding: '36px 18px 32px' }}>
+      <p style={{
+        fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '11px',
+        textTransform: 'uppercase', letterSpacing: '0.14em',
+        color: 'var(--accent-ink)', marginBottom: '8px',
+      }}>
+        Our services
+      </p>
+      <h2 style={{
+        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px',
+        lineHeight: 1.15, color: 'var(--ink)', marginBottom: '18px',
+      }}>
+        What we do
+      </h2>
+      <div style={{
+        background: 'var(--bg)', border: '1px solid var(--line)',
+        borderRadius: '14px', overflow: 'hidden',
+      }}>
+        {trade.services.map((service, i) => {
+          const IconComp = Icon[SERVICE_ICONS[i % SERVICE_ICONS.length]]
+          return (
+            <div key={service} style={{
+              display: 'grid', gridTemplateColumns: '44px 1fr 24px',
+              gap: '14px', alignItems: 'center',
+              padding: '14px 16px',
+              borderBottom: i < trade.services.length - 1 ? '1px solid var(--line)' : 'none',
             }}>
-              <span style={{ color: 'var(--color-primary)', fontWeight: 800, fontSize: '1.2rem' }}>✓</span>
-              {service}
-            </li>
-          ))}
-        </ul>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '10px',
+                background: 'var(--accent-tint)', color: 'var(--accent-ink)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <IconComp size={20} />
+              </div>
+              <p style={{
+                fontFamily: 'var(--font-display)', fontWeight: 700,
+                fontSize: '14px', color: 'var(--ink)',
+              }}>
+                {service}
+              </p>
+              <Icon.Arrow size={16} style={{ color: 'var(--muted)' } as React.CSSProperties} />
+            </div>
+          )
+        })}
       </div>
     </section>
   )

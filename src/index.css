@@ -1,3 +1,49 @@
+/* Design tokens — locked palette + typography */
+:root {
+  --bg:          #FFFFFF;
+  --surface:     #F4F6F8;
+  --line:        #E5E9EF;
+  --ink:         #0F172A;
+  --muted:       #475569;
+
+  /* Theme (overridden per trade via App.tsx) */
+  --navy:        #0B2545;
+  --navy-2:      #133762;
+  --accent:      #1E88E5;
+  --accent-ink:  #0B5BA8;
+  --accent-tint: #E8F1FB;
+
+  /* Status */
+  --live:   #4ADE80;
+  --star:   #FFD262;
+
+  /* On-dark */
+  --on-dark-fg:    #FFFFFF;
+  --on-dark-muted: rgba(255,255,255,0.72);
+  --on-dark-line:  rgba(255,255,255,0.14);
+  --on-dark-fill:  rgba(255,255,255,0.10);
+
+  /* Fonts */
+  --font-display: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-body:    "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Radii */
+  --r-icon:   10px;
+  --r-input:  12px;
+  --r-card:   16px;
+  --r-form:   18px;
+  --r-pill:   999px;
+
+  /* Shadows */
+  --shadow-card-hover: 0 6px 14px rgba(11,37,69,0.06);
+  --shadow-cta:        0 6px 16px rgba(30,136,229,0.35);
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; -webkit-font-smoothing: antialiased; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+body { font-family: var(--font-body); font-size: 15px; line-height: 1.5; color: var(--ink); background: var(--surface); }
+button { font: inherit; cursor: pointer; }
+a { text-decoration: none; color: inherit; }
+input, textarea, select { font: inherit; }
 #root { min-height: 100vh; }

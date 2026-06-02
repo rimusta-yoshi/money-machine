@@ -1,22 +1,23 @@
-export type TradeId = 'painter' | 'roofer' | 'electrician' | 'landscaper'
+export type TradeId = 'painter' | 'roofer' | 'electrician' | 'landscaper' | 'plumber'
 
 export type SectionType =
   | 'hero'
+  | 'trust_bar'
   | 'services'
+  | 'about'
+  | 'why_us'
   | 'gallery'
-  | 'trust'
   | 'certifications'
   | 'testimonials'
+  | 'areas'
   | 'contact'
 
 export interface ColorScheme {
-  primary: string
-  primaryDark: string
+  navy: string
+  navyHover: string
   accent: string
-  bg: string
-  surface: string
-  text: string
-  textMuted: string
+  accentInk: string
+  accentTint: string
 }
 
 export interface SectionVariant {

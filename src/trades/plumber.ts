@@ -1,23 +1,23 @@
 import type { TradeConfig } from '../types'
 
-export const roofer: TradeConfig = {
-  id: 'roofer',
-  name: 'Roofer',
-  emoji: '🏠',
-  tagline: 'Trusted roofing — local, licensed, and guaranteed.',
+export const plumber: TradeConfig = {
+  id: 'plumber',
+  name: 'Plumber',
+  emoji: '🔧',
+  tagline: 'Local plumbers you can actually rely on.',
   colorScheme: {
-    navy: '#0D2113',
-    navyHover: '#163320',
-    accent: '#16A34A',
-    accentInk: '#15803D',
-    accentTint: '#F0FDF4',
+    navy: '#0B2545',
+    navyHover: '#133762',
+    accent: '#1E88E5',
+    accentInk: '#0B5BA8',
+    accentTint: '#E8F1FB',
   },
   sections: [
     {
       type: 'hero',
       recommended: 'hero-dark',
       variants: [
-        { id: 'hero-dark', label: 'Dark hero', component: 'HeroDark' },
+        { id: 'hero-dark', label: 'Dark navy hero', component: 'HeroDark' },
         { id: 'hero-split', label: 'Split with photo', component: 'HeroSplit' },
       ],
     },
@@ -38,6 +38,13 @@ export const roofer: TradeConfig = {
       ],
     },
     {
+      type: 'about',
+      recommended: 'about-photo',
+      variants: [
+        { id: 'about-photo', label: 'Photo + stats', component: 'AboutPhotoLed' },
+      ],
+    },
+    {
       type: 'why_us',
       recommended: 'why-features',
       variants: [
@@ -52,6 +59,13 @@ export const roofer: TradeConfig = {
       ],
     },
     {
+      type: 'areas',
+      recommended: 'areas-grid',
+      variants: [
+        { id: 'areas-grid', label: 'Area grid + map', component: 'AreasGrid' },
+      ],
+    },
+    {
       type: 'contact',
       recommended: 'contact-full',
       variants: [
@@ -60,9 +74,9 @@ export const roofer: TradeConfig = {
       ],
     },
   ],
-  ctaText: 'Get a Free Roof Inspection',
-  ctaSubtext: 'No obligation — we come to you',
-  trustSignals: ['30+ Years Experience', 'Fully Licensed & Insured', 'Manufacturer Warranty', 'Emergency Service Available', 'Free Estimates', 'Storm Damage Specialists'],
-  services: ['Roof Replacement', 'Roof Repair', 'Gutters & Fascia', 'Storm Damage', 'Flat Roofing', 'Inspections'],
-  stickyCallBar: false,
+  ctaText: 'Get a Free Quote',
+  ctaSubtext: 'We respond within 15 minutes',
+  trustSignals: ['Fully Insured · £2m', 'Local Family Business', '24/7 Emergency Callouts', '5★ Rated · 312 Reviews', '12+ Years Experience', 'Same-Day Visits'],
+  services: ['Leak Repairs', 'Boiler Repairs', 'Bathroom Plumbing', 'Pipe Installations', 'Drain Unblocking', 'General Plumbing'],
+  stickyCallBar: true,
 }

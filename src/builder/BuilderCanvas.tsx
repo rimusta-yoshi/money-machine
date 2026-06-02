@@ -65,8 +65,8 @@ export function BuilderCanvas({ trade, business, onReset }: Props) {
         <div style={{
           marginTop: '40px',
           padding: '32px',
-          backgroundColor: `${trade.colorScheme.primary}08`,
-          border: `2px solid ${trade.colorScheme.primary}`,
+          backgroundColor: trade.colorScheme.accentTint,
+          border: `2px solid ${trade.colorScheme.accent}`,
           borderRadius: '14px',
           textAlign: 'center',
         }}>

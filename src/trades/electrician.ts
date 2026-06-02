@@ -4,23 +4,28 @@ export const electrician: TradeConfig = {
   id: 'electrician',
   name: 'Electrician',
   emoji: '⚡',
-  tagline: 'Certified electricians — safe, reliable, local',
+  tagline: 'Certified electricians — safe, reliable, local.',
   colorScheme: {
-    primary: '#f59e0b',
-    primaryDark: '#d97706',
-    accent: '#1e293b',
-    bg: '#ffffff',
-    surface: '#fffbeb',
-    text: '#0f172a',
-    textMuted: '#64748b',
+    navy: '#1C1710',
+    navyHover: '#2A2318',
+    accent: '#D97706',
+    accentInk: '#B45309',
+    accentTint: '#FEF3C7',
   },
   sections: [
     {
       type: 'hero',
-      recommended: 'hero-bold-cta',
+      recommended: 'hero-dark',
       variants: [
-        { id: 'hero-bold-cta', label: 'Bold CTA', component: 'HeroBoldCta' },
+        { id: 'hero-dark', label: 'Dark hero', component: 'HeroDark' },
         { id: 'hero-split', label: 'Split with photo', component: 'HeroSplit' },
+      ],
+    },
+    {
+      type: 'trust_bar',
+      recommended: 'trust-bar-scroll',
+      variants: [
+        { id: 'trust-bar-scroll', label: 'Scroll strip', component: 'TrustBarScroll' },
       ],
     },
     {
@@ -33,32 +38,31 @@ export const electrician: TradeConfig = {
     },
     {
       type: 'services',
-      recommended: 'services-cards',
+      recommended: 'services-grid',
       variants: [
-        { id: 'services-cards', label: 'Service cards', component: 'ServicesCards' },
-        { id: 'services-list', label: 'Simple list', component: 'ServicesList' },
+        { id: 'services-grid', label: 'Cards + urgent', component: 'ServicesGrid' },
+        { id: 'services-list', label: 'List rows', component: 'ServicesList' },
       ],
     },
     {
-      type: 'trust',
-      recommended: 'trust-badges',
+      type: 'testimonials',
+      recommended: 'reviews-carousel',
       variants: [
-        { id: 'trust-badges', label: 'Badge row', component: 'TrustBadges' },
-        { id: 'trust-bold', label: 'Bold trust banner', component: 'TrustBold' },
+        { id: 'reviews-carousel', label: 'Review carousel', component: 'ReviewsCarousel' },
       ],
     },
     {
       type: 'contact',
-      recommended: 'contact-form',
+      recommended: 'contact-full',
       variants: [
-        { id: 'contact-form', label: 'Quote form', component: 'ContactForm' },
-        { id: 'contact-simple', label: 'Phone + email', component: 'ContactSimple' },
+        { id: 'contact-full', label: 'Full (hours + form)', component: 'ContactFull' },
+        { id: 'contact-simple', label: 'Simple CTA', component: 'ContactSimple' },
       ],
     },
   ],
   ctaText: 'Book an Electrician',
   ctaSubtext: 'Same-day service available',
-  trustSignals: ['Master Electrician Certified', 'ESA Approved', 'Fully Insured', '24/7 Emergency Calls'],
+  trustSignals: ['Master Electrician Certified', 'NICEIC Approved', 'Fully Insured', '24/7 Emergency Calls', 'Free Safety Inspections', 'EV Charger Specialists'],
   services: ['Panel Upgrades', 'Rewiring', 'EV Charger Install', 'Lighting', 'Safety Inspections', 'Emergency Repairs'],
   stickyCallBar: false,
 }

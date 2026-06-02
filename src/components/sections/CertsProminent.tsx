@@ -1,4 +1,5 @@
 import type { TradeConfig } from '../../types'
+import { Icon } from '../ui/Icon'
 
 interface Props {
   trade: TradeConfig
@@ -6,34 +7,46 @@ interface Props {
 
 export function CertsProminent({ trade }: Props) {
   return (
-    <section style={{ padding: '64px 32px', backgroundColor: 'var(--color-bg)' }}>
-      <div style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', color: 'var(--color-text)' }}>
-          Certified & Fully Licensed
-        </h2>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '48px' }}>
-          Our credentials mean your work meets every safety standard
-        </p>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '20px',
-        }}>
-          {trade.trustSignals.map(signal => (
-            <div key={signal} style={{
-              padding: '32px 20px',
-              border: '2px solid var(--color-primary)',
-              borderRadius: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '10px',
+    <section style={{ padding: '36px 18px 32px', backgroundColor: 'var(--bg)' }}>
+      <p style={{
+        fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '11px',
+        textTransform: 'uppercase', letterSpacing: '0.14em',
+        color: 'var(--accent-ink)', marginBottom: '8px',
+      }}>
+        Certified &amp; licensed
+      </p>
+      <h2 style={{
+        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px',
+        lineHeight: 1.15, color: 'var(--ink)', marginBottom: '8px',
+      }}>
+        Our credentials mean your work is safe.
+      </h2>
+      <p style={{ fontSize: '14px', color: 'var(--muted)', marginBottom: '20px' }}>
+        Every certificate on file. Available on request.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        {trade.trustSignals.map(signal => (
+          <div key={signal} style={{
+            padding: '18px 14px', border: '2px solid var(--accent-tint)',
+            borderRadius: '14px', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '10px', textAlign: 'center',
+            background: 'var(--bg)',
+          }}>
+            <div style={{
+              width: '44px', height: '44px', borderRadius: '12px',
+              background: 'var(--accent-tint)', color: 'var(--accent-ink)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: '2rem' }}>🏅</span>
-              <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text)', textAlign: 'center' }}>{signal}</span>
+              <Icon.Badge size={22} />
             </div>
-          ))}
-        </div>
+            <p style={{
+              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '13px',
+              color: 'var(--ink)', lineHeight: 1.3,
+            }}>
+              {signal}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   )

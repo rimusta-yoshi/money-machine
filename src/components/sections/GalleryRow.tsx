@@ -1,36 +1,45 @@
 import type { TradeConfig } from '../../types'
 
-const PLACEHOLDER_COLORS = ['#cbd5e1', '#d1d5db', '#c7d2fe', '#bbf7d0', '#fde68a']
-
 interface Props {
   trade: TradeConfig
 }
 
 export function GalleryRow({ trade }: Props) {
   return (
-    <section style={{ padding: '64px 0', backgroundColor: 'var(--color-surface)', overflow: 'hidden' }}>
-      <div style={{ maxWidth: '960px', margin: '0 auto', padding: '0 32px' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '32px', color: 'var(--color-text)' }}>
-          Recent Projects
+    <section style={{ padding: '36px 0 32px', backgroundColor: 'var(--surface)', overflow: 'hidden' }}>
+      <div style={{ padding: '0 18px', marginBottom: '16px' }}>
+        <p style={{
+          fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '11px',
+          textTransform: 'uppercase', letterSpacing: '0.14em',
+          color: 'var(--accent-ink)', marginBottom: '8px',
+        }}>
+          Our work
+        </p>
+        <h2 style={{
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px',
+          lineHeight: 1.15, color: 'var(--ink)',
+        }}>
+          Recent projects
         </h2>
       </div>
-      <div style={{ display: 'flex', gap: '16px', paddingLeft: '32px', overflowX: 'auto', paddingBottom: '8px' }}>
-        {PLACEHOLDER_COLORS.map((color, i) => (
+      <div style={{ display: 'flex', gap: '12px', paddingLeft: '18px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '4px' }}>
+        {Array.from({ length: 5 }, (_, i) => (
           <div key={i} style={{
-            flex: '0 0 280px',
-            height: '200px',
-            backgroundColor: color,
-            borderRadius: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#374151',
-            fontWeight: 600,
-            fontSize: '0.85rem',
+            flex: '0 0 240px', height: '180px', borderRadius: '14px',
+            background: 'var(--accent-tint)', border: '1px solid var(--line)',
+            position: 'relative', overflow: 'hidden',
           }}>
-            {trade.name} project {i + 1}
+            <span style={{
+              position: 'absolute', left: '10px', bottom: '8px',
+              background: 'rgba(255,255,255,0.85)', padding: '4px 8px', borderRadius: '6px',
+              fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.06em',
+              textTransform: 'uppercase', color: 'var(--ink)', border: '1px solid var(--line)',
+            }}>
+              PHOTO · {trade.name.toLowerCase()} {i + 1}
+            </span>
           </div>
         ))}
+        <div style={{ flex: '0 0 18px' }} />
       </div>
     </section>
   )

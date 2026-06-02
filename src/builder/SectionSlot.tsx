@@ -11,6 +11,19 @@ interface Props {
   slotIndex: number
 }
 
+const SECTION_LABELS: Record<string, string> = {
+  hero: 'Hero',
+  trust_bar: 'Trust Bar',
+  services: 'Services',
+  about: 'About',
+  why_us: 'Why Us',
+  gallery: 'Gallery',
+  certifications: 'Certifications',
+  testimonials: 'Reviews',
+  areas: 'Service Areas',
+  contact: 'Contact',
+}
+
 export function SectionSlot({ section, trade, business, selectedVariantId, onSelect, slotIndex }: Props) {
   const [currentIndex, setCurrentIndex] = useState(() =>
     Math.max(0, section.variants.findIndex(v => v.id === section.recommended))
@@ -19,63 +32,45 @@ export function SectionSlot({ section, trade, business, selectedVariantId, onSel
   const variant = section.variants[currentIndex]
   const isSelected = variant.id === selectedVariantId
   const isRecommended = variant.id === section.recommended
+  const { accent, accentTint, accentInk } = trade.colorScheme
 
   const prev = () => setCurrentIndex(i => (i - 1 + section.variants.length) % section.variants.length)
   const next = () => setCurrentIndex(i => (i + 1) % section.variants.length)
 
-  const SECTION_LABELS: Record<string, string> = {
-    hero: 'Hero',
-    services: 'Services',
-    gallery: 'Gallery',
-    trust: 'Trust',
-    certifications: 'Certifications',
-    testimonials: 'Testimonials',
-    contact: 'Contact',
-  }
-
   return (
     <div style={{
-      border: `2px solid ${isSelected ? trade.colorScheme.primary : '#e2e8f0'}`,
+      border: `2px solid ${isSelected ? accent : 'var(--line)'}`,
       borderRadius: '16px',
       overflow: 'hidden',
       transition: 'border-color 0.2s',
-      backgroundColor: '#fff',
+      backgroundColor: 'var(--bg)',
     }}>
       {/* Slot header */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 20px',
-        borderBottom: '1px solid #f1f5f9',
-        backgroundColor: isSelected ? `${trade.colorScheme.primary}08` : '#fafafa',
+        padding: '10px 16px',
+        borderBottom: `1px solid var(--line)`,
+        backgroundColor: isSelected ? accentTint : 'var(--surface)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            backgroundColor: isSelected ? trade.colorScheme.primary : '#e2e8f0',
-            color: isSelected ? '#fff' : '#94a3b8',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: '22px', height: '22px', borderRadius: '50%',
+            backgroundColor: isSelected ? accent : 'var(--line)',
+            color: isSelected ? '#fff' : 'var(--muted)',
+            fontSize: '0.72rem', fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {isSelected ? '✓' : slotIndex + 1}
           </span>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
-            {SECTION_LABELS[section.type]}
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', color: 'var(--ink)' }}>
+            {SECTION_LABELS[section.type] ?? section.type}
           </span>
           {isRecommended && (
             <span style={{
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '9999px',
-              backgroundColor: `${trade.colorScheme.primary}18`,
-              color: trade.colorScheme.primary,
+              fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px',
+              borderRadius: '999px', backgroundColor: accentTint, color: accentInk,
             }}>
               Recommended
             </span>
@@ -85,7 +80,7 @@ export function SectionSlot({ section, trade, business, selectedVariantId, onSel
           {section.variants.length > 1 && (
             <>
               <button onClick={prev} style={navBtnStyle}>‹</button>
-              <span style={{ fontSize: '0.8rem', color: '#94a3b8', minWidth: '50px', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.78rem', color: 'var(--muted)', minWidth: '44px', textAlign: 'center' }}>
                 {currentIndex + 1} / {section.variants.length}
               </span>
               <button onClick={next} style={navBtnStyle}>›</button>
@@ -94,14 +89,11 @@ export function SectionSlot({ section, trade, business, selectedVariantId, onSel
           <button
             onClick={() => onSelect(variant.id)}
             style={{
-              padding: '6px 16px',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: isSelected ? trade.colorScheme.primary : '#f1f5f9',
-              color: isSelected ? '#fff' : '#475569',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
+              padding: '6px 14px', borderRadius: '8px', border: 'none',
+              backgroundColor: isSelected ? accent : 'var(--bg)',
+              color: isSelected ? '#fff' : 'var(--muted)',
+              fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer',
+              outline: isSelected ? 'none' : `1.5px solid var(--line)`,
               transition: 'all 0.15s',
             }}
           >
@@ -110,32 +102,18 @@ export function SectionSlot({ section, trade, business, selectedVariantId, onSel
         </div>
       </div>
 
-      {/* Preview area */}
+      {/* Preview */}
       <div style={{ position: 'relative' }}>
-        {/* Variant label */}
         <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          zIndex: 10,
-          backgroundColor: 'rgba(0,0,0,0.55)',
-          color: '#fff',
-          padding: '4px 10px',
-          borderRadius: '6px',
-          fontSize: '0.75rem',
-          fontWeight: 600,
+          position: 'absolute', top: '10px', right: '10px', zIndex: 10,
+          backgroundColor: 'rgba(11,37,69,0.6)', color: '#fff',
+          padding: '3px 9px', borderRadius: '6px',
+          fontFamily: 'var(--font-mono)', fontSize: '0.68rem',
           pointerEvents: 'none',
         }}>
           {variant.label}
         </div>
-
-        {/* Actual section preview */}
-        <div style={{
-          transform: 'scale(1)',
-          transformOrigin: 'top left',
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}>
+        <div style={{ pointerEvents: 'none', userSelect: 'none' }}>
           <SectionRenderer componentName={variant.component} business={business} trade={trade} />
         </div>
       </div>
@@ -144,16 +122,9 @@ export function SectionSlot({ section, trade, business, selectedVariantId, onSel
 }
 
 const navBtnStyle: React.CSSProperties = {
-  width: '28px',
-  height: '28px',
-  borderRadius: '6px',
-  border: '1.5px solid #e2e8f0',
-  backgroundColor: '#fff',
-  cursor: 'pointer',
-  fontSize: '1.1rem',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  color: '#475569',
-  padding: 0,
+  width: '26px', height: '26px', borderRadius: '6px',
+  border: '1.5px solid var(--line)', backgroundColor: 'var(--bg)',
+  cursor: 'pointer', fontSize: '1rem',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: 'var(--muted)', padding: 0,
 }

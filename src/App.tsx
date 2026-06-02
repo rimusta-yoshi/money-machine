@@ -31,17 +31,12 @@ export default function App() {
     <>
       <style>{`
         :root {
-          --color-primary: ${colors?.primary ?? '#2563eb'};
-          --color-primary-dark: ${colors?.primaryDark ?? '#1d4ed8'};
-          --color-accent: ${colors?.accent ?? '#1e293b'};
-          --color-bg: ${colors?.bg ?? '#ffffff'};
-          --color-surface: ${colors?.surface ?? '#f8fafc'};
-          --color-text: ${colors?.text ?? '#0f172a'};
-          --color-text-muted: ${colors?.textMuted ?? '#64748b'};
+          --navy:        ${colors?.navy        ?? '#0B2545'};
+          --navy-2:      ${colors?.navyHover   ?? '#133762'};
+          --accent:      ${colors?.accent      ?? '#1E88E5'};
+          --accent-ink:  ${colors?.accentInk   ?? '#0B5BA8'};
+          --accent-tint: ${colors?.accentTint  ?? '#E8F1FB'};
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
-        input:focus, textarea:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
       `}</style>
 
       {step === 'pick-trade' && (
@@ -75,7 +70,7 @@ export default function App() {
                 <button
                   onClick={continueToBuild}
                   style={{
-                    backgroundColor: trade.colorScheme.primary,
+                    backgroundColor: trade.colorScheme.accent,
                     color: '#fff',
                     border: 'none',
                     padding: '16px 40px',
@@ -105,7 +100,7 @@ export default function App() {
         <>
           <BuilderCanvas trade={trade} business={business} onReset={reset} />
           {trade.stickyCallBar && business.phone && (
-            <StickyCallBar phone={business.phone} ctaText={trade.ctaText} />
+            <StickyCallBar phone={business.phone} />
           )}
         </>
       )}

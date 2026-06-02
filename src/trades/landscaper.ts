@@ -4,15 +4,13 @@ export const landscaper: TradeConfig = {
   id: 'landscaper',
   name: 'Landscaper',
   emoji: '🌿',
-  tagline: 'Lawn care and landscaping — your neighbourhood specialists',
+  tagline: 'Lawn care and landscaping — your neighbourhood specialists.',
   colorScheme: {
-    primary: '#16a34a',
-    primaryDark: '#15803d',
-    accent: '#78350f',
-    bg: '#ffffff',
-    surface: '#f0fdf4',
-    text: '#0f172a',
-    textMuted: '#64748b',
+    navy: '#0A1F0E',
+    navyHover: '#132B18',
+    accent: '#15803D',
+    accentInk: '#166534',
+    accentTint: '#F0FDF4',
   },
   sections: [
     {
@@ -20,7 +18,15 @@ export const landscaper: TradeConfig = {
       recommended: 'hero-split',
       variants: [
         { id: 'hero-split', label: 'Split with photo', component: 'HeroSplit' },
-        { id: 'hero-bold-cta', label: 'Bold CTA', component: 'HeroBoldCta' },
+        { id: 'hero-dark', label: 'Dark hero', component: 'HeroDark' },
+      ],
+    },
+    {
+      type: 'trust_bar',
+      recommended: 'trust-bar-scroll',
+      variants: [
+        { id: 'trust-bar-scroll', label: 'Scroll strip', component: 'TrustBarScroll' },
+        { id: 'trust-grid', label: 'Trust grid', component: 'TrustGrid' },
       ],
     },
     {
@@ -33,32 +39,31 @@ export const landscaper: TradeConfig = {
     },
     {
       type: 'services',
-      recommended: 'services-cards',
+      recommended: 'services-grid',
       variants: [
-        { id: 'services-cards', label: 'Service cards', component: 'ServicesCards' },
-        { id: 'services-list', label: 'Simple list', component: 'ServicesList' },
+        { id: 'services-grid', label: 'Cards + urgent', component: 'ServicesGrid' },
+        { id: 'services-list', label: 'List rows', component: 'ServicesList' },
       ],
     },
     {
       type: 'testimonials',
-      recommended: 'testimonials-cards',
+      recommended: 'reviews-carousel',
       variants: [
-        { id: 'testimonials-cards', label: 'Review cards', component: 'TestimonialsCards' },
-        { id: 'testimonials-simple', label: 'Quote strip', component: 'TestimonialsSimple' },
+        { id: 'reviews-carousel', label: 'Review carousel', component: 'ReviewsCarousel' },
       ],
     },
     {
       type: 'contact',
-      recommended: 'contact-form',
+      recommended: 'contact-full',
       variants: [
-        { id: 'contact-form', label: 'Quote form', component: 'ContactForm' },
-        { id: 'contact-simple', label: 'Phone + email', component: 'ContactSimple' },
+        { id: 'contact-full', label: 'Full (hours + form)', component: 'ContactFull' },
+        { id: 'contact-simple', label: 'Simple CTA', component: 'ContactSimple' },
       ],
     },
   ],
   ctaText: 'Request a Free Estimate',
   ctaSubtext: 'Serving your area since 2005',
-  trustSignals: ['Licensed & Insured', 'Locally Owned', 'Satisfaction Guaranteed', 'Free Consultations'],
-  services: ['Lawn Maintenance', 'Landscape Design', 'Sod Installation', 'Garden Beds', 'Snow Removal', 'Tree Trimming'],
+  trustSignals: ['Licensed & Insured', 'Locally Owned', 'Satisfaction Guaranteed', 'Free Consultations', '15+ Years Experience', 'Eco-Friendly Practices'],
+  services: ['Lawn Maintenance', 'Landscape Design', 'Sod Installation', 'Garden Beds', 'Tree Trimming', 'Snow Removal'],
   stickyCallBar: false,
 }
