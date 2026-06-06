@@ -1,82 +1,249 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import type { CSSProperties } from 'react'
 import type { BusinessInfo, SectionType, TradeConfig } from '../types'
-import { SectionSlot } from './SectionSlot'
-import { Button } from '../components/ui/Button'
+import { SectionRenderer } from '../components/sections/SectionRenderer'
+import { Icon } from '../components/ui/Icon'
 
 interface Props {
   trade: TradeConfig
   business: BusinessInfo
-  onReset: () => void
+  mobile: boolean
+  onDone: () => void
+}
+
+const SECTION_LABELS: Record<string, string> = {
+  hero: 'Hero',
+  trust_bar: 'Trust Bar',
+  services: 'Services',
+  about: 'About',
+  why_us: 'Why Us',
+  gallery: 'Gallery',
+  certifications: 'Certifications',
+  testimonials: 'Reviews',
+  areas: 'Service Areas',
+  contact: 'Contact',
 }
 
 function defaultSelections(trade: TradeConfig): Record<SectionType, string> {
   return Object.fromEntries(
-    trade.sections.map(s => [s.type, s.recommended])
+    trade.sections.map(s => [s.type, ''])
   ) as Record<SectionType, string>
 }
 
-export function BuilderCanvas({ trade, business, onReset }: Props) {
-  const [selections, setSelections] = useState<Record<SectionType, string>>(() => defaultSelections(trade))
+export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
+  const sections = trade.sections
+  const [selections, setSelections] = useState(() => defaultSelections(trade))
+  const [previewIdx, setPreviewIdx] = useState<Record<string, number>>({})
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [locking, setLocking] = useState<string | null>(null)
+  const bandRefs = useRef<(HTMLDivElement | null)[]>([])
+  const stackScrollRef = useRef<HTMLDivElement | null>(null)
 
-  const select = (type: SectionType, variantId: string) =>
-    setSelections(prev => ({ ...prev, [type]: variantId }))
+  useEffect(() => {
+    const el = bandRefs.current[activeIdx]
+    if (!el) return
+    if (mobile) {
+      el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    } else {
+      const sc = stackScrollRef.current
+      if (!sc) return
+      const offset = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 22
+      sc.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' })
+    }
+  }, [activeIdx, mobile])
 
-  const allSelected = trade.sections.every(s => selections[s.type])
+  if (sections.length === 0) return null
+
+  const getPreviewIdx = (type: SectionType) => previewIdx[type] ?? 0
+  const isLocked = (type: SectionType) => !!selections[type]
+
+  const cycle = (type: SectionType, count: number, dir: 1 | -1) => {
+    setPreviewIdx(p => ({ ...p, [type]: ((p[type] ?? 0) + dir + count) % count }))
+  }
+
+  const selectCurrent = () => {
+    if (locking) return
+    const sec = sections[activeIdx]
+    const idx = getPreviewIdx(sec.type)
+    const variant = sec.variants[idx]
+    const newSel = { ...selections, [sec.type]: variant.id }
+    setSelections(newSel)
+    setLocking(sec.type)
+    setTimeout(() => setLocking(null), 520)
+    setTimeout(() => {
+      for (let i = activeIdx + 1; i < sections.length; i++) {
+        if (!newSel[sections[i].type]) { setActiveIdx(i); return }
+      }
+      for (let i = 0; i < sections.length; i++) {
+        if (!newSel[sections[i].type]) { setActiveIdx(i); return }
+      }
+    }, 280)
+  }
+
+  const resolveVariant = (sIdx: number) => {
+    const sec = sections[sIdx]
+    if (isLocked(sec.type)) {
+      return sec.variants.find(v => v.id === selections[sec.type]) ?? sec.variants[0]
+    }
+    if (sIdx === activeIdx) return sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
+    return sec.variants.find(v => v.id === sec.recommended) ?? sec.variants[0]
+  }
+
+  const doneCount = sections.filter(s => isLocked(s.type)).length
+  const allDone = doneCount === sections.length
+
+  const activeSec = sections[activeIdx]
+  const activePrevIdx = getPreviewIdx(activeSec.type)
+  const activeVariant = activeSec.variants[activePrevIdx]
+  const locked = isLocked(activeSec.type)
+  const nextSec = sections[(activeIdx + 1) % sections.length]
+
+  const useBtn = (
+    <button
+      type="button"
+      className={`mm-select${locked ? ' locked' : ''}${locking === activeSec.type ? ' mm-locking' : ''}`}
+      onClick={selectCurrent}
+    >
+      <Icon.Check size={16} />
+      {locked ? 'Selected — next section' : 'Use this layout'}
+    </button>
+  )
 
   return (
-    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '40px 24px 80px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <button onClick={onReset} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '0.9rem', padding: 0, marginBottom: '8px' }}>
-            ← Start over
-          </button>
-          <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            {trade.emoji} Build your {trade.name} site
-          </h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-            {trade.sections.filter(s => selections[s.type]).length} / {trade.sections.length} sections
-          </span>
+    <div className="mm-stack-layout">
+      {/* ---- Left: assembled site ---- */}
+      <div className="mm-stack-view" ref={stackScrollRef}>
+        <div className="mm-stack-site">
+          {sections.map((sec, i) => {
+            const state = i === activeIdx ? 'active' : isLocked(sec.type) ? 'done' : 'todo'
+            const variant = resolveVariant(i)
+            const label = SECTION_LABELS[sec.type] ?? sec.type
+            const isActive = i === activeIdx
+            return (
+              <div
+                key={sec.type}
+                className={`mm-band ${state}`}
+                ref={el => { bandRefs.current[i] = el }}
+                onClick={() => !isActive && setActiveIdx(i)}
+                role={isActive ? undefined : 'button'}
+                tabIndex={isActive ? undefined : 0}
+                onKeyDown={isActive ? undefined : e => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveIdx(i) }
+                }}
+                aria-label={isActive ? undefined : `Edit ${label} section`}
+              >
+                <div className="mm-band-tag">
+                  {state === 'done' && <Icon.Check size={10} />}
+                  {state === 'done' && ' '}
+                  {state === 'active' ? `Choosing · ${label}` : label}
+                </div>
+                {/* wrapper key drives the slide-in animation without unmounting SectionRenderer */}
+                <div className="mm-vanim" key={`${sec.type}-${variant.id}`}>
+                  <div style={{ pointerEvents: 'none' }}>
+                    <SectionRenderer componentName={variant.component} business={business} trade={trade} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
-      <p style={{ color: '#64748b', marginBottom: '36px' }}>
-        Swipe through each section to pick the layout you like. Selected sections stack to form your site.
-      </p>
 
-      {/* Section slots */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        {trade.sections.map((section, i) => (
-          <SectionSlot
-            key={section.type}
-            section={section}
-            trade={trade}
-            business={business}
-            selectedVariantId={selections[section.type]}
-            onSelect={(id) => select(section.type, id)}
-            slotIndex={i}
-          />
-        ))}
-      </div>
+      {/* ---- Right: control rail ---- */}
+      {mobile ? (
+        <div className="mm-stack-ctrl">
+          <div className="sc-mob-track">
+            <div
+              className={`sc-mob-fill${allDone ? ' full' : ''}`}
+              style={{ width: `${(doneCount / sections.length) * 100}%` } as CSSProperties}
+            />
+          </div>
+          <div className="mob-row">
+            <button
+              type="button"
+              className="mm-arrow"
+              onClick={() => cycle(activeSec.type, activeSec.variants.length, -1)}
+              aria-label="Previous layout"
+            >
+              ‹
+            </button>
+            <div className="mob-meta">
+              <div className="mob-sec">
+                {locked && <Icon.Check size={13} style={{ color: 'var(--ok)' }} />}
+                {SECTION_LABELS[activeSec.type]}
+                <span className="mob-of">{activePrevIdx + 1}/{activeSec.variants.length}</span>
+              </div>
+              <div className="mob-var">{activeVariant.label}</div>
+            </div>
+            <button
+              type="button"
+              className="mm-arrow"
+              onClick={() => cycle(activeSec.type, activeSec.variants.length, 1)}
+              aria-label="Next layout"
+            >
+              ›
+            </button>
+          </div>
+          {allDone
+            ? <button type="button" className="sc-launch" onClick={onDone}><Icon.Arrow size={16} /> Get this site live</button>
+            : useBtn}
+        </div>
+      ) : (
+        <div className="mm-stack-ctrl">
+          <div className="sc-prog">
+            <div className="sc-prog-top">
+              <b>{doneCount}/{sections.length} sections set</b>
+              <span>{allDone ? 'Ready to publish' : `Next: ${SECTION_LABELS[nextSec.type]}`}</span>
+            </div>
+            <div className="sc-track">
+              <div
+                className={`sc-fill${allDone ? ' full' : ''}`}
+                style={{ width: `${(doneCount / sections.length) * 100}%` } as CSSProperties}
+              />
+            </div>
+          </div>
 
-      {/* Done CTA */}
-      {allSelected && (
-        <div style={{
-          marginTop: '40px',
-          padding: '32px',
-          backgroundColor: trade.colorScheme.accentTint,
-          border: `2px solid ${trade.colorScheme.accent}`,
-          borderRadius: '14px',
-          textAlign: 'center',
-        }}>
-          <h3 style={{ fontWeight: 800, fontSize: '1.4rem', color: '#0f172a', marginBottom: '8px' }}>
-            Your site is ready 🎉
-          </h3>
-          <p style={{ color: '#64748b', marginBottom: '24px' }}>
-            {business.name} — {trade.sections.length} sections selected
-          </p>
-          <Button size="lg">Get This Site Live</Button>
+          <div className="sc-now">
+            <div className="sc-eyebrow">{locked ? 'CHOSEN' : 'NOW CHOOSING'}</div>
+            <div className="sc-name">{SECTION_LABELS[activeSec.type]}</div>
+            <div className="sc-arrows">
+              <button
+                type="button"
+                className="mm-arrow"
+                onClick={() => cycle(activeSec.type, activeSec.variants.length, -1)}
+                aria-label="Previous layout"
+              >
+                ‹
+              </button>
+              <div className="sc-vmeta">
+                <div className="sc-vname">{activeVariant.label}</div>
+                <div className="mm-dots">
+                  {activeSec.variants.map((_, i) => (
+                    <span key={i} className={i === activePrevIdx ? 'on' : ''} />
+                  ))}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mm-arrow"
+                onClick={() => cycle(activeSec.type, activeSec.variants.length, 1)}
+                aria-label="Next layout"
+              >
+                ›
+              </button>
+            </div>
+            <div className="sc-tip">
+              Layout {activePrevIdx + 1} of {activeSec.variants.length} · swaps into the live site
+            </div>
+            {useBtn}
+          </div>
+
+          {allDone && (
+            <button type="button" className="sc-launch" onClick={onDone}>
+              <Icon.Arrow size={16} /> Get this site live
+            </button>
+          )}
+          <div className="sc-hint">Tap any band in the site to jump to it.</div>
         </div>
       )}
     </div>

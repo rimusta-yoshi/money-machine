@@ -1,109 +1,234 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import type { CSSProperties } from 'react'
+import './builder/builder.css'
 import type { BusinessInfo, TradeConfig } from './types'
 import { trades } from './trades'
 import { TradeCard } from './builder/TradeCard'
 import { SetupForm } from './builder/SetupForm'
 import { BuilderCanvas } from './builder/BuilderCanvas'
-import { StickyCallBar } from './components/ui/StickyCallBar'
+import { BuilderTopBar } from './builder/BuilderTopBar'
+import { Icon } from './components/ui/Icon'
 
 type Step = 'pick-trade' | 'setup' | 'build'
+
+const SECTION_LABELS: Record<string, string> = {
+  hero: 'Hero', trust_bar: 'Trust Bar', services: 'Services',
+  about: 'About', why_us: 'Why Us', gallery: 'Gallery',
+  certifications: 'Certifications', testimonials: 'Reviews',
+  areas: 'Service Areas', contact: 'Contact',
+}
+
+function stepNumber(step: Step): 1 | 2 | 3 {
+  if (step === 'pick-trade') return 1
+  if (step === 'setup') return 2
+  return 3
+}
 
 export default function App() {
   const [step, setStep] = useState<Step>('pick-trade')
   const [trade, setTrade] = useState<TradeConfig | null>(null)
   const [business, setBusiness] = useState<BusinessInfo | null>(null)
+  const [mobile, setMobile] = useState(false)
+  const [done, setDone] = useState(false)
 
-  const pickTrade = (t: TradeConfig) => setTrade(t)
-  const continueToBuild = () => setStep('setup')
-  const handleSetup = (info: BusinessInfo) => {
-    setBusiness(info)
-    setStep('build')
+  const handlePickTrade = (t: TradeConfig) => setTrade(t)
+  const handleContinue = () => setStep('setup')
+  const handleSetup = (info: BusinessInfo) => { setBusiness(info); setStep('build') }
+  const handleGoStep = (n: 1 | 2) => {
+    if (n === 1) setStep('pick-trade')
+    if (n === 2 && business) setStep('setup')
   }
   const reset = () => {
     setTrade(null)
     setBusiness(null)
     setStep('pick-trade')
+    setDone(false)
   }
 
-  const colors = trade?.colorScheme
+  const cssVars = useMemo<CSSProperties | undefined>(() => {
+    if (!trade) return undefined
+    return {
+      '--accent': trade.colorScheme.accent,
+      '--accent-ink': trade.colorScheme.accentInk,
+      '--navy': trade.colorScheme.navy,
+    } as CSSProperties
+  }, [trade?.colorScheme.accent, trade?.colorScheme.accentInk, trade?.colorScheme.navy])
 
   return (
-    <>
-      <style>{`
-        :root {
-          --navy:        ${colors?.navy        ?? '#0B2545'};
-          --navy-2:      ${colors?.navyHover   ?? '#133762'};
-          --accent:      ${colors?.accent      ?? '#1E88E5'};
-          --accent-ink:  ${colors?.accentInk   ?? '#0B5BA8'};
-          --accent-tint: ${colors?.accentTint  ?? '#E8F1FB'};
-        }
-      `}</style>
+    <div className="mm-root" style={cssVars}>
+      <BuilderTopBar
+        step={stepNumber(step)}
+        onGoStep={handleGoStep}
+        trade={trade}
+        mobile={mobile}
+        setMobile={setMobile}
+      />
 
-      {step === 'pick-trade' && (
-        <div style={{ minHeight: '100vh', padding: '40px 24px' }}>
-          <div style={{ maxWidth: '760px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-              <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em', marginBottom: '12px' }}>
-                Build your trade site
-              </h1>
-              <p style={{ fontSize: '1.15rem', color: '#64748b', maxWidth: '480px', margin: '0 auto' }}>
-                Pick your trade and we'll generate a professional local website — built for quote requests.
-              </p>
-            </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '16px',
-              marginBottom: '32px',
-            }}>
-              {trades.map(t => (
-                <TradeCard
-                  key={t.id}
-                  trade={t}
-                  selected={trade?.id === t.id}
-                  onClick={() => pickTrade(t)}
-                />
-              ))}
-            </div>
-            {trade && (
-              <div style={{ textAlign: 'center' }}>
+      <div className={`mm-stage${mobile ? ' mobile' : ''}`}>
+        <div className={`mm-wrap${step === 'build' ? ' wide' : ''}`}>
+
+          {/* ---- STEP 1: Pick trade ---- */}
+          {step === 'pick-trade' && (
+            <>
+              <div>
+                <div className="mm-eyebrow">STEP <b>01</b> / 03 · PICK YOUR TRADE</div>
+                <h1 className="mm-title">What do you do?</h1>
+                <p className="mm-sub">
+                  Pick your trade and we'll load a site built for it — the right services, the right words, the right look.
+                </p>
+              </div>
+
+              <div className={`mm-trades${trade ? ' has-sel' : ''}`}>
+                {trades.map(t => (
+                  <TradeCard
+                    key={t.id}
+                    trade={t}
+                    selected={trade?.id === t.id}
+                    onClick={() => handlePickTrade(t)}
+                  />
+                ))}
+              </div>
+
+              <div className="mm-dock">
+                <span className="mm-dock-hint">
+                  {trade
+                    ? <>Loaded: <b style={{ color: 'var(--ink)' }}>{trade.name}</b> content &amp; theme</>
+                    : 'Tap a trade to continue'}
+                </span>
                 <button
-                  onClick={continueToBuild}
-                  style={{
-                    backgroundColor: trade.colorScheme.accent,
-                    color: '#fff',
-                    border: 'none',
-                    padding: '16px 40px',
-                    borderRadius: '10px',
-                    fontSize: '1.1rem',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    letterSpacing: '-0.01em',
-                    transition: 'opacity 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
-                  onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                  type="button"
+                  className="mm-cta"
+                  disabled={!trade}
+                  onClick={handleContinue}
                 >
-                  Continue as {trade.emoji} {trade.name} →
+                  {trade ? `Continue as ${trade.emoji} ${trade.name}` : 'Pick a trade'}
+                  <Icon.Arrow size={18} />
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {step === 'setup' && trade && (
-        <SetupForm trade={trade} onSubmit={handleSetup} onBack={() => setStep('pick-trade')} />
-      )}
-
-      {step === 'build' && trade && business && (
-        <>
-          <BuilderCanvas trade={trade} business={business} onReset={reset} />
-          {trade.stickyCallBar && business.phone && (
-            <StickyCallBar phone={business.phone} />
+            </>
           )}
-        </>
+
+          {/* ---- STEP 2: Setup form ---- */}
+          {step === 'setup' && trade && (
+            <SetupForm trade={trade} onSubmit={handleSetup} onBack={() => setStep('pick-trade')} />
+          )}
+
+          {/* ---- STEP 3: Builder ---- */}
+          {step === 'build' && trade && business && (
+            <>
+              <div className="mm-build-top">
+                <div>
+                  <div className="mm-eyebrow">STEP <b>03</b> / 03 · BUILD</div>
+                  <h1 className="mm-title">Pick a layout for each section.</h1>
+                  <p className="mm-sub" style={{ maxWidth: '46ch' }}>
+                    Real layouts, filled with your content. Lock one in and the next section steps up.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={reset}
+                  style={{
+                    background: 'none',
+                    border: '1.5px solid var(--line)',
+                    borderRadius: '10px',
+                    padding: '8px 14px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    color: 'var(--muted)',
+                    cursor: 'pointer',
+                    alignSelf: 'flex-end',
+                  }}
+                >
+                  ← Start over
+                </button>
+              </div>
+
+              <BuilderCanvas
+                trade={trade}
+                business={business}
+                mobile={mobile}
+                onDone={() => setDone(true)}
+              />
+            </>
+          )}
+
+        </div>
+      </div>
+
+      {/* Done overlay — only shown after all sections chosen; no StickyCallBar overlap risk */}
+      {done && trade && business && (
+        <DoneOverlay
+          trade={trade}
+          business={business}
+          onBack={() => setDone(false)}
+          onReset={reset}
+        />
       )}
-    </>
+    </div>
+  )
+}
+
+function DoneOverlay({
+  trade,
+  business,
+  onBack,
+  onReset,
+}: {
+  trade: TradeConfig
+  business: BusinessInfo
+  onBack: () => void
+  onReset: () => void
+}) {
+  const displayName = business.name.trim() || `${trade.name} Co.`
+  const firstBtnRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    firstBtnRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onBack() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onBack])
+
+  return (
+    <div
+      className="mm-done show"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="done-heading"
+      style={{ '--accent': trade.colorScheme.accent } as CSSProperties}
+    >
+      <div className="mm-done-inner">
+        <div className="mm-done-badge">
+          <Icon.Check size={14} /> Site assembled
+        </div>
+        <h1 id="done-heading">
+          {displayName} is <em>ready to go live.</em>
+        </h1>
+        <p>
+          {trade.sections.length} sections, picked by you, themed and filled with real{' '}
+          {trade.name.toLowerCase()} content. Publish now and share the link — or keep tweaking.
+        </p>
+        <div className="mm-done-recap">
+          {trade.sections.map(s => (
+            <div key={s.type} className="mm-done-recap-item">
+              <span className="chk"><Icon.Check size={13} /></span>
+              {SECTION_LABELS[s.type] ?? s.type}
+            </div>
+          ))}
+        </div>
+        <div className="mm-done-actions">
+          <button
+            ref={firstBtnRef}
+            type="button"
+            className="mm-done-go"
+            onClick={() => alert('Publishing coming soon!')}
+          >
+            <Icon.Arrow size={18} /> Publish my site
+          </button>
+          <button type="button" className="mm-done-back" onClick={onBack}>Keep editing</button>
+          <button type="button" className="mm-done-back" onClick={onReset}>Start over</button>
+        </div>
+      </div>
+    </div>
   )
 }
