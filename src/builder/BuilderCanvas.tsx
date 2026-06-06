@@ -136,14 +136,17 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
       <div className="mm-stack-view" ref={stackScrollRef}>
         <div
           className="mm-zoom-outer"
-          style={!mobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } : undefined}
+          style={mobile
+            ? { display: 'flex', justifyContent: 'center' } as CSSProperties
+            : { overflow: 'hidden', ...(innerH > 0 ? { height: Math.ceil(innerH * zoom) } : {}) } as CSSProperties
+          }
         >
           <div
             className="mm-zoom-inner"
             ref={zoomInnerRef}
-            style={!mobile
-              ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties
-              : undefined
+            style={mobile
+              ? { width: 390, flexShrink: 0 } as CSSProperties
+              : { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties
             }
           >
             <div className="mm-stack-site">

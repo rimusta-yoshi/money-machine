@@ -781,7 +781,7 @@
 }
 
 /* zoom wrappers — desktop canvas is 1200px wide, scaled to fit */
-.mm-zoom-outer { width: 100%; overflow: hidden; }
+.mm-zoom-outer { width: 100%; }
 .mm-zoom-inner { transform-origin: top left; }
 
 /* assembled site inside the scroll view */
@@ -793,10 +793,8 @@
   overflow: hidden;
   box-shadow: 0 26px 64px rgba(20, 20, 25, 0.18);
 }
-/* preview-only mobile: narrow to phone width, control rail stays on desktop */
+/* preview-only mobile: phone chrome styling (width handled by zoom-inner in JSX) */
 .mm-stage.prev-mobile .mm-stack-site {
-  width: 390px;
-  max-width: 390px;
   border-radius: 28px;
   box-shadow: 0 22px 50px rgba(20, 20, 25, 0.20);
 }
