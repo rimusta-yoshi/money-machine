@@ -186,7 +186,7 @@
 }
 .mm-wrap.wide { max-width: 1280px; }
 
-.mm-stage.mobile .mm-wrap { max-width: 440px; padding: 24px 16px 140px; }
+.mm-stage.prev-mobile .mm-wrap { max-width: 440px; padding: 24px 16px 140px; }
 
 /* ============================================================
    STEP INTRO HEADERS
@@ -209,7 +209,7 @@
   margin: 14px 0 0;
   color: var(--ink);
 }
-.mm-stage.mobile .mm-title { font-size: 28px; }
+.mm-stage.prev-mobile .mm-title { font-size: 28px; }
 
 .mm-sub {
   font-size: 16px;
@@ -228,7 +228,7 @@
   gap: 16px;
   margin-top: 32px;
 }
-.mm-stage.mobile .mm-trades { grid-template-columns: 1fr; }
+.mm-stage.prev-mobile .mm-trades { grid-template-columns: 1fr; }
 
 .mm-trade {
   position: relative;
@@ -357,7 +357,7 @@
   gap: 16px;
   z-index: 30;
 }
-.mm-stage.mobile .mm-dock { margin: 28px -16px -140px; padding: 16px; }
+.mm-stage.prev-mobile .mm-dock { margin: 28px -16px -140px; padding: 16px; }
 
 .mm-dock-hint { font-size: 13px; color: var(--muted); }
 
@@ -410,7 +410,7 @@
   margin-top: 32px;
   align-items: start;
 }
-.mm-stage.mobile .mm-step2 { grid-template-columns: 1fr; }
+.mm-stage.prev-mobile .mm-step2 { grid-template-columns: 1fr; }
 
 .mm-form {
   background: var(--panel);
@@ -763,10 +763,6 @@
   gap: 24px;
   align-items: start;
 }
-.mm-stage.mobile .mm-stack-layout {
-  grid-template-columns: 1fr;
-  gap: 0;
-}
 
 /* scrollable site view */
 .mm-stack-view {
@@ -774,7 +770,7 @@
   border: 1px solid var(--line);
   border-radius: 22px;
   padding: 22px;
-  height: 72vh;
+  height: 76vh;
   overflow-y: auto;
 }
 .mm-stack-view::-webkit-scrollbar { width: 9px; }
@@ -783,27 +779,26 @@
   border-radius: 7px;
   border: 2px solid #DEDAD1;
 }
-.mm-stage.mobile .mm-stack-view {
-  height: auto;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  overflow: visible;
-}
+
+/* zoom wrappers — desktop canvas is 1200px wide, scaled to fit */
+.mm-zoom-outer { width: 100%; overflow: hidden; }
+.mm-zoom-inner { transform-origin: top left; }
 
 /* assembled site inside the scroll view */
 .mm-stack-site {
-  max-width: 440px;
+  width: 100%;
   margin: 0 auto;
   background: #fff;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 26px 64px rgba(20, 20, 25, 0.18);
 }
-.mm-stage.mobile .mm-stack-site {
-  max-width: none;
-  border-radius: 14px;
-  box-shadow: 0 14px 30px rgba(20, 20, 25, 0.12);
+/* preview-only mobile: narrow to phone width, control rail stays on desktop */
+.mm-stage.prev-mobile .mm-stack-site {
+  width: 390px;
+  max-width: 390px;
+  border-radius: 28px;
+  box-shadow: 0 22px 50px rgba(20, 20, 25, 0.20);
 }
 
 /* bands (one per section in the assembled site) */
@@ -895,6 +890,24 @@
   border-radius: 16px;
   padding: 16px;
 }
+.sc-now-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.sc-device {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-ink, #0B5BA8);
+  background: color-mix(in srgb, var(--accent, #1E88E5) 12%, #fff);
+  padding: 4px 9px;
+  border-radius: 999px;
+}
 .sc-eyebrow {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -950,59 +963,18 @@
   text-align: center;
 }
 
-/* mobile control bar (fixed bottom) */
-.mm-stage.mobile .mm-stack-ctrl {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  top: auto;
-  z-index: 55;
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid var(--line);
-  padding: 12px 14px 18px;
-  gap: 11px;
-  box-shadow: 0 -8px 24px rgba(20, 20, 25, 0.10);
-}
-.mob-row {
+/* preview toggle in top bar */
+.mm-preview-toggle {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
-.mob-meta { flex: 1; text-align: center; min-width: 0; }
-.mob-sec {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 15px;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
+.mm-preview-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.04em;
 }
-.mob-of {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 500;
-}
-.mob-var { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-
-.sc-mob-track {
-  height: 5px;
-  background: var(--line-2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.sc-mob-fill {
-  height: 100%;
-  background: var(--accent, #1E88E5);
-  border-radius: 999px;
-  transition: width 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
-.sc-mob-fill.full { background: var(--ok); }
 
 /* ============================================================
    DONE OVERLAY

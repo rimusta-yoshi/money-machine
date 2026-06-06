@@ -76,7 +76,7 @@ export default function App() {
         setMobile={setMobile}
       />
 
-      <div className={`mm-stage${mobile ? ' mobile' : ''}`}>
+      <div className={`mm-stage${mobile && step === 'build' ? ' prev-mobile' : ''}`}>
         <div className={`mm-wrap${step === 'build' ? ' wide' : ''}`}>
 
           {/* ---- STEP 1: Pick trade ---- */}

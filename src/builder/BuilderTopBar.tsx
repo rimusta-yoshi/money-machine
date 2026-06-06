@@ -56,14 +56,19 @@ export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Prop
       </div>
 
       <div className="mm-bar-right">
-        <div className="mm-seg">
-          <button type="button" className={!mobile ? 'on' : ''} onClick={() => setMobile(false)}>
-            Desktop
-          </button>
-          <button type="button" className={mobile ? 'on' : ''} onClick={() => setMobile(true)}>
-            Mobile
-          </button>
-        </div>
+        {step === 3 && (
+          <div className="mm-preview-toggle">
+            <span className="mm-preview-label">Preview</span>
+            <div className="mm-seg">
+              <button type="button" className={!mobile ? 'on' : ''} onClick={() => setMobile(false)}>
+                Desktop
+              </button>
+              <button type="button" className={mobile ? 'on' : ''} onClick={() => setMobile(true)}>
+                Mobile
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

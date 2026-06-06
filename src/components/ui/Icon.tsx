@@ -39,4 +39,5 @@ export const Icon = {
   Home:    stroke(<><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" /><path d="M9 21V12h6v9" /></>),
   Zap:     stroke(<path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z" />),
   Sun:     stroke(<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" /></>),
+  Monitor: stroke(<><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></>),
 }
