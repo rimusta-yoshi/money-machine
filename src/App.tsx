@@ -24,14 +24,26 @@ function stepNumber(step: Step): 1 | 2 | 3 {
   return 3
 }
 
+function darkenHex(hex: string, amount = 0.28): string {
+  const h = hex.replace('#', '')
+  const r = Math.round(parseInt(h.slice(0, 2), 16) * (1 - amount))
+  const g = Math.round(parseInt(h.slice(2, 4), 16) * (1 - amount))
+  const b = Math.round(parseInt(h.slice(4, 6), 16) * (1 - amount))
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
 export default function App() {
   const [step, setStep] = useState<Step>('pick-trade')
   const [trade, setTrade] = useState<TradeConfig | null>(null)
   const [business, setBusiness] = useState<BusinessInfo | null>(null)
+  const [brandColor, setBrandColor] = useState<string>('#1E88E5')
   const [mobile, setMobile] = useState(false)
   const [done, setDone] = useState(false)
 
-  const handlePickTrade = (t: TradeConfig) => setTrade(t)
+  const handlePickTrade = (t: TradeConfig) => {
+    setTrade(t)
+    setBrandColor(t.colorScheme.accent)
+  }
   const handleContinue = () => setStep('setup')
   const handleSetup = (info: BusinessInfo) => { setBusiness(info); setStep('build') }
   const handleGoStep = (n: 1 | 2) => {
@@ -48,11 +60,11 @@ export default function App() {
   const cssVars = useMemo<CSSProperties | undefined>(() => {
     if (!trade) return undefined
     return {
-      '--accent': trade.colorScheme.accent,
-      '--accent-ink': trade.colorScheme.accentInk,
+      '--accent': brandColor,
+      '--accent-ink': darkenHex(brandColor),
       '--navy': trade.colorScheme.navy,
     } as CSSProperties
-  }, [trade?.colorScheme.accent, trade?.colorScheme.accentInk, trade?.colorScheme.navy])
+  }, [trade, brandColor])
 
   return (
     <div className="mm-root" style={cssVars}>
@@ -110,7 +122,13 @@ export default function App() {
 
           {/* ---- STEP 2: Setup form ---- */}
           {step === 'setup' && trade && (
-            <SetupForm trade={trade} onSubmit={handleSetup} onBack={() => setStep('pick-trade')} />
+            <SetupForm
+              trade={trade}
+              brandColor={brandColor}
+              onBrandColorChange={setBrandColor}
+              onSubmit={handleSetup}
+              onBack={() => setStep('pick-trade')}
+            />
           )}
 
           {/* ---- STEP 3: Builder ---- */}

@@ -563,6 +563,104 @@
 .mm-id-chip.dim { color: #B7B3A9; }
 
 /* ============================================================
+   BRAND COLOUR CARD (step 2, below preview)
+   ============================================================ */
+.mm-color-card {
+  border-radius: var(--r-lg);
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  overflow: hidden;
+}
+.mm-color-card-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line-2);
+}
+.mm-color-card-label span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.mm-color-card-body { padding: 16px 18px 18px; }
+
+.mm-color-big {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.mm-color-swatch-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(0,0,0,0.10);
+  flex: 0 0 auto;
+  transition: border-color 0.15s;
+}
+.mm-color-hex {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  flex: 1;
+}
+.mm-color-custom-btn {
+  appearance: none;
+  border: 1.5px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+  white-space: nowrap;
+}
+.mm-color-custom-btn:hover { border-color: var(--accent, #1E88E5); background: #fff; }
+.mm-color-custom-btn input[type="color"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.mm-color-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mm-color-preset {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  appearance: none;
+  padding: 0;
+  transition: transform 0.15s, box-shadow 0.15s;
+  outline-offset: 3px;
+}
+.mm-color-preset:hover { transform: scale(1.12); }
+.mm-color-preset.active {
+  box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px currentColor;
+}
+
+/* ============================================================
    STEP 3 — BUILD (shared pieces)
    ============================================================ */
 .mm-build-top {
