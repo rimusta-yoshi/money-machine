@@ -44,9 +44,9 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
   const stackScrollRef = useRef<HTMLDivElement | null>(null)
   const zoomInnerRef = useRef<HTMLDivElement | null>(null)
 
-  // Scale 1200px desktop canvas to fit available width
+  // Scale 1200px canvas to fit outer width — runs in both desktop and mobile modes.
+  // Mobile mode: CSS constrains the outer to 390px, so zoom auto-adjusts to ~0.325.
   useLayoutEffect(() => {
-    if (mobile) return
     const inner = zoomInnerRef.current
     if (!inner) return
     const outer = inner.parentElement
@@ -136,18 +136,12 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
       <div className="mm-stack-view" ref={stackScrollRef}>
         <div
           className="mm-zoom-outer"
-          style={mobile
-            ? { display: 'flex', justifyContent: 'center' } as CSSProperties
-            : { overflow: 'hidden', ...(innerH > 0 ? { height: Math.ceil(innerH * zoom) } : {}) } as CSSProperties
-          }
+          style={innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
         >
           <div
             className="mm-zoom-inner"
             ref={zoomInnerRef}
-            style={mobile
-              ? { width: 390, flexShrink: 0 } as CSSProperties
-              : { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties
-            }
+            style={{ width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties}
           >
             <div className="mm-stack-site">
               {sections.map((sec, i) => {
