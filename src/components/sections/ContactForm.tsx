@@ -1,5 +1,5 @@
 import type { BusinessInfo, TradeConfig } from '../../types'
-import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
 
 interface Props {
   business: BusinessInfo
@@ -7,55 +7,31 @@ interface Props {
 }
 
 export function ContactForm({ business, trade }: Props) {
+  const phone = business.phone || '—'
+
   return (
-    <section style={{ padding: '64px 32px', backgroundColor: 'var(--color-bg)' }}>
-      <div style={{ maxWidth: '640px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '8px', color: 'var(--color-text)' }}>
-          {trade.ctaText}
-        </h2>
-        <p style={{ color: 'var(--color-text-muted)', marginBottom: '36px' }}>{trade.ctaSubtext}</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {(['Your Name', 'Phone Number', 'Email Address'] as const).map(placeholder => (
-            <input
-              key={placeholder}
-              placeholder={placeholder}
-              readOnly
-              style={{
-                padding: '14px 16px',
-                borderRadius: '8px',
-                border: '1.5px solid #e2e8f0',
-                fontSize: '1rem',
-                backgroundColor: 'var(--color-surface)',
-                color: 'var(--color-text-muted)',
-                width: '100%',
-                boxSizing: 'border-box',
-              }}
-            />
-          ))}
-          <textarea
-            placeholder="Describe the job…"
-            readOnly
-            rows={4}
-            style={{
-              padding: '14px 16px',
-              borderRadius: '8px',
-              border: '1.5px solid #e2e8f0',
-              fontSize: '1rem',
-              backgroundColor: 'var(--color-surface)',
-              color: 'var(--color-text-muted)',
-              resize: 'none',
-              fontFamily: 'inherit',
-              boxSizing: 'border-box',
-              width: '100%',
-            }}
-          />
-          <Button size="lg" fullWidth>{trade.ctaText}</Button>
+    <section className="ff-section alt">
+      <div className="ff-section-head">
+        <span className="ff-eyebrow">Get in touch</span>
+        <h2>{trade.ctaText}</h2>
+        <p>{trade.ctaSubtext}.</p>
+      </div>
+      <div className="ff-form">
+        <div className="ff-field">
+          <label>Your name</label>
+          <input type="text" placeholder="e.g. Sarah Mitchell" readOnly />
         </div>
-        {business.phone && (
-          <p style={{ textAlign: 'center', marginTop: '20px', color: 'var(--color-text-muted)' }}>
-            Or call us directly: <strong style={{ color: 'var(--color-text)' }}>{business.phone}</strong>
-          </p>
-        )}
+        <div className="ff-field">
+          <label>Phone</label>
+          <input type="tel" placeholder="07…" readOnly />
+        </div>
+        <div className="ff-field">
+          <label>Tell us a bit more</label>
+          <textarea placeholder="Describe the job…" rows={3} readOnly />
+        </div>
+        <button type="button" className="ff-btn ff-btn-primary" style={{ width: '100%' }}>
+          <Icon.Phone size={18} /> Call {phone}
+        </button>
       </div>
     </section>
   )

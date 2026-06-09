@@ -13,46 +13,20 @@ const DEFAULT_FEATURES = [
 
 export function WhyUsFeatures() {
   return (
-    <section style={{ backgroundColor: 'var(--bg)', padding: '36px 18px 32px' }}>
-      <p style={{
-        fontFamily: 'var(--font-body)', fontWeight: 700, fontSize: '11px',
-        textTransform: 'uppercase', letterSpacing: '0.14em',
-        color: 'var(--accent-ink)', marginBottom: '8px',
-      }}>
-        Why choose us
-      </p>
-      <h2 style={{
-        fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '22px',
-        lineHeight: 1.15, color: 'var(--ink)', marginBottom: '18px',
-      }}>
-        Five things we get right, every job.
-      </h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+    <section className="ff-section ff-features">
+      <div className="ff-section-head">
+        <span className="ff-eyebrow">Why choose us</span>
+        <h2>Five things we get right, every job.</h2>
+      </div>
+      <div className="feat-list">
         {DEFAULT_FEATURES.map(([title, desc], i) => {
-          const IconComp = Icon[FEAT_ICONS[i % FEAT_ICONS.length]]
+          const Ico = Icon[FEAT_ICONS[i % FEAT_ICONS.length]]
           return (
-            <div key={title} style={{
-              display: 'flex', gap: '12px', alignItems: 'flex-start',
-              padding: '14px', background: 'var(--bg)',
-              border: '1px solid var(--line)', borderRadius: '14px',
-            }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '12px',
-                background: 'var(--accent-tint)', color: 'var(--accent-ink)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <IconComp size={20} />
-              </div>
+            <div className="feat-row" key={title}>
+              <div className="ff-icon"><Ico size={20} /></div>
               <div>
-                <h4 style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 700,
-                  fontSize: '15px', color: 'var(--navy)', marginBottom: '3px',
-                }}>
-                  {title}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--muted)', lineHeight: 1.45 }}>
-                  {desc}
-                </p>
+                <h4>{title}</h4>
+                <p>{desc}</p>
               </div>
             </div>
           )

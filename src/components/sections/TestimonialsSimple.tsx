@@ -6,16 +6,20 @@ interface Props {
 
 export function TestimonialsSimple({ business }: Props) {
   return (
-    <section style={{
-      padding: '56px 32px',
-      backgroundColor: 'var(--color-primary)',
-      color: '#fff',
-      textAlign: 'center',
-    }}>
-      <p style={{ fontSize: '1.5rem', fontWeight: 300, fontStyle: 'italic', maxWidth: '680px', margin: '0 auto 20px', lineHeight: 1.6 }}>
-        "Best trade company we've used in {business.location || 'the area'}. Fast, clean, and honest pricing."
-      </p>
-      <p style={{ fontWeight: 700, opacity: 0.8 }}>— Happy Homeowner, {business.location || 'Local Area'}</p>
+    <section className="ff-section">
+      <div className="ff-rev-feature">
+        <div className="ff-stars">★★★★★</div>
+        <blockquote>"Best trade company we've used in {business.location || 'the area'}. Fast, clean, and honest pricing. Would recommend without hesitation."</blockquote>
+        <div className="who">
+          <div className="ava">HO</div>
+          <div><b>Happy Homeowner</b><span>{business.location || 'Local Area'}</span></div>
+        </div>
+        <div className="ff-rev-strip">
+          <div className="s"><b>4.9★</b><span>Rating</span></div>
+          <div className="s"><b>312</b><span>Reviews</span></div>
+          <div className="s"><b>98%</b><span>Recommend</span></div>
+        </div>
+      </div>
     </section>
   )
 }

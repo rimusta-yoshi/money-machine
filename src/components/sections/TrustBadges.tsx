@@ -1,5 +1,5 @@
 import type { TradeConfig } from '../../types'
-import { Badge } from '../ui/Badge'
+import { Icon } from '../ui/Icon'
 
 interface Props {
   trade: TradeConfig
@@ -7,18 +7,13 @@ interface Props {
 
 export function TrustBadges({ trade }: Props) {
   return (
-    <section style={{ padding: '40px 32px', backgroundColor: 'var(--color-surface)', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
-      <div style={{
-        maxWidth: '960px',
-        margin: '0 auto',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '12px',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
+    <section className="ff-trust-badges">
+      <p className="tb-label">Licences &amp; Certifications</p>
+      <div className="tb-pills">
         {trade.trustSignals.map(signal => (
-          <Badge key={signal} icon="✓">{signal}</Badge>
+          <div className="tb-pill" key={signal}>
+            <Icon.Badge size={14} /> {signal}
+          </div>
         ))}
       </div>
     </section>

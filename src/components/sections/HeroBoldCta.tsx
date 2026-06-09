@@ -1,5 +1,5 @@
 import type { BusinessInfo, TradeConfig } from '../../types'
-import { Button } from '../ui/Button'
+import { Icon } from '../ui/Icon'
 
 interface Props {
   business: BusinessInfo
@@ -7,33 +7,27 @@ interface Props {
 }
 
 export function HeroBoldCta({ business, trade }: Props) {
+  const location = business.location || 'Your Area'
+  const phone = business.phone || '—'
+  const parts = trade.tagline.split(' ')
+  const pivot = Math.floor(parts.length * 0.6)
+  const before = parts.slice(0, pivot).join(' ') + (pivot > 0 ? ' ' : '')
+  const highlight = parts.slice(pivot).join(' ')
+
   return (
-    <section style={{
-      backgroundColor: 'var(--color-primary)',
-      color: '#fff',
-      padding: '72px 32px',
-      textAlign: 'center',
-    }}>
-      <p style={{ fontSize: '0.9rem', fontWeight: 600, opacity: 0.8, marginBottom: '12px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-        {business.location || 'Your City'} • Local {trade.name}
-      </p>
-      <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)', fontWeight: 900, lineHeight: 1.1, marginBottom: '20px', letterSpacing: '-0.02em' }}>
-        {business.name || `Your ${trade.name} Business`}
-      </h1>
-      <p style={{ fontSize: '1.2rem', opacity: 0.9, maxWidth: '560px', margin: '0 auto 32px' }}>
-        {trade.tagline}
-      </p>
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Button size="lg" style={{ backgroundColor: '#fff', color: 'var(--color-primary)', border: 'none' }}>
-          {trade.ctaText}
-        </Button>
-        {business.phone && (
-          <Button size="lg" variant="outline" style={{ borderColor: 'rgba(255,255,255,0.6)', color: '#fff' }}>
-            Call {business.phone}
-          </Button>
-        )}
+    <section className="ff-hero-bold">
+      <span className="ff-eyebrow">{location} · Local {trade.name}</span>
+      <h1>{before}<em>{highlight}</em></h1>
+      <p className="sub">{trade.ctaText}. {trade.ctaSubtext}.</p>
+      <div className="ff-cta-row">
+        <button className="ff-btn ff-btn-primary" type="button">
+          <Icon.Phone size={18} /> Call {phone}
+        </button>
+        <button className="ff-btn ff-btn-outline" type="button">
+          Free quote <Icon.Arrow size={16} />
+        </button>
       </div>
-      <p style={{ marginTop: '16px', opacity: 0.75, fontSize: '0.9rem' }}>{trade.ctaSubtext}</p>
+      <div className="band" data-label={`PHOTO · ${trade.name.toLowerCase()} at work`} />
     </section>
   )
 }

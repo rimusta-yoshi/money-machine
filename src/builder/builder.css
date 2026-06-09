@@ -186,7 +186,7 @@
 }
 .mm-wrap.wide { max-width: 1280px; }
 
-.mm-stage.prev-mobile .mm-wrap { max-width: 440px; padding: 24px 16px 140px; }
+.mm-stage.prev-mobile .mm-wrap:not(.wide) { max-width: 440px; padding: 24px 16px 140px; }
 
 /* ============================================================
    STEP INTRO HEADERS
