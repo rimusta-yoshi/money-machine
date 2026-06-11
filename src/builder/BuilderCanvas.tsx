@@ -37,15 +37,24 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
   const [selections, setSelections] = useState(() => defaultSelections(trade))
   const [previewIdx, setPreviewIdx] = useState<Record<string, number>>({})
   const [activeIdx, setActiveIdx] = useState(0)
-  const [locking, setLocking] = useState<string | null>(null)
   const [zoom, setZoom] = useState(1)
   const [innerH, setInnerH] = useState(0)
+  const [isNarrowDevice, setIsNarrowDevice] = useState(() => window.innerWidth < 768)
   const bandRefs = useRef<(HTMLDivElement | null)[]>([])
   const stackScrollRef = useRef<HTMLDivElement | null>(null)
   const zoomInnerRef = useRef<HTMLDivElement | null>(null)
+  const touchStartX = useRef<number | null>(null)
+
+  const effectiveMobile = mobile || isNarrowDevice
+
+  useEffect(() => {
+    const onResize = () => setIsNarrowDevice(window.innerWidth < 768)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   useLayoutEffect(() => {
-    if (mobile) return
+    if (effectiveMobile) return
     const inner = zoomInnerRef.current
     if (!inner) return
     const outer = inner.parentElement
@@ -61,103 +70,113 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
     ro.observe(outer)
     ro.observe(inner)
     return () => ro.disconnect()
-  }, [mobile, activeIdx, selections, previewIdx])
+  }, [effectiveMobile, activeIdx, selections, previewIdx])
 
   useEffect(() => {
     const el = bandRefs.current[activeIdx]
     if (!el) return
+    if (isNarrowDevice) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return
+    }
     const sc = stackScrollRef.current
     if (!sc) return
     const offset = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 22
     sc.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' })
-  }, [activeIdx, mobile, zoom])
+  }, [activeIdx, effectiveMobile, zoom, isNarrowDevice])
 
   if (sections.length === 0) return null
 
   const getPreviewIdx = (type: SectionType) => previewIdx[type] ?? 0
-  const isLocked = (type: SectionType) => !!selections[type]
+  const isConfirmed = (type: SectionType) => !!selections[type]
+
+  // Auto-confirm active section then jump to newIdx
+  const navigateTo = (newIdx: number) => {
+    if (newIdx === activeIdx) return
+    const sec = sections[activeIdx]
+    const variant = sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
+    setSelections(prev => ({ ...prev, [sec.type]: variant.id }))
+    setActiveIdx(newIdx)
+  }
 
   const cycle = (type: SectionType, count: number, dir: 1 | -1) => {
     setPreviewIdx(p => ({ ...p, [type]: ((p[type] ?? 0) + dir + count) % count }))
   }
 
-  const selectCurrent = () => {
-    if (locking) return
+  // Auto-confirm current section then call onDone
+  const handleDone = () => {
     const sec = sections[activeIdx]
-    const idx = getPreviewIdx(sec.type)
-    const variant = sec.variants[idx]
-    const newSel = { ...selections, [sec.type]: variant.id }
-    setSelections(newSel)
-    setLocking(sec.type)
-    setTimeout(() => setLocking(null), 520)
-    setTimeout(() => {
-      for (let i = activeIdx + 1; i < sections.length; i++) {
-        if (!newSel[sections[i].type]) { setActiveIdx(i); return }
-      }
-      for (let i = 0; i < sections.length; i++) {
-        if (!newSel[sections[i].type]) { setActiveIdx(i); return }
-      }
-    }, 280)
+    const variant = sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
+    setSelections(prev => ({ ...prev, [sec.type]: variant.id }))
+    onDone()
   }
 
   const resolveVariant = (sIdx: number) => {
     const sec = sections[sIdx]
-    if (isLocked(sec.type)) {
+    if (selections[sec.type]) {
       return sec.variants.find(v => v.id === selections[sec.type]) ?? sec.variants[0]
     }
-    if (sIdx === activeIdx) return sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
-    return sec.variants.find(v => v.id === sec.recommended) ?? sec.variants[0]
+    return sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
   }
 
-  const doneCount = sections.filter(s => isLocked(s.type)).length
-  const allDone = doneCount === sections.length
+  // Sections that haven't been visited yet show a blank placeholder
+  const showPlaceholder = (sIdx: number) =>
+    sIdx !== activeIdx && !selections[sections[sIdx].type]
+
+  const doneCount = sections.filter(s => isConfirmed(s.type)).length
+  // All done: every section is either the current active one (confirms on launch click) or already saved
+  const allDone = sections.every((s, i) => i === activeIdx || !!selections[s.type])
 
   const activeSec = sections[activeIdx]
   const activePrevIdx = getPreviewIdx(activeSec.type)
   const activeVariant = activeSec.variants[activePrevIdx]
-  const locked = isLocked(activeSec.type)
-  const nextSec = sections[(activeIdx + 1) % sections.length]
+  const nextIdx = Math.min(activeIdx + 1, sections.length - 1)
 
-  const useBtn = (
-    <button
-      type="button"
-      className={`mm-select${locked ? ' locked' : ''}${locking === activeSec.type ? ' mm-locking' : ''}`}
-      onClick={selectCurrent}
-    >
-      <Icon.Check size={16} />
-      {locked ? 'Selected — next section' : 'Use this layout'}
-    </button>
-  )
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const delta = e.changedTouches[0].clientX - touchStartX.current
+    touchStartX.current = null
+    if (Math.abs(delta) < 50) return
+    cycle(activeSec.type, activeSec.variants.length, delta < 0 ? 1 : -1)
+  }
 
   return (
-    <div className="mm-stack-layout">
-      {/* ---- Left: assembled site ---- */}
-      <div className="mm-stack-view" ref={stackScrollRef}>
+    <div className={`mm-stack-layout${isNarrowDevice ? ' narrow-device' : ''}`}>
+
+      {/* ---- Assembled site canvas ---- */}
+      <div
+        className="mm-stack-view"
+        ref={stackScrollRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div
           className="mm-zoom-outer"
-          style={!mobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
+          style={!effectiveMobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
         >
           <div
             className="mm-zoom-inner"
             ref={zoomInnerRef}
-            style={!mobile ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties : undefined}
+            style={!effectiveMobile ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties : undefined}
           >
             <div className="mm-stack-site ff-scope">
               {sections.map((sec, i) => {
-                const state = i === activeIdx ? 'active' : isLocked(sec.type) ? 'done' : 'todo'
-                const variant = resolveVariant(i)
+                const state = i === activeIdx ? 'active' : isConfirmed(sec.type) ? 'done' : 'todo'
                 const label = SECTION_LABELS[sec.type] ?? sec.type
                 const isActive = i === activeIdx
                 return (
                   <div
                     key={sec.type}
-                    className={`mm-band ${state}`}
+                    className={`mm-band ${state}${showPlaceholder(i) ? ' blank' : ''}`}
                     ref={el => { bandRefs.current[i] = el }}
-                    onClick={() => !isActive && setActiveIdx(i)}
+                    onClick={() => !isActive && navigateTo(i)}
                     role={isActive ? undefined : 'button'}
                     tabIndex={isActive ? undefined : 0}
                     onKeyDown={isActive ? undefined : e => {
-                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveIdx(i) }
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateTo(i) }
                     }}
                     aria-label={isActive ? undefined : `Edit ${label} section`}
                   >
@@ -166,11 +185,18 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
                       {state === 'done' && ' '}
                       {state === 'active' ? `Choosing · ${label}` : label}
                     </div>
-                    <div className="mm-vanim" key={`${sec.type}-${variant.id}`}>
-                      <div style={{ pointerEvents: 'none' }}>
-                        <SectionRenderer componentName={variant.component} business={business} trade={trade} />
+                    {showPlaceholder(i) ? (
+                      <div className="mm-band-blank">
+                        <span className="mm-band-blank-name">{label}</span>
+                        <span className="mm-band-blank-hint">tap to choose layout</span>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="mm-vanim" key={`${sec.type}-${resolveVariant(i).id}`}>
+                        <div style={{ pointerEvents: 'none' }}>
+                          <SectionRenderer componentName={resolveVariant(i).component} business={business} trade={trade} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -179,12 +205,12 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
         </div>
       </div>
 
-      {/* ---- Right: control rail (always desktop, mobile only affects preview width) ---- */}
+      {/* ---- Desktop control rail (hidden on narrow devices) ---- */}
       <div className="mm-stack-ctrl">
         <div className="sc-prog">
           <div className="sc-prog-top">
             <b>{doneCount}/{sections.length} sections set</b>
-            <span>{allDone ? 'Ready to publish' : `Next: ${SECTION_LABELS[nextSec.type]}`}</span>
+            <span>{allDone ? 'Ready to publish' : `Next: ${SECTION_LABELS[sections[nextIdx].type]}`}</span>
           </div>
           <div className="sc-track">
             <div
@@ -196,11 +222,11 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
 
         <div className="sc-now">
           <div className="sc-now-top">
-            <div className="sc-eyebrow">{locked ? 'CHOSEN' : 'NOW CHOOSING'}</div>
+            <div className="sc-eyebrow">{isConfirmed(activeSec.type) ? 'REVISITING' : 'NOW CHOOSING'}</div>
             <span className="sc-device">
-              {mobile
-                ? <><Icon.Phone size={11} /> Mobile view</>
-                : <><Icon.Monitor size={11} /> Desktop view</>
+              {effectiveMobile
+                ? <><Icon.Phone size={11} /> Mobile</>
+                : <><Icon.Monitor size={11} /> Desktop</>
               }
             </span>
           </div>
@@ -232,18 +258,67 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
             </button>
           </div>
           <div className="sc-tip">
-            Layout {activePrevIdx + 1} of {activeSec.variants.length} · swaps into the live site
+            Layout {activePrevIdx + 1} of {activeSec.variants.length}
           </div>
-          {useBtn}
         </div>
 
-        {allDone && (
-          <button type="button" className="sc-launch" onClick={onDone}>
+        {allDone ? (
+          <button type="button" className="sc-launch" onClick={handleDone}>
             <Icon.Arrow size={16} /> Get this site live
           </button>
+        ) : (
+          <button type="button" className="sc-next" onClick={() => navigateTo(nextIdx)}>
+            Next · {SECTION_LABELS[sections[nextIdx].type]} <Icon.Arrow size={14} />
+          </button>
         )}
-        <div className="sc-hint">Tap any band in the site to jump to it.</div>
+        <div className="sc-hint">Tap any section in the preview to jump to it.</div>
       </div>
+
+      {/* ---- Mobile sticky bottom bar (narrow devices only) ---- */}
+      {isNarrowDevice && (
+        <div className="mm-ctrl-bar">
+          <div className="mm-ctrl-bar-top">
+            <div className="mm-ctrl-prog-track">
+              <div
+                className="mm-ctrl-prog-fill"
+                style={{ width: `${(doneCount / sections.length) * 100}%` } as CSSProperties}
+              />
+            </div>
+            <span className="mm-ctrl-prog-label">{doneCount}/{sections.length}</span>
+          </div>
+          <div className="mm-ctrl-bar-mid">
+            <button
+              type="button"
+              className="mm-ctrl-arr"
+              onClick={() => cycle(activeSec.type, activeSec.variants.length, -1)}
+              aria-label="Previous layout"
+            >‹</button>
+            <div className="mm-ctrl-center">
+              <div className="mm-ctrl-section-name">{SECTION_LABELS[activeSec.type]}</div>
+              <div className="mm-dots">
+                {activeSec.variants.map((_, i) => (
+                  <span key={i} className={i === activePrevIdx ? 'on' : ''} />
+                ))}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="mm-ctrl-arr"
+              onClick={() => cycle(activeSec.type, activeSec.variants.length, 1)}
+              aria-label="Next layout"
+            >›</button>
+          </div>
+          {allDone ? (
+            <button type="button" className="mm-ctrl-launch" onClick={handleDone}>
+              <Icon.Arrow size={16} /> Get this site live
+            </button>
+          ) : (
+            <button type="button" className="mm-ctrl-next" onClick={() => navigateTo(nextIdx)}>
+              Next · {SECTION_LABELS[sections[nextIdx].type]} <Icon.Arrow size={14} />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
