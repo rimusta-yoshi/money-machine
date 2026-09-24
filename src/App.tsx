@@ -30,6 +30,13 @@ export default function App() {
   const [mobile, setMobile] = useState(false)
   const [done, setDone] = useState(false)
   const trade = site ? tradeById[site.tradeId] : null
+  const stageRef = useRef<HTMLDivElement>(null)
+
+  // Each step starts at the top (the stage is the scroll container, not the window).
+  useEffect(() => {
+    stageRef.current?.scrollTo({ top: 0 })
+    window.scrollTo({ top: 0 })
+  }, [step])
 
   const handleGoStep = (n: 1 | 2 | 3) => {
     if (n === 1) setStep('pick-trade')
@@ -58,7 +65,7 @@ export default function App() {
         setMobile={setMobile}
       />
 
-      <div className={`mm-stage${mobile && step === 'build' ? ' prev-mobile' : ''}`}>
+      <div ref={stageRef} className={`mm-stage${mobile && step === 'build' ? ' prev-mobile' : ''}`}>
         <div className={`mm-wrap${step === 'build' ? ' wide' : ''}`}>
 
           {/* ---- STEP 1: Pick trade ---- */}

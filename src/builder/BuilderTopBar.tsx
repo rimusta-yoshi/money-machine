@@ -27,7 +27,7 @@ export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Prop
           <Icon.Bolt size={15} />
         </div>
         <div>
-          <b>Money Machine</b>
+          <b>Business Blocks</b>
           <span>SITE BUILDER</span>
         </div>
       </div>

@@ -48,7 +48,7 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
 
       <div className="mm-step2">
         {/* Form */}
-        <div className="mm-form">
+        <div className="mm-form mm-step2-form">
           <div className="mm-fieldset">
             <div className="mm-fld">
               <label htmlFor="fld-name">Business name <span className="req">REQUIRED</span></label>
@@ -101,8 +101,8 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
           </div>
         </div>
 
-        {/* Right column: preview, colour, extras */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Preview: right column on desktop, above the form on phones so it's visible while typing */}
+        <div className="mm-step2-preview">
           <div
             className="mm-preview-card"
             style={{ '--accent': site.brandColor, '--navy': trade.colorScheme.navy } as CSSProperties}
@@ -137,7 +137,9 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
               </div>
             </div>
           </div>
+        </div>
 
+        <div className="mm-step2-side">
           <BrandColorCard color={site.brandColor} onChange={onBrandColorChange} />
           <ExtrasCard extras={site.extras} onToggle={onToggleExtra} />
         </div>
