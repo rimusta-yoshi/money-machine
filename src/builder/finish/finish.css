@@ -1,0 +1,99 @@
+/* ============================================================
+   STEP 4 · FINISH — checklist + exact live preview
+   ============================================================ */
+.mm-sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.mm-finish { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 24px; align-items: start; }
+.mm-finish-main { display: flex; flex-direction: column; gap: 16px; }
+.mm-fld-hint { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.mm-fld select {
+  margin-top: 8px; width: 100%; border: 1.5px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; font: inherit; font-size: 15px; color: var(--ink); background: var(--panel-2);
+}
+
+.mm-finish-h2 {
+  margin: 8px 0 0; font-size: 18px; font-weight: 800; color: var(--ink);
+  display: flex; align-items: baseline; gap: 10px;
+}
+.mm-finish-count { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--muted); }
+
+.mm-checklist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mm-check { border: 1.5px solid var(--line); border-radius: var(--r); background: var(--panel); }
+.mm-check.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+.mm-check summary {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; list-style: none;
+  border-radius: var(--r);
+}
+.mm-check summary::-webkit-details-marker { display: none; }
+.mm-check summary:focus-visible { outline: 3px solid var(--accent-ink, #0B5BA8); outline-offset: 2px; }
+.mm-check-mark {
+  width: 20px; height: 20px; border-radius: 999px; flex: 0 0 auto; border: 1.5px solid var(--line);
+  display: grid; place-items: center; color: #fff;
+}
+.mm-check.done .mm-check-mark { background: var(--ok); border-color: var(--ok); }
+.mm-check-label { font-weight: 700; font-size: 14px; color: var(--ink); }
+.mm-check-status { margin-left: auto; font-size: 12px; color: var(--muted); }
+.mm-check.done .mm-check-status { color: #17703C; font-weight: 600; }
+.mm-check-body { padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+.mm-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.mm-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px;
+  background: var(--line-2); font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.mm-chip-x {
+  width: 28px; height: 28px; border-radius: 999px; border: 0; background: transparent; cursor: pointer;
+  font-size: 18px; line-height: 1; color: var(--muted); flex: 0 0 auto;
+}
+.mm-chip-x:hover { background: rgba(0, 0, 0, 0.06); color: var(--ink); }
+.mm-add-row { display: flex; gap: 8px; align-items: flex-end; }
+.mm-add-row input { flex: 1; }
+.mm-add-btn {
+  height: 46px; padding: 0 16px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--panel);
+  font: inherit; font-weight: 700; font-size: 14px; color: var(--ink); cursor: pointer; align-self: flex-start;
+}
+.mm-add-row .mm-add-btn { align-self: auto; }
+.mm-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.mm-suggest { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mm-suggest-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
+.mm-suggest-chip {
+  border: 1.5px dashed var(--line); background: transparent; border-radius: 999px; padding: 5px 10px;
+  font: inherit; font-size: 12.5px; color: var(--ink-2); cursor: pointer;
+}
+
+.mm-hours-editor { display: flex; flex-direction: column; gap: 10px; }
+.mm-hours-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; border: 0; margin: 0; padding: 0; min-width: 0; }
+
+.mm-reviews-editor { display: flex; flex-direction: column; gap: 12px; }
+.mm-review-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mm-review-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border-radius: 10px;
+  background: var(--line-2); font-size: 13px; color: var(--ink);
+}
+.mm-review-item span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mm-review-form { border: 1.5px dashed var(--line); border-radius: 12px; padding: 14px; margin: 0; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mm-review-form legend { font-size: 13px; font-weight: 700; color: var(--ink); padding: 0 4px; }
+
+.mm-yesno { display: flex; gap: 10px; border: 0; margin: 0; padding: 0; }
+.mm-yesno-opt {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 12px;
+  border: 1.5px solid var(--line); font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.mm-yesno-opt.on { border-color: var(--accent, #1E88E5); background: color-mix(in srgb, var(--accent, #1E88E5) 8%, transparent); }
+.mm-note { margin: 0; font-size: 13px; color: var(--muted); }
+
+.mm-finish-preview-wrap {
+  position: sticky; top: 20px; border-radius: var(--r-lg); border: 1.5px solid var(--line);
+  background: var(--panel); overflow: hidden;
+}
+.mm-finish-preview { height: min(72vh, 760px); overflow-y: auto; }
+
+@media (max-width: 767px) {
+  .mm-finish { grid-template-columns: 1fr; }
+  .mm-finish-preview-wrap { position: static; }
+  .mm-finish-preview { height: 60vh; }
+  .mm-hours-row { grid-template-columns: 1fr 1fr auto; }
+}

@@ -41,7 +41,7 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
   return (
     <>
       <div>
-        <div className="mm-eyebrow">STEP <b>02</b> / 03 · THE BASICS</div>
+        <div className="mm-eyebrow">STEP <b>02</b> / 04 · THE BASICS</div>
         <h1 className="mm-title">Tell us about the business.</h1>
         <p className="mm-sub">A few details, that's it. Watch the preview build itself as you type — your actual site taking shape.</p>
       </div>

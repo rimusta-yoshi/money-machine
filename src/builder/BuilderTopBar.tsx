@@ -3,8 +3,8 @@ import { Icon } from '../components/ui/Icon'
 import type { TradeConfig } from '../types'
 
 interface Props {
-  step: 1 | 2 | 3
-  onGoStep: (n: 1 | 2) => void
+  step: 1 | 2 | 3 | 4
+  onGoStep: (n: 1 | 2 | 3) => void
   trade: TradeConfig | null
   mobile: boolean
   setMobile: (v: boolean) => void
@@ -14,6 +14,7 @@ const STEPS = [
   { n: '01', t: 'Trade' },
   { n: '02', t: 'Details' },
   { n: '03', t: 'Build' },
+  { n: '04', t: 'Finish' },
 ]
 
 export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Props) {
@@ -33,16 +34,16 @@ export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Prop
 
       <div className="mm-steps">
         {STEPS.map((s, i) => {
-          const idx = (i + 1) as 1 | 2 | 3
+          const idx = (i + 1) as 1 | 2 | 3 | 4
           const state = idx === step ? 'active' : idx < step ? 'done' : ''
-          const canClick = idx < step && idx < 3
+          const canClick = idx < step
           return (
             <div key={s.n} style={{ display: 'contents' }}>
               {i > 0 && <div className="mm-steps-line" />}
               <button
                 type="button"
                 className={`mm-step ${state}${canClick ? ' clickable' : ''}`}
-                onClick={() => canClick && onGoStep(idx as 1 | 2)}
+                onClick={() => canClick && onGoStep(idx as 1 | 2 | 3)}
                 disabled={!canClick}
               >
                 <span className="mm-step-n">

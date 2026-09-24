@@ -12,14 +12,16 @@ import { TradeCard } from './builder/TradeCard'
 import { SetupForm } from './builder/SetupForm'
 import { BuilderCanvas } from './builder/BuilderCanvas'
 import { BuilderTopBar } from './builder/BuilderTopBar'
+import { FinishStep } from './builder/finish/FinishStep'
 import { Icon } from './components/ui/Icon'
 
-type Step = 'pick-trade' | 'setup' | 'build'
+type Step = 'pick-trade' | 'setup' | 'build' | 'finish'
 
-function stepNumber(step: Step): 1 | 2 | 3 {
+function stepNumber(step: Step): 1 | 2 | 3 | 4 {
   if (step === 'pick-trade') return 1
   if (step === 'setup') return 2
-  return 3
+  if (step === 'build') return 3
+  return 4
 }
 
 export default function App() {
@@ -29,9 +31,10 @@ export default function App() {
   const [done, setDone] = useState(false)
   const trade = site ? tradeById[site.tradeId] : null
 
-  const handleGoStep = (n: 1 | 2) => {
+  const handleGoStep = (n: 1 | 2 | 3) => {
     if (n === 1) setStep('pick-trade')
     if (n === 2 && site) setStep('setup')
+    if (n === 3 && site) setStep('build')
   }
   const reset = () => {
     dispatch({ type: 'reset' })
@@ -62,7 +65,7 @@ export default function App() {
           {step === 'pick-trade' && (
             <>
               <div>
-                <div className="mm-eyebrow">STEP <b>01</b> / 03 · PICK YOUR TRADE</div>
+                <div className="mm-eyebrow">STEP <b>01</b> / 04 · PICK YOUR TRADE</div>
                 <h1 className="mm-title">What do you do?</h1>
                 <p className="mm-sub">
                   Pick your trade and we'll load a site built for it — the right services, the right words, the right look.
@@ -117,7 +120,7 @@ export default function App() {
             <>
               <div className="mm-build-top">
                 <div>
-                  <div className="mm-eyebrow">STEP <b>03</b> / 03 · BUILD</div>
+                  <div className="mm-eyebrow">STEP <b>03</b> / 04 · BUILD</div>
                   <h1 className="mm-title">Pick a layout for each section.</h1>
                   <p className="mm-sub" style={{ maxWidth: '46ch' }}>
                     Real layouts, filled with your content. Lock one in and the next section steps up.
@@ -147,9 +150,21 @@ export default function App() {
                 site={site}
                 mobile={mobile}
                 onSelect={(section, variantId) => dispatch({ type: 'select', section, variantId })}
-                onDone={() => setDone(true)}
+                onDone={() => setStep('finish')}
               />
             </>
+          )}
+
+          {/* ---- STEP 4: Finish ---- */}
+          {step === 'finish' && trade && site && (
+            <FinishStep
+              trade={trade}
+              site={site}
+              onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
+              onContentChange={patch => dispatch({ type: 'setContent', patch })}
+              onPublish={() => setDone(true)}
+              onBack={() => setStep('build')}
+            />
           )}
 
         </div>
