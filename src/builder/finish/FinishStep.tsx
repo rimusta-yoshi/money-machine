@@ -88,8 +88,11 @@ export function FinishStep({ trade, site, onBusinessChange, onContentChange, onP
             <span>Exactly what goes live</span>
           </div>
           {/* Visual only: the form on the left is the accessible way to edit. */}
-          <div className="mm-finish-preview" inert>
-            <SitePage site={site} trade={trade} mode="live" />
+          {/* The scroll box stays interactive so it can scroll; only the site inside is inert. */}
+          <div className="mm-finish-preview" role="region" tabIndex={0} aria-label="Preview of your live site, scrollable">
+            <div inert>
+              <SitePage site={site} trade={trade} mode="live" />
+            </div>
           </div>
         </aside>
       </div>
