@@ -75,8 +75,8 @@ export const plumber: TradeConfig = {
     },
   ],
   ctaText: 'Get a Free Quote',
-  ctaSubtext: 'We respond within 15 minutes',
-  trustSignals: ['Fully Insured · £2m', 'Local Family Business', '24/7 Emergency Callouts', '5★ Rated · 312 Reviews', '12+ Years Experience', 'Same-Day Visits'],
+  ctaSubtext: 'Free, no-obligation quotes',
+  trustSignals: ['Fully Insured · £2m', 'Local Family Business', '24/7 Emergency Callouts', '12+ Years Experience', 'Same-Day Visits'],
   services: ['Leak Repairs', 'Boiler Repairs', 'Bathroom Plumbing', 'Pipe Installations', 'Drain Unblocking', 'General Plumbing'],
   stickyCallBar: true,
 }

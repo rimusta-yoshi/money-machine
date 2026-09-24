@@ -1,23 +1,25 @@
-import type { TradeConfig } from '../../types'
+import { SectionShell } from './parts'
+import type { SectionProps } from './types'
 
-interface Props {
-  trade: TradeConfig
-}
+export function GalleryRow({ trade, content }: SectionProps) {
+  const { gallery } = content.photos
+  if (!gallery) return null
 
-export function GalleryRow({ trade }: Props) {
   return (
-    <section className="ff-gal-row">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Our work</span>
-        <h2>Recent projects</h2>
-      </div>
-      <div className="ff-gal-scroll">
-        {Array.from({ length: 5 }, (_, i) => (
-          <div className="ff-gal-thumb" key={i}>
-            <span className="cap">PHOTO · {trade.name.toLowerCase()} {i + 1}</span>
-          </div>
-        ))}
-      </div>
-    </section>
+    <SectionShell className="ff-gal-row" eyebrow="Our work" title="Recent projects" example={gallery.example}>
+      <ul className="ff-gal-scroll" tabIndex={0} aria-label="Project photos, scroll sideways for more">
+        {gallery.example
+          ? Array.from({ length: 5 }, (_, i) => (
+              <li className="ff-gal-thumb" key={i} aria-hidden="true">
+                <span className="cap">PHOTO · {trade.name.toLowerCase()} {i + 1}</span>
+              </li>
+            ))
+          : gallery.value.map(photo => (
+              <li className="ff-gal-thumb" key={photo.url}>
+                <img className="ff-photo-img" src={photo.url} alt={photo.alt} loading="lazy" />
+              </li>
+            ))}
+      </ul>
+    </SectionShell>
   )
 }

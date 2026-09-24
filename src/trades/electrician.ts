@@ -61,7 +61,7 @@ export const electrician: TradeConfig = {
     },
   ],
   ctaText: 'Book an Electrician',
-  ctaSubtext: 'Same-day service available',
+  ctaSubtext: 'Free, no-obligation quotes',
   trustSignals: ['Master Electrician Certified', 'NICEIC Approved', 'Fully Insured', '24/7 Emergency Calls', 'Free Safety Inspections', 'EV Charger Specialists'],
   services: ['Panel Upgrades', 'Rewiring', 'EV Charger Install', 'Lighting', 'Safety Inspections', 'Emergency Repairs'],
   stickyCallBar: false,

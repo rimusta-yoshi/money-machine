@@ -1,31 +1,27 @@
-import type { TradeConfig } from '../../types'
 import { Icon } from '../ui/Icon'
-
-interface Props {
-  trade: TradeConfig
-}
+import { SectionShell } from './parts'
+import type { SectionProps } from './types'
 
 type IconKey = keyof typeof Icon
 const ICONS: IconKey[] = ['Shield', 'Badge', 'Check', 'Bolt', 'Star', 'Clock']
 
-export function TrustGrid({ trade }: Props) {
+export function TrustGrid({ content }: SectionProps) {
+  const { badges } = content
+  if (!badges) return null
+
   return (
-    <section className="ff-section alt ff-trust-grid">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Why choose us</span>
-        <h2>Trusted by local homeowners</h2>
-      </div>
-      <div className="tg-grid">
-        {trade.trustSignals.map((signal, i) => {
+    <SectionShell className="ff-section alt ff-trust-grid" eyebrow="Why choose us" title="Trusted by local homeowners" example={badges.example}>
+      <ul className="tg-grid">
+        {badges.value.map((signal, i) => {
           const Ico = Icon[ICONS[i % ICONS.length]]
           return (
-            <div className="tg-cell" key={signal}>
+            <li className="tg-cell" key={signal}>
               <div className="ff-icon"><Ico size={20} /></div>
               <p>{signal}</p>
-            </div>
+            </li>
           )
         })}
-      </div>
-    </section>
+      </ul>
+    </SectionShell>
   )
 }

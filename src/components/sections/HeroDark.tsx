@@ -1,47 +1,53 @@
-import type { BusinessInfo, TradeConfig } from '../../types'
+import { useId } from 'react'
 import { Icon } from '../ui/Icon'
+import { ExampleTag, PhoneLink, PhotoSlot, Stars } from './parts'
+import { splitTagline } from './tagline'
+import type { SectionProps } from './types'
 
-interface Props {
-  business: BusinessInfo
-  trade: TradeConfig
-}
-
-export function HeroDark({ business, trade }: Props) {
-  const location = business.location || 'Your Area'
-  const phone = business.phone || '—'
-  const parts = trade.tagline.split(' ')
-  const pivot = Math.floor(parts.length * 0.6)
-  const before = parts.slice(0, pivot).join(' ') + (pivot > 0 ? ' ' : '')
-  const highlight = parts.slice(pivot).join(' ')
+export function HeroDark({ business, trade, content }: SectionProps) {
+  const headingId = useId()
+  const location = business.location.trim()
+  const [before, highlight] = splitTagline(trade.tagline, 0.6)
+  const { emergency, rating, badges } = content
+  const badge = badges?.value[0]
 
   return (
-    <section className="ff-hero">
-      <div className="ff-hero-photo" data-label={`PHOTO · ${trade.name.toLowerCase()} at work`} />
+    <section className="ff-hero" aria-labelledby={headingId}>
+      <PhotoSlot photo={content.photos.hero} className="ff-hero-photo" placeholder={`${trade.name.toLowerCase()} at work`} />
       <div className="ff-hero-content">
-        <div className="ff-hero-pill">
-          <span className="dot" />
-          Available now · 24/7 emergency line
-        </div>
-        <h1>{before}<em>{highlight}</em></h1>
-        <p className="sub">{trade.ctaText} across {location}. {trade.ctaSubtext}.</p>
+        {emergency?.value && (
+          <p className="ff-hero-pill">
+            <span className="dot" aria-hidden="true" />
+            Emergency call-outs available
+            {emergency.example && <ExampleTag />}
+          </p>
+        )}
+        <h1 id={headingId}>{before}<em>{highlight}</em></h1>
+        <p className="sub">{trade.ctaText}{location ? ` across ${location}` : ''}. {trade.ctaSubtext}.</p>
         <div className="ff-cta-row">
-          <button className="ff-btn ff-btn-primary" type="button">
-            <Icon.Phone size={18} /> Call now · {phone}
-          </button>
-          <button className="ff-btn ff-btn-ghost" type="button">
-            Get free quote <Icon.Arrow size={16} />
-          </button>
+          <PhoneLink phone={business.phone} className="ff-btn ff-btn-primary">
+            <Icon.Phone size={18} /> Call now · {business.phone}
+          </PhoneLink>
+          <a className="ff-btn ff-btn-ghost" href="#contact">
+            Get a free quote <Icon.Arrow size={16} />
+          </a>
         </div>
-        <div className="ff-hero-trust">
-          <div>
-            <div className="ff-stars">★★★★★</div>
-            <div className="small"><strong>4.9</strong> from 312 Google reviews</div>
+        {(rating || badge) && (
+          <div className="ff-hero-trust">
+            {rating && (
+              <div>
+                <Stars score={rating.value.score} />
+                <p className="small"><strong>{rating.value.score}</strong> from {rating.value.count} reviews</p>
+              </div>
+            )}
+            {badge && (
+              <p className="small ff-hero-badge">
+                <Icon.Shield size={18} /> {badge}
+              </p>
+            )}
+            {(rating?.example || badges?.example) && <ExampleTag />}
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px', color: 'rgba(255,255,255,0.8)' }}>
-            <Icon.Shield size={18} />
-            <span className="small">{trade.trustSignals[0]}</span>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   )

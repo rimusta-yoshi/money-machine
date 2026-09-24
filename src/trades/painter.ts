@@ -62,8 +62,8 @@ export const painter: TradeConfig = {
     },
   ],
   ctaText: 'Get a Free Quote',
-  ctaSubtext: 'We respond within 2 hours',
-  trustSignals: ['Licensed & Insured', 'Free Estimates', 'Local Family Business', '5-Star Rated', '10+ Years Experience', 'Satisfaction Guaranteed'],
+  ctaSubtext: 'Free, no-obligation quotes',
+  trustSignals: ['Licensed & Insured', 'Free Estimates', 'Local Family Business', '10+ Years Experience', 'Satisfaction Guaranteed'],
   services: ['Interior Painting', 'Exterior Painting', 'Cabinet Refinishing', 'Deck Staining', 'Colour Consultation', 'Feature Walls'],
   stickyCallBar: true,
 }

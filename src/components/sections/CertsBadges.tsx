@@ -1,21 +1,24 @@
-import type { TradeConfig } from '../../types'
+import { useId } from 'react'
 import { Icon } from '../ui/Icon'
+import { ExampleTag } from './parts'
+import type { SectionProps } from './types'
 
-interface Props {
-  trade: TradeConfig
-}
+export function CertsBadges({ content }: SectionProps) {
+  const headingId = useId()
+  const { badges } = content
+  if (!badges) return null
 
-export function CertsBadges({ trade }: Props) {
   return (
-    <section className="ff-certs-badges">
-      <p className="cb-label">Licences &amp; Certifications</p>
-      <div className="cb-pills">
-        {trade.trustSignals.map(signal => (
-          <div className="cb-pill" key={signal}>
+    <section className="ff-certs-badges" aria-labelledby={headingId}>
+      <h2 id={headingId} className="cb-label">Licences &amp; certifications</h2>
+      {badges.example && <ExampleTag />}
+      <ul className="cb-pills">
+        {badges.value.map(signal => (
+          <li className="cb-pill" key={signal}>
             <Icon.Badge size={14} /> {signal}
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   )
 }

@@ -2,11 +2,12 @@ import type { SVGProps } from 'react'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
 
+// Icons are decorative by default: the text beside them carries the meaning.
 const stroke = (path: React.ReactNode) => ({ size = 20, ...props }: IconProps) => (
   <svg
     viewBox="0 0 24 24" fill="none" stroke="currentColor"
     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-    width={size} height={size} {...props}
+    width={size} height={size} aria-hidden="true" focusable="false" {...props}
   >
     {path}
   </svg>

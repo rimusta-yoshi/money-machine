@@ -1,30 +1,35 @@
-const REVIEWS = [
-  { initials: 'SM', name: 'Sarah M.', loc: 'Local area', text: 'Absolutely professional from start to finish. Fast response, fair price, no fuss. Would recommend to anyone.' },
-  { initials: 'JO', name: 'James O.', loc: 'Nearby', text: 'Used them for a full job. Quote was clear, timeline was honest, finish is spotless. Already booked again.' },
-  { initials: 'PK', name: 'Priya K.', loc: 'Local area', text: 'Called late on a Sunday. Answered immediately, came out, sorted it. Didn\'t overcharge for the callout.' },
-  { initials: 'TR', name: 'Tom R.', loc: 'Nearby', text: 'Honest, polite, and properly skilled. Our regular from now on.' },
-]
+import { SectionShell, Stars } from './parts'
+import type { SectionProps } from './types'
 
-export function ReviewsCarousel() {
+const initials = (name: string) =>
+  name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
+
+export function ReviewsCarousel({ content }: SectionProps) {
+  const { reviews, rating } = content
+  if (!reviews) return null
+
   return (
-    <section className="ff-section">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">What our customers say</span>
-        <h2>312 reviews. Average 4.9 stars.</h2>
-        <p>Real feedback from homeowners in our area.</p>
-      </div>
-      <div className="ff-revs">
-        {REVIEWS.map((r, i) => (
-          <div className="ff-rev" key={i}>
-            <div className="ff-stars">★★★★★</div>
-            <p>"{r.text}"</p>
-            <div className="who">
-              <div className="ava">{r.initials}</div>
-              <div><b>{r.name}</b><span>{r.loc}</span></div>
-            </div>
-          </div>
+    <SectionShell
+      className="ff-section"
+      eyebrow="What our customers say"
+      title={rating ? `Rated ${rating.value.score} from ${rating.value.count} reviews.` : 'What our customers say.'}
+      sub="Feedback from homeowners in our area."
+      example={reviews.example || rating?.example}
+    >
+      <ul className="ff-revs" tabIndex={0} aria-label="Customer reviews, scroll sideways for more">
+        {reviews.value.map((r, i) => (
+          <li className="ff-rev" key={i}>
+            <figure>
+              <Stars score={r.rating} />
+              <blockquote><p>"{r.text}"</p></blockquote>
+              <figcaption className="who">
+                <span className="ava" aria-hidden="true">{initials(r.author)}</span>
+                <span><b>{r.author}</b>{r.location && <span>{r.location}</span>}</span>
+              </figcaption>
+            </figure>
+          </li>
         ))}
-      </div>
-    </section>
+      </ul>
+    </SectionShell>
   )
 }

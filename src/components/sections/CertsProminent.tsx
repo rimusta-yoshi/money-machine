@@ -1,26 +1,27 @@
-import type { TradeConfig } from '../../types'
 import { Icon } from '../ui/Icon'
+import { SectionShell } from './parts'
+import type { SectionProps } from './types'
 
-interface Props {
-  trade: TradeConfig
-}
+export function CertsProminent({ content }: SectionProps) {
+  const { badges } = content
+  if (!badges) return null
 
-export function CertsProminent({ trade }: Props) {
   return (
-    <section className="ff-section ff-certs-grid">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Certified &amp; licensed</span>
-        <h2>Our credentials mean your work is safe.</h2>
-        <p>Every certificate on file. Available on request.</p>
-      </div>
-      <div className="certs-grid">
-        {trade.trustSignals.map(signal => (
-          <div className="cert-card" key={signal}>
+    <SectionShell
+      className="ff-section ff-certs-grid"
+      eyebrow="Certified & licensed"
+      title="Our credentials mean your work is safe."
+      sub="Certificates available on request."
+      example={badges.example}
+    >
+      <ul className="certs-grid">
+        {badges.value.map(signal => (
+          <li className="cert-card" key={signal}>
             <div className="ff-icon"><Icon.Badge size={22} /></div>
             <p>{signal}</p>
-          </div>
+          </li>
         ))}
-      </div>
-    </section>
+      </ul>
+    </SectionShell>
   )
 }

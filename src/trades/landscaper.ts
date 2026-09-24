@@ -62,7 +62,7 @@ export const landscaper: TradeConfig = {
     },
   ],
   ctaText: 'Request a Free Estimate',
-  ctaSubtext: 'Serving your area since 2005',
+  ctaSubtext: 'Free, no-obligation consultations',
   trustSignals: ['Licensed & Insured', 'Locally Owned', 'Satisfaction Guaranteed', 'Free Consultations', '15+ Years Experience', 'Eco-Friendly Practices'],
   services: ['Lawn Maintenance', 'Landscape Design', 'Sod Installation', 'Garden Beds', 'Tree Trimming', 'Snow Removal'],
   stickyCallBar: false,

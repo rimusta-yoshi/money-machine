@@ -1,30 +1,29 @@
-import type { BusinessInfo, TradeConfig } from '../../types'
 import { Icon } from '../ui/Icon'
+import { PhoneLink, SectionShell } from './parts'
+import type { SectionProps } from './types'
 
-interface Props {
-  business: BusinessInfo
-  trade: TradeConfig
-}
-
-export function ContactSimple({ business, trade }: Props) {
-  const phone = business.phone || '—'
-  const location = business.location || 'your area'
+export function ContactSimple({ business, trade }: SectionProps) {
+  const location = business.location.trim() || 'your area'
+  const email = business.email.trim()
 
   return (
-    <section className="ff-section alt ff-contact-simple">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Get in touch</span>
-        <h2>{trade.ctaText}</h2>
-        <p>{trade.ctaSubtext}. Serving {location}.</p>
-      </div>
+    <SectionShell
+      id="contact"
+      className="ff-section alt ff-contact-simple"
+      eyebrow="Get in touch"
+      title={trade.ctaText}
+      sub={`${trade.ctaSubtext}. Serving ${location}.`}
+    >
       <div className="cs-ctas">
-        <button type="button" className="ff-btn ff-btn-primary">
-          <Icon.Phone size={18} /> Call {phone}
-        </button>
-        <button type="button" className="ff-btn ff-btn-outline">
-          <Icon.Mail size={16} /> Send a message <Icon.Arrow size={14} />
-        </button>
+        <PhoneLink phone={business.phone} className="ff-btn ff-btn-primary">
+          <Icon.Phone size={18} /> Call {business.phone}
+        </PhoneLink>
+        {email && (
+          <a className="ff-btn ff-btn-outline" href={`mailto:${email}`}>
+            <Icon.Mail size={16} /> Email us <Icon.Arrow size={14} />
+          </a>
+        )}
       </div>
-    </section>
+    </SectionShell>
   )
 }

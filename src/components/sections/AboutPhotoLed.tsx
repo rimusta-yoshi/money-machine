@@ -1,39 +1,41 @@
-import type { BusinessInfo, TradeConfig } from '../../types'
+import { ExampleTag, PhotoSlot, SectionShell } from './parts'
+import type { SectionProps } from './types'
 
-interface Props {
-  business: BusinessInfo
-  trade: TradeConfig
-}
+type Stat = { n: string; l: string; example: boolean }
 
-export function AboutPhotoLed({ business, trade }: Props) {
-  const years = business.yearsInBusiness || '10+'
+export function AboutPhotoLed({ business, trade, content, mode }: SectionProps) {
+  const location = business.location.trim()
+  const tradeName = trade.name.toLowerCase()
+  const years = business.yearsInBusiness.trim()
+  const { jobsDone, rating } = content
+
+  const stats: Stat[] = [
+    ...(years ? [{ n: years, l: 'Years local', example: false }] : mode === 'builder' ? [{ n: '10+', l: 'Years local', example: true }] : []),
+    ...(jobsDone ? [{ n: jobsDone.value, l: 'Jobs done', example: jobsDone.example }] : []),
+    ...(rating ? [{ n: `${rating.value.score}★`, l: `${rating.value.count} reviews`, example: rating.example }] : []),
+  ]
 
   return (
-    <section className="ff-section alt">
-      <div className="ff-about-photo">
-        <div className="ff-section-head">
-          <span className="ff-eyebrow">About us</span>
-          <h2>{business.location ? `Local ${trade.name.toLowerCase()} in ${business.location}.` : `Your local ${trade.name.toLowerCase()} team.`}</h2>
-        </div>
-        <div className="about-photo">
-          <span className="cap">PHOTO · team &amp; van outside</span>
-        </div>
-        <p className="about-body">
-          {business.about || `We're a small team of local engineers — not a national chain. You speak to the same person from quote to follow-up, and we genuinely care about our neighbours recommending us.`}
-        </p>
-        <div className="about-stats">
-          {[
-            [years, 'Years local'],
-            ['2,800+', 'Jobs done'],
-            ['4.9★', '312 reviews'],
-          ].map(([n, l]) => (
-            <div className="about-stat" key={l}>
-              <span className="n">{n}</span>
-              <span className="l">{l}</span>
-            </div>
+    <SectionShell
+      className="ff-section alt ff-about-photo"
+      eyebrow="About us"
+      title={location ? `Local ${tradeName} in ${location}.` : `Your local ${tradeName} team.`}
+    >
+      <PhotoSlot photo={content.photos.about} className="about-photo" placeholder="team & van outside" />
+      <p className="about-body">
+        {business.about.trim() || `We're a local, independent ${tradeName} business. You deal with the same people from first call to finished job.`}
+      </p>
+      {stats.length > 0 && (
+        <ul className="about-stats">
+          {stats.map(s => (
+            <li className="about-stat" key={s.l}>
+              <span className="n">{s.n}</span>
+              <span className="l">{s.l}</span>
+              {s.example && <ExampleTag />}
+            </li>
           ))}
-        </div>
-      </div>
-    </section>
+        </ul>
+      )}
+    </SectionShell>
   )
 }

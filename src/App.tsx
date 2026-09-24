@@ -7,6 +7,7 @@ import { siteReducer } from './site/reducer'
 import { siteSections } from './site/sections'
 import { SECTION_LABELS } from './site/labels'
 import type { Site } from './site/schema'
+import { siteTheme } from './site/theme'
 import { TradeCard } from './builder/TradeCard'
 import { SetupForm } from './builder/SetupForm'
 import { BuilderCanvas } from './builder/BuilderCanvas'
@@ -19,14 +20,6 @@ function stepNumber(step: Step): 1 | 2 | 3 {
   if (step === 'pick-trade') return 1
   if (step === 'setup') return 2
   return 3
-}
-
-function darkenHex(hex: string, amount = 0.28): string {
-  const h = hex.replace('#', '')
-  const r = Math.round(parseInt(h.slice(0, 2), 16) * (1 - amount))
-  const g = Math.round(parseInt(h.slice(2, 4), 16) * (1 - amount))
-  const b = Math.round(parseInt(h.slice(4, 6), 16) * (1 - amount))
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
 }
 
 export default function App() {
@@ -49,11 +42,7 @@ export default function App() {
   const brandColor = site?.brandColor
   const cssVars = useMemo<CSSProperties | undefined>(() => {
     if (!trade || !brandColor) return undefined
-    return {
-      '--accent': brandColor,
-      '--accent-ink': darkenHex(brandColor),
-      '--navy': trade.colorScheme.navy,
-    } as CSSProperties
+    return siteTheme(brandColor, trade.colorScheme.navy)
   }, [trade, brandColor])
 
   return (

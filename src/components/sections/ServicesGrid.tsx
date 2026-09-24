@@ -1,40 +1,41 @@
-import type { TradeConfig } from '../../types'
 import { Icon } from '../ui/Icon'
-
-interface Props {
-  trade: TradeConfig
-}
+import { ExampleTag, SectionShell } from './parts'
+import type { SectionProps } from './types'
 
 type IconKey = keyof typeof Icon
 const SERVICE_ICONS: IconKey[] = ['Wrench', 'Bolt', 'Shield', 'Check', 'Star', 'Clock', 'Home', 'Truck']
 
-export function ServicesGrid({ trade }: Props) {
+export function ServicesGrid({ trade, content }: SectionProps) {
+  const { emergency } = content
+
   return (
-    <section className="ff-section">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Our services</span>
-        <h2>Whatever the job, we've got it covered.</h2>
-        <p>Professional {trade.name.toLowerCase()} services. Quoted straight, done properly.</p>
-      </div>
-      <div className="ff-services">
-        <div className="ff-service urgent">
-          <div className="ff-icon"><Icon.Bolt size={22} /></div>
-          <div className="urgent-grow">
-            <div className="ff-h-sm">Emergency — 24/7</div>
-            <div className="desc">On site fast. No callout fee before 8pm.</div>
-          </div>
-          <div className="ff-icon-arrow"><Icon.Arrow size={16} /></div>
-        </div>
+    <SectionShell
+      className="ff-section"
+      eyebrow="Our services"
+      title="Whatever the job, we've got it covered."
+      sub={`Professional ${trade.name.toLowerCase()} services. Quoted straight, done properly.`}
+    >
+      <ul className="ff-services">
+        {emergency?.value && (
+          <li className="ff-service urgent">
+            <div className="ff-icon"><Icon.Bolt size={22} /></div>
+            <div className="urgent-grow">
+              <h3 className="ff-h-sm">Emergency call-outs</h3>
+              <p className="desc">Fast help when you need it most. {emergency.example && <ExampleTag />}</p>
+            </div>
+            <div className="ff-icon-arrow"><Icon.Arrow size={16} /></div>
+          </li>
+        )}
         {trade.services.map((service, i) => {
           const Ico = Icon[SERVICE_ICONS[i % SERVICE_ICONS.length]]
           return (
-            <div className="ff-service" key={service}>
+            <li className="ff-service" key={service}>
               <div className="ff-icon"><Ico size={20} /></div>
-              <div className="ff-h-sm">{service}</div>
-            </div>
+              <h3 className="ff-h-sm">{service}</h3>
+            </li>
           )
         })}
-      </div>
-    </section>
+      </ul>
+    </SectionShell>
   )
 }

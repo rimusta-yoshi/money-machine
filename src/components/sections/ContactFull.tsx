@@ -1,95 +1,108 @@
-import { useState } from 'react'
-import type { BusinessInfo, TradeConfig } from '../../types'
+import { useId, useState } from 'react'
 import { Icon } from '../ui/Icon'
-
-interface Props {
-  business: BusinessInfo
-  trade: TradeConfig
-}
-
-const HOURS = [
-  ['Mon — Fri', '7:00 — 18:00'],
-  ['Saturday', '8:00 — 16:00'],
-  ['Sunday', 'Emergencies only'],
-  ['Bank holidays', 'Emergencies only'],
-]
+import { ExampleTag, PhoneLink, SectionShell } from './parts'
+import type { SectionProps } from './types'
 
 const JOB_TYPES = ['Emergency', 'Get a quote', 'Inspection', 'Something else']
 
-export function ContactFull({ business }: Props) {
-  const [jobType, setJobType] = useState('Get a quote')
-  const phone = business.phone || '—'
+export function ContactFull({ business, content, mode }: SectionProps) {
+  const { hours, emergency } = content
+  const email = business.email.trim()
 
   return (
-    <section className="ff-section alt">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Get in touch</span>
-        <h2>Call us, or request a quote.</h2>
-        <p>Most quotes within 15 minutes during working hours.</p>
-      </div>
+    <SectionShell
+      id="contact"
+      className="ff-section alt"
+      eyebrow="Get in touch"
+      title="Call us, or request a quote."
+      sub="We'll get back to you as soon as we can."
+    >
       <div className="ff-contact-grid">
         <div className="ff-contact-aside">
           <div className="ff-contact-strip">
             <div className="ff-contact-card">
-              <div className="label"><Icon.Phone size={11} /> Phone</div>
-              <span className="val">{phone}</span>
+              <p className="label"><Icon.Phone size={11} /> Phone</p>
+              <PhoneLink phone={business.phone} className="val">{business.phone}</PhoneLink>
             </div>
-            <div className="ff-contact-card">
-              <div className="label"><Icon.Mail size={11} /> Email</div>
-              <span className="val" style={{ fontSize: '12px', wordBreak: 'break-all' }}>
-                hello@{(business.name || 'business').toLowerCase().replace(/\s+/g, '')}.co.uk
-              </span>
-            </div>
-          </div>
-          <div className="ff-hours">
-            <div className="row today">
-              <span className="d">Today</span>
-              <span className="t">7:00 — 18:00 · open</span>
-            </div>
-            {HOURS.map(([day, time]) => (
-              <div className="row" key={day}>
-                <span className="d">{day}</span>
-                <span className="t">{time}</span>
+            {email && (
+              <div className="ff-contact-card">
+                <p className="label"><Icon.Mail size={11} /> Email</p>
+                <a className="val ff-break" href={`mailto:${email}`}>{email}</a>
               </div>
-            ))}
-            <div className="emerg">
-              <div className="e-tile"><Icon.Bolt size={18} /></div>
-              <div>
-                <b>24/7 emergency line</b>
-                <small>For urgent callouts any time</small>
-              </div>
+            )}
+          </div>
+          {(hours || emergency?.value) && (
+            <div className="ff-hours">
+              {hours && (
+                <dl aria-label="Opening hours">
+                  {hours.value.map(({ day, time }) => (
+                    <div className="row" key={day}>
+                      <dt className="d">{day}</dt>
+                      <dd className="t">{time}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {hours?.example && <p className="row"><ExampleTag /></p>}
+              {emergency?.value && (
+                <div className="emerg">
+                  <div className="e-tile"><Icon.Bolt size={18} /></div>
+                  <p>
+                    <b>Emergency call-outs</b>
+                    <small>Call us for urgent jobs {emergency.example && <ExampleTag />}</small>
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
-        <div className="ff-form">
-          <div className="ff-field">
-            <label>What's the job?</label>
-            <div className="ff-radios">
-              {JOB_TYPES.map(jt => (
-                <button key={jt} type="button" className={`ff-radio${jobType === jt ? ' on' : ''}`} onClick={() => setJobType(jt)}>
-                  {jt}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="ff-field">
-            <label>Your name</label>
-            <input type="text" placeholder="e.g. Sarah Mitchell" readOnly />
-          </div>
-          <div className="ff-field">
-            <label>Phone</label>
-            <input type="tel" placeholder="07…" readOnly />
-          </div>
-          <div className="ff-field">
-            <label>Tell us a bit more</label>
-            <textarea placeholder="Describe the job…" rows={3} readOnly />
-          </div>
-          <button type="button" className="ff-btn ff-btn-primary" style={{ width: '100%' }}>
-            Request callback <Icon.Arrow size={16} />
-          </button>
-        </div>
+        <QuoteForm />
       </div>
-      <div className="ff-map" data-label={`MAP · ${business.location || 'Local Area'}`} />
-    </section>
+      {mode === 'builder' && <div className="ff-map" aria-hidden="true" />}
+    </SectionShell>
+  )
+}
+
+/** Enquiry form. Sending is wired up in phase 3; until then it does nothing. */
+function QuoteForm() {
+  const id = useId()
+  const [jobType, setJobType] = useState('Get a quote')
+
+  return (
+    <form className="ff-form" aria-label="Request a quote" onSubmit={e => e.preventDefault()}>
+      <fieldset className="ff-field">
+        <legend>What's the job?</legend>
+        <div className="ff-radios">
+          {JOB_TYPES.map(jt => (
+            <label key={jt} className={`ff-radio${jobType === jt ? ' on' : ''}`}>
+              <input
+                type="radio"
+                className="ff-sr-only"
+                name={`${id}-job`}
+                value={jt}
+                checked={jobType === jt}
+                onChange={() => setJobType(jt)}
+              />
+              {jt}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="ff-field">
+        <label htmlFor={`${id}-name`}>Your name</label>
+        <input id={`${id}-name`} name="name" type="text" autoComplete="name" required maxLength={80} />
+      </div>
+      <div className="ff-field">
+        <label htmlFor={`${id}-phone`}>Phone</label>
+        <input id={`${id}-phone`} name="phone" type="tel" autoComplete="tel" required maxLength={30} />
+      </div>
+      <div className="ff-field">
+        <label htmlFor={`${id}-msg`}>Tell us a bit more</label>
+        <textarea id={`${id}-msg`} name="message" rows={3} maxLength={1000} />
+      </div>
+      <button type="submit" className="ff-btn ff-btn-primary" style={{ width: '100%' }}>
+        Request callback <Icon.Arrow size={16} />
+      </button>
+    </form>
   )
 }

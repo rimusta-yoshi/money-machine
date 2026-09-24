@@ -1,37 +1,34 @@
 import { Icon } from '../ui/Icon'
+import { SectionShell } from './parts'
 
 type IconKey = keyof typeof Icon
 const FEAT_ICONS: IconKey[] = ['Bolt', 'Tag', 'Shield', 'Sparkle', 'Chat', 'Check']
 
-const DEFAULT_FEATURES = [
-  ['Fast response', 'On site quickly for emergencies in our coverage area.'],
-  ['Transparent pricing', 'Fixed quotes before any work starts. No hidden charges.'],
-  ['Qualified & insured', 'Fully licensed, registered, and insured to £2m public liability.'],
-  ['Clean workmanship', 'Dust sheets, proper tidy-up. We treat your home like ours.'],
-  ['Reliable communication', 'Real-time updates, photos of the work, follow-up after every job.'],
+const FEATURES = [
+  ['Quick to respond', 'We get back to you fast and turn up when we say we will.'],
+  ['Clear pricing', 'A straightforward quote before any work starts. No hidden charges.'],
+  ['Properly qualified', 'Trained, experienced and insured for the work we do.'],
+  ['Clean and tidy', 'Dust sheets down, mess cleared up. We treat your home like ours.'],
+  ['Kept in the loop', 'Updates as the job goes, and a follow-up once it’s done.'],
 ]
 
 export function WhyUsFeatures() {
   return (
-    <section className="ff-section ff-features">
-      <div className="ff-section-head">
-        <span className="ff-eyebrow">Why choose us</span>
-        <h2>Five things we get right, every job.</h2>
-      </div>
-      <div className="feat-list">
-        {DEFAULT_FEATURES.map(([title, desc], i) => {
+    <SectionShell className="ff-section ff-features" eyebrow="Why choose us" title="Five things we get right, every job.">
+      <ul className="feat-list">
+        {FEATURES.map(([title, desc], i) => {
           const Ico = Icon[FEAT_ICONS[i % FEAT_ICONS.length]]
           return (
-            <div className="feat-row" key={title}>
+            <li className="feat-row" key={title}>
               <div className="ff-icon"><Ico size={20} /></div>
               <div>
-                <h4>{title}</h4>
+                <h3>{title}</h3>
                 <p>{desc}</p>
               </div>
-            </div>
+            </li>
           )
         })}
-      </div>
-    </section>
+      </ul>
+    </SectionShell>
   )
 }
