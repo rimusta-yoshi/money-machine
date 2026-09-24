@@ -1,40 +1,25 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import type { CSSProperties } from 'react'
-import type { BusinessInfo, SectionType, TradeConfig } from '../types'
+import type { SectionType, TradeConfig } from '../types'
+import type { Site } from '../site/schema'
+import { siteSections } from '../site/sections'
+import { SECTION_LABELS } from '../site/labels'
 import { SectionRenderer } from '../components/sections/SectionRenderer'
 import { Icon } from '../components/ui/Icon'
 
 interface Props {
   trade: TradeConfig
-  business: BusinessInfo
+  site: Site
   mobile: boolean
+  onSelect: (section: SectionType, variantId: string) => void
   onDone: () => void
 }
 
 const DESK_W = 1200
 
-const SECTION_LABELS: Record<string, string> = {
-  hero: 'Hero',
-  trust_bar: 'Trust Bar',
-  services: 'Services',
-  about: 'About',
-  why_us: 'Why Us',
-  gallery: 'Gallery',
-  certifications: 'Certifications',
-  testimonials: 'Reviews',
-  areas: 'Service Areas',
-  contact: 'Contact',
-}
-
-function defaultSelections(trade: TradeConfig): Record<SectionType, string> {
-  return Object.fromEntries(
-    trade.sections.map(s => [s.type, ''])
-  ) as Record<SectionType, string>
-}
-
-export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
-  const sections = trade.sections
-  const [selections, setSelections] = useState(() => defaultSelections(trade))
+export function BuilderCanvas({ trade, site, mobile, onSelect, onDone }: Props) {
+  const sections = siteSections(trade, site)
+  const selections = site.selections
   const [previewIdx, setPreviewIdx] = useState<Record<string, number>>({})
   const [activeIdx, setActiveIdx] = useState(0)
   const [zoom, setZoom] = useState(1)
@@ -87,7 +72,11 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
 
   if (sections.length === 0) return null
 
-  const getPreviewIdx = (type: SectionType) => previewIdx[type] ?? 0
+  const getPreviewIdx = (type: SectionType) => {
+    if (previewIdx[type] !== undefined) return previewIdx[type]
+    const sec = sections.find(s => s.type === type)
+    return Math.max(0, sec?.variants.findIndex(v => v.id === selections[type]) ?? 0)
+  }
   const isConfirmed = (type: SectionType) => !!selections[type]
 
   // Auto-confirm active section then jump to newIdx
@@ -95,19 +84,20 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
     if (newIdx === activeIdx) return
     const sec = sections[activeIdx]
     const variant = sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
-    setSelections(prev => ({ ...prev, [sec.type]: variant.id }))
+    onSelect(sec.type, variant.id)
     setActiveIdx(newIdx)
   }
 
   const cycle = (type: SectionType, count: number, dir: 1 | -1) => {
-    setPreviewIdx(p => ({ ...p, [type]: ((p[type] ?? 0) + dir + count) % count }))
+    const current = getPreviewIdx(type)
+    setPreviewIdx(p => ({ ...p, [type]: (current + dir + count) % count }))
   }
 
   // Auto-confirm current section then call onDone
   const handleDone = () => {
     const sec = sections[activeIdx]
     const variant = sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
-    setSelections(prev => ({ ...prev, [sec.type]: variant.id }))
+    onSelect(sec.type, variant.id)
     onDone()
   }
 
@@ -193,7 +183,7 @@ export function BuilderCanvas({ trade, business, mobile, onDone }: Props) {
                     ) : (
                       <div className="mm-vanim" key={`${sec.type}-${resolveVariant(i).id}`}>
                         <div style={{ pointerEvents: 'none' }}>
-                          <SectionRenderer componentName={resolveVariant(i).component} business={business} trade={trade} />
+                          <SectionRenderer componentName={resolveVariant(i).component} site={site} trade={trade} mode="builder" />
                         </div>
                       </div>
                     )}

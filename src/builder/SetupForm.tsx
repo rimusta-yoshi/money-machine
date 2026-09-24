@@ -1,45 +1,39 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import { z } from 'zod'
 import type { TradeConfig, BusinessInfo } from '../types'
+import type { ExtraId, Site } from '../site/schema'
 import { Icon } from '../components/ui/Icon'
+import { BrandColorCard } from './BrandColorCard'
+import { ExtrasCard } from './ExtrasCard'
 
 interface Props {
   trade: TradeConfig
-  brandColor: string
+  site: Site
+  onBusinessChange: (patch: Partial<BusinessInfo>) => void
   onBrandColorChange: (color: string) => void
-  onSubmit: (info: BusinessInfo) => void
+  onToggleExtra: (extra: ExtraId) => void
+  onSubmit: () => void
   onBack: () => void
 }
 
-const EMPTY: BusinessInfo = { name: '', phone: '', location: '', about: '', yearsInBusiness: '' }
-
-const PRESETS = [
-  '#1E88E5', // blue
-  '#2563EB', // indigo
-  '#0891B2', // teal
-  '#3F8F4F', // green
-  '#F59E0B', // amber
-  '#EA580C', // orange
-  '#C2410C', // burnt orange
-  '#DC2626', // red
-  '#7C3AED', // purple
-  '#374151', // slate
-]
+const emailSchema = z.string().trim().email()
 
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean)
   return words.slice(0, 2).map(w => Array.from(w)[0]).join('').toUpperCase() || '??'
 }
 
-export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onBack }: Props) {
-  const [info, setInfo] = useState<BusinessInfo>(EMPTY)
-  const colorInputRef = useRef<HTMLInputElement>(null)
+export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, onToggleExtra, onSubmit, onBack }: Props) {
+  const info = site.business
+  const [emailTouched, setEmailTouched] = useState(false)
 
   const set = (field: keyof BusinessInfo) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setInfo(prev => ({ ...prev, [field]: e.target.value }))
+    onBusinessChange({ [field]: e.target.value })
 
-  const valid = info.name.trim().length > 0 && info.phone.trim().length > 0
-  const aboutLen = info.about.length
+  const emailValid = info.email.trim() === '' || emailSchema.safeParse(info.email).success
+  const showEmailError = emailTouched && !emailValid
+  const valid = info.name.trim().length > 0 && info.phone.trim().length > 0 && emailValid
 
   const displayName = info.name.trim() || `${trade.name} Co.`
   const initials = getInitials(info.name.trim() || trade.name)
@@ -49,7 +43,7 @@ export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onB
       <div>
         <div className="mm-eyebrow">STEP <b>02</b> / 03 · THE BASICS</div>
         <h1 className="mm-title">Tell us about the business.</h1>
-        <p className="mm-sub">Five things, that's it. Watch the preview build itself as you type — your actual site taking shape.</p>
+        <p className="mm-sub">A few details, that's it. Watch the preview build itself as you type — your actual site taking shape.</p>
       </div>
 
       <div className="mm-step2">
@@ -57,43 +51,61 @@ export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onB
         <div className="mm-form">
           <div className="mm-fieldset">
             <div className="mm-fld">
-              <label>Business name <span className="req">REQUIRED</span></label>
-              <input value={info.name} onChange={set('name')} placeholder={`${trade.name} Co.`} />
+              <label htmlFor="fld-name">Business name <span className="req">REQUIRED</span></label>
+              <input id="fld-name" value={info.name} onChange={set('name')} placeholder={`${trade.name} Co.`} maxLength={80} autoComplete="organization" />
             </div>
             <div className="mm-fld-2">
               <div className="mm-fld">
-                <label>Phone <span className="req">REQUIRED</span></label>
-                <input value={info.phone} onChange={set('phone')} placeholder="(604) 555-0123" type="tel" />
+                <label htmlFor="fld-phone">Phone <span className="req">REQUIRED</span></label>
+                <input id="fld-phone" value={info.phone} onChange={set('phone')} placeholder="(604) 555-0123" type="tel" maxLength={30} autoComplete="tel" />
               </div>
               <div className="mm-fld">
-                <label>Town / City</label>
-                <input value={info.location} onChange={set('location')} placeholder="Vancouver, BC" />
+                <label htmlFor="fld-location">Town / City</label>
+                <input id="fld-location" value={info.location} onChange={set('location')} placeholder="Vancouver, BC" maxLength={80} autoComplete="address-level2" />
               </div>
             </div>
+            <div className="mm-fld">
+              <label htmlFor="fld-email">Email <span className="sublab">so you can edit your site later</span></label>
+              <input
+                id="fld-email"
+                value={info.email}
+                onChange={set('email')}
+                onBlur={() => setEmailTouched(true)}
+                placeholder="you@example.com"
+                type="email"
+                maxLength={254}
+                autoComplete="email"
+                aria-invalid={showEmailError}
+                aria-describedby={showEmailError ? 'fld-email-err' : undefined}
+              />
+              {showEmailError && (
+                <div id="fld-email-err" className="mm-fld-err" role="alert">That email doesn't look right.</div>
+              )}
+            </div>
             <div className="mm-fld" style={{ maxWidth: 200 }}>
-              <label>Years in business</label>
-              <input value={info.yearsInBusiness} onChange={set('yearsInBusiness')} placeholder="12" inputMode="numeric" />
+              <label htmlFor="fld-years">Years in business</label>
+              <input id="fld-years" value={info.yearsInBusiness} onChange={set('yearsInBusiness')} placeholder="12" inputMode="numeric" maxLength={10} />
             </div>
             <div className="mm-fld">
-              <label>Short about blurb <span className="sublab">optional</span></label>
+              <label htmlFor="fld-about">Short about blurb <span className="sublab">optional</span></label>
               <textarea
+                id="fld-about"
                 value={info.about}
                 onChange={set('about')}
                 maxLength={160}
                 placeholder="Family-owned and operated. Fully licensed and insured…"
+                aria-describedby="fld-about-count"
               />
-              <div className="count">{aboutLen}/160</div>
+              <div id="fld-about-count" className="count">{info.about.length}/160</div>
             </div>
           </div>
         </div>
 
-        {/* Right column: preview card + colour card stacked */}
+        {/* Right column: preview, colour, extras */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-          {/* Live preview card */}
           <div
             className="mm-preview-card"
-            style={{ '--accent': brandColor, '--navy': trade.colorScheme.navy } as CSSProperties}
+            style={{ '--accent': site.brandColor, '--navy': trade.colorScheme.navy } as CSSProperties}
           >
             <div className="mm-pc-label">
               <div className="mm-pc-dot" />
@@ -111,9 +123,6 @@ export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onB
                   </div>
                 </div>
               </div>
-              <div className="mm-id-stars">
-                ★★★★★ <span>4.9 · 312 reviews</span>
-              </div>
               <div className="mm-id-headline">{trade.tagline}</div>
               <div className="mm-id-meta">
                 <div className={`mm-id-chip${!info.phone.trim() ? ' dim' : ''}`}>
@@ -129,50 +138,8 @@ export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onB
             </div>
           </div>
 
-          {/* Brand colour card */}
-          <div className="mm-color-card">
-            <div className="mm-color-card-label">
-              <span>Brand colour</span>
-            </div>
-            <div className="mm-color-card-body">
-              <div className="mm-color-big">
-                <div
-                  className="mm-color-swatch-lg"
-                  style={{ background: brandColor } as CSSProperties}
-                />
-                <span className="mm-color-hex">{brandColor.toUpperCase()}</span>
-                <button
-                  type="button"
-                  className="mm-color-custom-btn"
-                  onClick={() => colorInputRef.current?.click()}
-                >
-                  <Icon.Brush size={13} /> Custom
-                  <input
-                    ref={colorInputRef}
-                    type="color"
-                    value={brandColor}
-                    onChange={e => onBrandColorChange(e.target.value)}
-                    tabIndex={-1}
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-              <div className="mm-color-presets">
-                {PRESETS.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    className={`mm-color-preset${brandColor.toLowerCase() === c.toLowerCase() ? ' active' : ''}`}
-                    style={{ background: c, color: c } as CSSProperties}
-                    onClick={() => onBrandColorChange(c)}
-                    aria-label={`Set brand colour to ${c}`}
-                    aria-pressed={brandColor.toLowerCase() === c.toLowerCase()}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
+          <BrandColorCard color={site.brandColor} onChange={onBrandColorChange} />
+          <ExtrasCard extras={site.extras} onToggle={onToggleExtra} />
         </div>
       </div>
 
@@ -180,14 +147,16 @@ export function SetupForm({ trade, brandColor, onBrandColorChange, onSubmit, onB
         <button type="button" className="mm-back" onClick={onBack}>
           ← Back
         </button>
-        <span className="mm-dock-hint">
-          {valid ? "Looking good — let's build it" : 'Add a business name and phone to continue'}
+        <span className="mm-dock-hint" aria-live="polite">
+          {valid
+            ? "Looking good — let's build it"
+            : emailValid ? 'Add a business name and phone to continue' : 'Check your email address to continue'}
         </span>
         <button
           type="button"
           className="mm-cta"
           disabled={!valid}
-          onClick={() => valid && onSubmit(info)}
+          onClick={() => valid && onSubmit()}
         >
           Build my site <Icon.Arrow size={18} />
         </button>

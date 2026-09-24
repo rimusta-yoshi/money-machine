@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useReducer } from 'react'
 import type { CSSProperties } from 'react'
 import './builder/builder.css'
-import type { BusinessInfo, TradeConfig } from './types'
-import { trades } from './trades'
+import type { TradeConfig } from './types'
+import { trades, tradeById } from './trades'
+import { siteReducer } from './site/reducer'
+import { siteSections } from './site/sections'
+import { SECTION_LABELS } from './site/labels'
+import type { Site } from './site/schema'
 import { TradeCard } from './builder/TradeCard'
 import { SetupForm } from './builder/SetupForm'
 import { BuilderCanvas } from './builder/BuilderCanvas'
@@ -10,13 +14,6 @@ import { BuilderTopBar } from './builder/BuilderTopBar'
 import { Icon } from './components/ui/Icon'
 
 type Step = 'pick-trade' | 'setup' | 'build'
-
-const SECTION_LABELS: Record<string, string> = {
-  hero: 'Hero', trust_bar: 'Trust Bar', services: 'Services',
-  about: 'About', why_us: 'Why Us', gallery: 'Gallery',
-  certifications: 'Certifications', testimonials: 'Reviews',
-  areas: 'Service Areas', contact: 'Contact',
-}
 
 function stepNumber(step: Step): 1 | 2 | 3 {
   if (step === 'pick-trade') return 1
@@ -34,31 +31,24 @@ function darkenHex(hex: string, amount = 0.28): string {
 
 export default function App() {
   const [step, setStep] = useState<Step>('pick-trade')
-  const [trade, setTrade] = useState<TradeConfig | null>(null)
-  const [business, setBusiness] = useState<BusinessInfo | null>(null)
-  const [brandColor, setBrandColor] = useState<string>('#1E88E5')
+  const [site, dispatch] = useReducer(siteReducer, null)
   const [mobile, setMobile] = useState(false)
   const [done, setDone] = useState(false)
+  const trade = site ? tradeById[site.tradeId] : null
 
-  const handlePickTrade = (t: TradeConfig) => {
-    setTrade(t)
-    setBrandColor(t.colorScheme.accent)
-  }
-  const handleContinue = () => setStep('setup')
-  const handleSetup = (info: BusinessInfo) => { setBusiness(info); setStep('build') }
   const handleGoStep = (n: 1 | 2) => {
     if (n === 1) setStep('pick-trade')
-    if (n === 2 && business) setStep('setup')
+    if (n === 2 && site) setStep('setup')
   }
   const reset = () => {
-    setTrade(null)
-    setBusiness(null)
+    dispatch({ type: 'reset' })
     setStep('pick-trade')
     setDone(false)
   }
 
+  const brandColor = site?.brandColor
   const cssVars = useMemo<CSSProperties | undefined>(() => {
-    if (!trade) return undefined
+    if (!trade || !brandColor) return undefined
     return {
       '--accent': brandColor,
       '--accent-ink': darkenHex(brandColor),
@@ -96,7 +86,7 @@ export default function App() {
                     key={t.id}
                     trade={t}
                     selected={trade?.id === t.id}
-                    onClick={() => handlePickTrade(t)}
+                    onClick={() => dispatch({ type: 'pickTrade', trade: t })}
                   />
                 ))}
               </div>
@@ -111,7 +101,7 @@ export default function App() {
                   type="button"
                   className="mm-cta"
                   disabled={!trade}
-                  onClick={handleContinue}
+                  onClick={() => setStep('setup')}
                 >
                   {trade ? `Continue as ${trade.emoji} ${trade.name}` : 'Pick a trade'}
                   <Icon.Arrow size={18} />
@@ -121,18 +111,20 @@ export default function App() {
           )}
 
           {/* ---- STEP 2: Setup form ---- */}
-          {step === 'setup' && trade && (
+          {step === 'setup' && trade && site && (
             <SetupForm
               trade={trade}
-              brandColor={brandColor}
-              onBrandColorChange={setBrandColor}
-              onSubmit={handleSetup}
+              site={site}
+              onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
+              onBrandColorChange={color => dispatch({ type: 'setBrandColor', color })}
+              onToggleExtra={extra => dispatch({ type: 'toggleExtra', extra })}
+              onSubmit={() => setStep('build')}
               onBack={() => setStep('pick-trade')}
             />
           )}
 
           {/* ---- STEP 3: Builder ---- */}
-          {step === 'build' && trade && business && (
+          {step === 'build' && trade && site && (
             <>
               <div className="mm-build-top">
                 <div>
@@ -163,8 +155,9 @@ export default function App() {
 
               <BuilderCanvas
                 trade={trade}
-                business={business}
+                site={site}
                 mobile={mobile}
+                onSelect={(section, variantId) => dispatch({ type: 'select', section, variantId })}
                 onDone={() => setDone(true)}
               />
             </>
@@ -174,10 +167,10 @@ export default function App() {
       </div>
 
       {/* Done overlay — only shown after all sections chosen; no StickyCallBar overlap risk */}
-      {done && trade && business && (
+      {done && trade && site && (
         <DoneOverlay
           trade={trade}
-          business={business}
+          site={site}
           onBack={() => setDone(false)}
           onReset={reset}
         />
@@ -188,16 +181,17 @@ export default function App() {
 
 function DoneOverlay({
   trade,
-  business,
+  site,
   onBack,
   onReset,
 }: {
   trade: TradeConfig
-  business: BusinessInfo
+  site: Site
   onBack: () => void
   onReset: () => void
 }) {
-  const displayName = business.name.trim() || `${trade.name} Co.`
+  const displayName = site.business.name.trim() || `${trade.name} Co.`
+  const sections = siteSections(trade, site)
   const firstBtnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -213,7 +207,7 @@ function DoneOverlay({
       role="dialog"
       aria-modal="true"
       aria-labelledby="done-heading"
-      style={{ '--accent': trade.colorScheme.accent } as CSSProperties}
+      style={{ '--accent': site.brandColor } as CSSProperties}
     >
       <div className="mm-done-inner">
         <div className="mm-done-badge">
@@ -223,14 +217,14 @@ function DoneOverlay({
           {displayName} is <em>ready to go live.</em>
         </h1>
         <p>
-          {trade.sections.length} sections, picked by you, themed and filled with real{' '}
+          {sections.length} sections, picked by you, themed and filled with real{' '}
           {trade.name.toLowerCase()} content. Publish now and share the link — or keep tweaking.
         </p>
         <div className="mm-done-recap">
-          {trade.sections.map(s => (
+          {sections.map(s => (
             <div key={s.type} className="mm-done-recap-item">
               <span className="chk"><Icon.Check size={13} /></span>
-              {SECTION_LABELS[s.type] ?? s.type}
+              {SECTION_LABELS[s.type]}
             </div>
           ))}
         </div>

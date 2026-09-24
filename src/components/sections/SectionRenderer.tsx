@@ -1,4 +1,8 @@
+import { useMemo } from 'react'
 import type { BusinessInfo, TradeConfig } from '../../types'
+import type { Site } from '../../site/schema'
+import { resolveContent } from '../../site/resolve'
+import type { RenderMode, ResolvedContent } from '../../site/resolve'
 import { HeroDark } from './HeroDark'
 import { HeroSplit } from './HeroSplit'
 import { TrustBarScroll } from './TrustBarScroll'
@@ -17,7 +21,7 @@ import { GalleryRow } from './GalleryRow'
 import { CertsProminent } from './CertsProminent'
 import { CertsBadges } from './CertsBadges'
 
-type SectionProps = { business: BusinessInfo; trade: TradeConfig }
+export type SectionProps = { business: BusinessInfo; trade: TradeConfig; content: ResolvedContent }
 type SectionComp = React.ComponentType<SectionProps>
 
 const COMPONENTS: Record<string, SectionComp> = {
@@ -42,12 +46,14 @@ const COMPONENTS: Record<string, SectionComp> = {
 
 interface Props {
   componentName: string
-  business: BusinessInfo
+  site: Site
   trade: TradeConfig
+  mode: RenderMode
 }
 
-export function SectionRenderer({ componentName, business, trade }: Props) {
+export function SectionRenderer({ componentName, site, trade, mode }: Props) {
+  const content = useMemo(() => resolveContent(site, trade, mode), [site, trade, mode])
   const Component = COMPONENTS[componentName]
   if (!Component) return <div style={{ padding: '20px', color: 'var(--muted)', fontSize: '13px' }}>Unknown section: {componentName}</div>
-  return <Component business={business} trade={trade} />
+  return <Component business={site.business} trade={trade} content={content} />
 }

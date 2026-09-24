@@ -1,16 +1,19 @@
-export type TradeId = 'painter' | 'roofer' | 'electrician' | 'landscaper' | 'plumber'
+export const TRADE_IDS = ['painter', 'roofer', 'electrician', 'landscaper', 'plumber'] as const
+export type TradeId = typeof TRADE_IDS[number]
 
-export type SectionType =
-  | 'hero'
-  | 'trust_bar'
-  | 'services'
-  | 'about'
-  | 'why_us'
-  | 'gallery'
-  | 'certifications'
-  | 'testimonials'
-  | 'areas'
-  | 'contact'
+export const SECTION_TYPES = [
+  'hero',
+  'trust_bar',
+  'services',
+  'about',
+  'why_us',
+  'gallery',
+  'certifications',
+  'testimonials',
+  'areas',
+  'contact',
+] as const
+export type SectionType = typeof SECTION_TYPES[number]
 
 export interface ColorScheme {
   navy: string
@@ -52,10 +55,5 @@ export interface BusinessInfo {
   location: string
   about: string
   yearsInBusiness: string
-}
-
-export interface BuilderState {
-  trade: TradeConfig | null
-  business: BusinessInfo
-  selections: Record<SectionType, string>
+  email: string
 }
