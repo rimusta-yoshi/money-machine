@@ -14,7 +14,7 @@ const STEPS = [
   { n: '01', t: 'Trade' },
   { n: '02', t: 'Details' },
   { n: '03', t: 'Build' },
-  { n: '04', t: 'Finish' },
+  { n: '04', t: 'Go live' },
 ]
 
 export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Props) {

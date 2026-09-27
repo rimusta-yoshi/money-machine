@@ -1407,3 +1407,38 @@
   50%      { box-shadow: 0 10px 34px color-mix(in srgb, var(--ok) 65%, transparent); }
 }
 .sc-launch { animation: pulseReady 2s ease-in-out infinite; }
+
+/* ============================================================
+   EDIT IN PLACE — section content in the rail (desktop) and sheet (phone)
+   ============================================================ */
+.sc-name { margin: 4px 0 14px; }
+.sc-content {
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line-2);
+  max-height: 46vh; overflow-y: auto;
+}
+.sc-next, .mm-ctrl-next { background: var(--btn-bg, var(--accent, #1E88E5)); color: var(--btn-ink, #fff); }
+
+@media (max-width: 767px) {
+  /* Light bottom sheet, as in the prototype */
+  .mm-ctrl-bar.mm-sheet {
+    background: var(--panel);
+    color: var(--ink);
+    border-top: 0;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 28px rgba(22, 22, 26, 0.14);
+    max-height: 72vh;
+  }
+  .mm-sheet .mm-ctrl-prog-track { background: var(--line-2); }
+  .mm-sheet .mm-ctrl-prog-label { color: var(--muted); }
+  .mm-sheet .mm-ctrl-arr { background: var(--panel); border: 1.5px solid var(--line); color: var(--ink); }
+  .mm-sheet .mm-ctrl-arr:disabled { opacity: 0.35; }
+  .mm-sheet .mm-ctrl-section-name { color: var(--ink); font-size: 17px; margin: 0 0 2px; }
+  .mm-sheet-sub { font-size: 12px; color: var(--muted); }
+  .mm-sheet-toggle {
+    appearance: none; border: 0; background: transparent; cursor: pointer; align-self: center;
+    font: inherit; font-size: 13px; font-weight: 700; color: var(--accent-ink, #0B5BA8); padding: 4px 8px;
+  }
+  .mm-sheet-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding: 2px 2px 4px; }
+  /* Room under the canvas so the last section can scroll clear of the sheet */
+  .mm-wrap.wide { padding-bottom: 75vh; }
+}

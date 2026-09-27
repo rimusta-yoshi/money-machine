@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useReducer } from 'react'
 import type { CSSProperties } from 'react'
 import './builder/builder.css'
-import type { TradeConfig } from './types'
+import type { SectionType, TradeConfig } from './types'
 import { trades, tradeById } from './trades'
 import { siteReducer } from './site/reducer'
 import { siteSections } from './site/sections'
@@ -29,6 +29,7 @@ export default function App() {
   const [site, dispatch] = useReducer(siteReducer, null)
   const [mobile, setMobile] = useState(false)
   const [done, setDone] = useState(false)
+  const [focusSection, setFocusSection] = useState<SectionType | undefined>(undefined)
   const trade = site ? tradeById[site.tradeId] : null
   const stageRef = useRef<HTMLDivElement>(null)
 
@@ -45,6 +46,7 @@ export default function App() {
   }
   const reset = () => {
     dispatch({ type: 'reset' })
+    setFocusSection(undefined)
     setStep('pick-trade')
     setDone(false)
   }
@@ -128,9 +130,9 @@ export default function App() {
               <div className="mm-build-top">
                 <div>
                   <div className="mm-eyebrow">STEP <b>03</b> / 04 · BUILD</div>
-                  <h1 className="mm-title">Pick a layout for each section.</h1>
+                  <h1 className="mm-title">Build it, section by section.</h1>
                   <p className="mm-sub" style={{ maxWidth: '46ch' }}>
-                    Real layouts, filled with your content. Lock one in and the next section steps up.
+                    Pick a layout and add your details as you go. Anything you skip stays hidden.
                   </p>
                 </div>
                 <button
@@ -153,10 +155,13 @@ export default function App() {
               </div>
 
               <BuilderCanvas
+                key={focusSection ?? 'start'}
                 trade={trade}
                 site={site}
                 mobile={mobile}
+                initialSection={focusSection}
                 onSelect={(section, variantId) => dispatch({ type: 'select', section, variantId })}
+                onContentChange={patch => dispatch({ type: 'setContent', patch })}
                 onDone={() => setStep('finish')}
               />
             </>
@@ -168,7 +173,7 @@ export default function App() {
               trade={trade}
               site={site}
               onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
-              onContentChange={patch => dispatch({ type: 'setContent', patch })}
+              onEditSection={section => { setFocusSection(section); setStep('build') }}
               onPublish={() => setDone(true)}
               onBack={() => setStep('build')}
             />

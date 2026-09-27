@@ -60,15 +60,15 @@ export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props)
 function EmergencyEditor({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
   const name = useId()
   return (
-    <fieldset className="mm-yesno">
-      <legend className="mm-sr-only">Do you offer emergency call-outs?</legend>
+    // The surrounding group is labelled with the question, so no legend is repeated here.
+    <div className="mm-yesno">
       {[true, false].map(v => (
         <label key={String(v)} className={`mm-yesno-opt${value === v ? ' on' : ''}`}>
           <input type="radio" name={name} checked={value === v} onChange={() => onChange(v)} />
           {v ? 'Yes' : 'No'}
         </label>
       ))}
-    </fieldset>
+    </div>
   )
 }
 

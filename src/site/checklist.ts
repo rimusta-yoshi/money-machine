@@ -60,6 +60,19 @@ export function buildChecklist(site: Site, trade: TradeConfig): ChecklistItem[] 
     .map(r => ({ id: r.id, label: r.label, done: r.done(site) }))
 }
 
+/** The checklist items a single section uses, for editing that section in place. */
+export function sectionChecklist(site: Site, trade: TradeConfig, type: SectionType): ChecklistItem[] {
+  const own = new Set(RULES.filter(r => r.usedBy.includes(type)).map(r => r.id))
+  return buildChecklist(site, trade).filter(i => own.has(i.id))
+}
+
+/** The section of this site where a checklist item is filled in. */
+export function sectionForItem(site: Site, trade: TradeConfig, id: ChecklistId): SectionType | null {
+  const present = siteSections(trade, site).map(s => s.type)
+  const rule = RULES.find(r => r.id === id)
+  return present.find(t => rule?.usedBy.includes(t)) ?? null
+}
+
 const emailSchema = z.string().trim().email()
 
 /** Minimum needed to take payment: a way to reach the business, and to log in later. */
