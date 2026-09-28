@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A2 Overlay hero</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;background:#F4F2EE;color:#1F1D1A}
+.s{box-sizing:border-box;border:1.5px dashed #8A857C;background:#E6E3DD;border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;margin:0;font:inherit;text-align:left;text-decoration:none;color:inherit}
+.m{border:2px solid #B4470F;background:#FBE3D3}
+.img{background-color:#DAD6CE;background-image:repeating-linear-gradient(45deg,transparent 0 14px,rgba(0,0,0,.07) 14px 15px);justify-content:flex-start}
+.t{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1F1D1A}
+.m .t{color:#7A2E07}
+.d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4A463F}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 24px 40px 40px; background: #F4F2EE">
+<div class="s" style="height: 56px; flex-direction: row; align-items: center; justify-content: space-between"><span class="t">Nav</span><span class="d">transparent over image</span></div>
+<div class="s img" style="flex-grow: 1; padding: 40px; justify-content: space-between">
+<div style="display: flex; flex-direction: column; gap: 4px; align-self: flex-end; text-align: right"><span class="t">Image</span><span class="d">full-bleed · focal point clear of text</span></div>
+<div class="s" style="width: 680px; padding: 24px; gap: 16px; background: #CFCAC0; border-style: solid">
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="t">Scrim</span><span class="d">strength set so text ≥ 4.5:1</span></div>
+<div class="s m" style="height: 130px"><span class="t">Headline</span><span class="d">H1 · 4–10 words</span></div>
+<div class="s" style="height: 60px"><span class="t">Subhead</span><span class="d">optional</span></div>
+<div style="display: flex; gap: 12px">
+<button class="s m" style="width: 220px; height: 56px"><span class="t">Primary CTA</span><span class="d">≥ 44px</span></button>
+<a class="s m" href="tel:" style="width: 220px; height: 56px"><span class="t">Phone</span><span class="d">tel: link</span></a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

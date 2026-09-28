@@ -69,12 +69,12 @@ describe('SectionContentEditor', () => {
   })
 
   it('says so when a section has nothing to fill in', () => {
-    renderEditor('services')
+    renderEditor('why_us')
     expect(screen.getByText(/Nothing to fill in here/)).toBeTruthy()
   })
 
   it('saves an emergency answer as content', () => {
-    const { onContentChange } = renderEditor('hero')
+    const { onContentChange } = renderEditor('services')
     fireEvent.click(screen.getByLabelText('No'))
     expect(onContentChange).toHaveBeenCalledWith({ emergency: false })
   })

@@ -14,8 +14,8 @@ export function GalleryRow({ trade, content }: SectionProps) {
                 <span className="cap">PHOTO · {trade.name.toLowerCase()} {i + 1}</span>
               </li>
             ))
-          : gallery.value.map(photo => (
-              <li className="ff-gal-thumb" key={photo.url}>
+          : gallery.value.map((photo, i) => (
+              <li className="ff-gal-thumb" key={i}>
                 <img className="ff-photo-img" src={photo.url} alt={photo.alt} loading="lazy" />
               </li>
             ))}

@@ -1,0 +1,25 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-09-28T10:00:00Z"},"title":"Hero Vocabulary — Procedural UI","launch":{"view":"canvas"},"pages":[],
+"boards":{
+"Main.dc.html":{"x":0,"y":0,"w":1280,"h":720,"title":"A1 · Split"},
+"Overlay.dc.html":{"x":1360,"y":0,"w":1280,"h":720,"title":"A2 · Overlay"},
+"Stacked.dc.html":{"x":2720,"y":0,"w":1280,"h":720,"title":"A3 · Stacked centre"},
+"CardOnImage.dc.html":{"x":4080,"y":0,"w":1280,"h":720,"title":"A4 · Card on image"},
+"Offset.dc.html":{"x":0,"y":1100,"w":1280,"h":720,"title":"A5 · Offset"},
+"TypeLed.dc.html":{"x":1360,"y":1100,"w":1280,"h":720,"title":"A6 · Type-led"},
+"ProofFirst.dc.html":{"x":2720,"y":1100,"w":1280,"h":720,"title":"A7 · Proof-first"},
+"ContactPanel.dc.html":{"x":4080,"y":1100,"w":1280,"h":720,"title":"A8 · Contact panel"}
+},
+"order":["Main.dc.html","Overlay.dc.html","Stacked.dc.html","CardOnImage.dc.html","Offset.dc.html","TypeLed.dc.html","ProofFirst.dc.html","ContactPanel.dc.html"],
+"notes":{
+"title":{"x":0,"y":-300,"text":"Hero vocabulary — 8 archetypes","kind":"title1","maxW":5360},
+"legend":{"x":-600,"y":0,"w":520,"maxH":520,"fill":"orange","size":"m","text":"LEGEND\n\nOrange solid = required slot. Either part of the mission (headline, primary CTA, phone — every hero must have these, like a dungeon must have an exit) or promoted to required by the archetype (e.g. reviews in A7).\n\nGrey dashed = optional slot the generator may include or drop.\n\nHatched = image.\n\nShared across all boards: 40px outer margin, 16px slot gap, 12px CTA gap, 56px tall CTAs. Structure only — theme is applied later as a style vector."},
+"p1":{"x":0,"y":760,"w":1280,"maxH":240,"fill":"gray","text":"A1 SPLIT — params: ratio 50/50 · 60/40 · 40/60 · image side L/R · vertical align · proof under CTA or as strip.\nMobile: stacks. Image above headline if photo is strong, below CTA if weak."},
+"p2":{"x":1360,"y":760,"w":1280,"maxH":240,"fill":"gray","text":"A2 OVERLAY — params: text anchor (bottom-left, centre, left-middle) · scrim strength · height 70–100vh.\nHard constraint: scrim auto-set from image luminance to hit 4.5:1; if it can't, reject this archetype for this image.\nMobile: crop to focal point, text block full width."},
+"p3":{"x":2720,"y":760,"w":1280,"maxH":240,"fill":"gray","text":"A3 STACKED CENTRE — params: centre or left aligned · image as bleed banner, inset or none · headline measure.\nMobile: almost identical — the cheapest collapse of the set."},
+"p4":{"x":4080,"y":760,"w":1280,"maxH":240,"fill":"gray","text":"A4 CARD ON IMAGE — params: card position L/C/R · card surface solid/tint · card overlaps image edge or floats.\nWhy it exists: contrast is solved by the card, so it tolerates busy photos.\nMobile: card drops below image."},
+"p5":{"x":0,"y":1860,"w":1280,"maxH":240,"fill":"gray","text":"A5 OFFSET — params: overlap 0–25% of headline width · image y-offset · decor block on/off.\nHard constraint: headline never covers the image focal point.\nMobile: overlap removed, becomes A1 stacked."},
+"p6":{"x":1360,"y":1860,"w":1280,"maxH":240,"fill":"gray","text":"A6 TYPE-LED — params: display size 72–120px · trust strip on/off · ground tone.\nSelected when there's no usable photo — content gates the archetype.\nMobile: headline scales down, CTA + phone stay above the fold."},
+"p7":{"x":2720,"y":1860,"w":1280,"maxH":240,"fill":"gray","text":"A7 PROOF-FIRST — params: 1–3 review cards · rating summary top/bottom · team photo on/off.\nGate: only available with real reviews — never generate placeholder proof.\nMobile: rating summary moves under CTA, one review card."},
+"p8":{"x":4080,"y":1860,"w":1280,"maxH":240,"fill":"gray","text":"A8 CONTACT PANEL — params: 2–4 fields · panel side L/R · 'or call' line.\nHard constraint: phone stays visible even when a form exists.\nMobile: phone CTA first, form collapses below or behind a button."}
+},
+"designSystems":[]}

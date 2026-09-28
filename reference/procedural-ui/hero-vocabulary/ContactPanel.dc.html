@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A8 Contact panel hero</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;background:#F4F2EE;color:#1F1D1A}
+.s{box-sizing:border-box;border:1.5px dashed #8A857C;background:#E6E3DD;border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;margin:0;font:inherit;text-align:left;text-decoration:none;color:inherit}
+.m{border:2px solid #B4470F;background:#FBE3D3}
+.img{background-color:#DAD6CE;background-image:repeating-linear-gradient(45deg,transparent 0 14px,rgba(0,0,0,.07) 14px 15px);justify-content:flex-start}
+.t{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1F1D1A}
+.m .t{color:#7A2E07}
+.d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4A463F}
+.f{display:flex;flex-direction:column;gap:6px}
+.in{box-sizing:border-box;height:44px;border:1.5px dashed #8A857C;border-radius:6px;background:#FFFFFF;padding:0 12px;font:inherit;font-size:14px;color:#1F1D1A}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 24px 40px 40px; background: #F4F2EE">
+<div class="s" style="height: 56px; flex-direction: row; align-items: center; justify-content: space-between"><span class="t">Nav</span><span class="d">logo · links · phone</span></div>
+<div style="flex-grow: 1; display: flex; gap: 40px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px">
+<div class="s" style="width: 300px; height: 40px"><span class="t">Service area</span><span class="d">optional</span></div>
+<div class="s m" style="height: 140px"><span class="t">Headline</span><span class="d">H1 · 4–10 words</span></div>
+<div class="s" style="height: 64px"><span class="t">Subhead</span><span class="d">optional · what happens after they enquire</span></div>
+<div class="s" style="height: 52px"><span class="t">Proof</span><span class="d">optional · rating · response time</span></div>
+<div class="s img" style="height: 120px"><span class="t">Image strip</span><span class="d">optional · recent jobs</span></div>
+</div>
+<div class="s m" style="width: 440px; padding: 24px; gap: 14px; justify-content: flex-start; background: #FAF9F6">
+<div style="display: flex; flex-direction: column; gap: 4px"><span class="t">Quote panel</span><span class="d">required here · 2–4 fields max</span></div>
+<label class="f"><span class="d">Name</span><input class="in" type="text" placeholder="[NAME]"></label>
+<label class="f"><span class="d">Phone</span><input class="in" type="tel" placeholder="[PHONE]"></label>
+<label class="f"><span class="d">Job type</span><input class="in" type="text" placeholder="[JOB TYPE]"></label>
+<button class="s m" style="height: 56px; background: #F6CFB4"><span class="t">Primary CTA · submit</span><span class="d">≥ 44px</span></button>
+<a class="s m" href="tel:" style="height: 52px"><span class="t">Or call · phone</span><span class="d">tel: link · always present</span></a>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

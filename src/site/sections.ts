@@ -13,3 +13,8 @@ export function siteSections(trade: TradeConfig, site: Site): SectionConfig[] {
     return !extra || site.extras.includes(extra)
   })
 }
+
+/** Whether the customer has settled on a layout for this section. */
+export function isPicked(site: Site, type: SectionType): boolean {
+  return type === 'hero' ? !!site.sections.hero : !!site.selections[type]
+}

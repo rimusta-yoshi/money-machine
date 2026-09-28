@@ -46,9 +46,10 @@ describe('sectionChecklist', () => {
 
   it('gives each section only its own content', () => {
     const site = createSite(plumber)
-    expect(ids(site, 'hero')).toEqual(['photos.hero', 'emergency'])
+    expect(ids(site, 'hero')).toEqual(['photos.hero'])
     expect(ids(site, 'areas')).toEqual(['areas'])
-    expect(ids(site, 'services')).toEqual([])
+    expect(ids(site, 'services')).toEqual(['emergency'])
+    expect(ids(site, 'why_us')).toEqual([])
   })
 
   it('respects the chosen layout and extras', () => {
@@ -65,7 +66,7 @@ describe('sectionForItem', () => {
     const site = { ...createSite(plumber), extras: ['reviews' as const] }
     expect(sectionForItem(site, plumber, 'areas')).toBe('areas')
     expect(sectionForItem(site, plumber, 'reviews')).toBe('testimonials')
-    expect(sectionForItem(site, plumber, 'emergency')).toBe('hero')
+    expect(sectionForItem(site, plumber, 'emergency')).toBe('services')
   })
 
   it('picks whichever credentials section the trade actually has', () => {

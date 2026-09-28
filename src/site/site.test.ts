@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { plumber } from '../trades/plumber'
 import { painter } from '../trades/painter'
 import { createSite } from './defaults'
-import { parseSite, SiteParseError } from './schema'
+import { SiteParseError } from './schema'
+import { parseSite } from './parse'
 import type { Site } from './schema'
 
 describe('createSite', () => {
   it('starts with the trade accent as brand colour and nothing filled in', () => {
     const site = createSite(plumber)
-    expect(site.version).toBe(1)
+    expect(site.version).toBe(2)
     expect(site.tradeId).toBe('plumber')
     expect(site.brandColor).toBe(plumber.colorScheme.accent)
     expect(site.extras).toEqual([])
@@ -41,7 +42,8 @@ describe('parseSite', () => {
     ...createSite(plumber),
     business: { name: 'Joe Pipes', phone: '07700 900123', location: 'Leeds', about: '', yearsInBusiness: '12', email: 'joe@example.com' },
     extras: ['reviews'],
-    selections: { hero: 'hero-dark' },
+    selections: { contact: 'contact-full' },
+    sections: { hero: { seed: 7, spec: { v: 1, section: 'hero', archetype: 'stacked', params: { align: 'center', image: 'none', tone: 'surface' } } } },
   })
 
   it('round-trips a valid site through JSON', () => {
@@ -82,6 +84,26 @@ describe('parseSite', () => {
   it('rejects over-long text that would break layouts', () => {
     const site = valid()
     expect(() => parseSite({ ...site, business: { ...site.business, about: 'x'.repeat(161) } })).toThrow(SiteParseError)
+  })
+
+  it('accepts photos as https links or images prepared in the builder', () => {
+    const site = valid()
+    const withHero = (url: string) => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Van' } } } })
+    expect(() => parseSite(withHero('https://cdn.example.com/van.webp'))).not.toThrow()
+    expect(() => parseSite(withHero('data:image/webp;base64,UklGRg=='))).not.toThrow()
+    expect(() => parseSite(withHero('data:image/jpeg;base64,/9j/4AAQ'))).not.toThrow()
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'http://insecure.example.com/van.jpg',
+    'data:text/html;base64,PHNjcmlwdD4=',
+    'data:image/svg+xml;base64,PHN2Zz4=',
+    'https://x.example/a.jpg" onerror="alert(1)',
+  ])('rejects the photo URL %s', url => {
+    const site = valid()
+    const bad = { ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Van' } } } }
+    expect(() => parseSite(bad)).toThrow(SiteParseError)
   })
 
   it('gives a readable message naming the bad field', () => {

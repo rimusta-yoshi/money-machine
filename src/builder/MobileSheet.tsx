@@ -8,7 +8,7 @@ import type { SectionNavProps } from './sectionNav'
 
 /** Phone bottom sheet: layout switcher plus the active section's content. Swipe the canvas to change layout. */
 export function MobileSheet(props: SectionNavProps) {
-  const { site, trade, sections, activeIdx, layoutIdx, doneCount, allDone } = props
+  const { site, trade, sections, activeIdx, layout, doneCount, allDone } = props
   const bodyId = useId()
   const [open, setOpen] = useState(true)
   const active = sections[activeIdx]
@@ -25,15 +25,22 @@ export function MobileSheet(props: SectionNavProps) {
       </div>
 
       <div className="mm-ctrl-bar-mid">
-        <button type="button" className="mm-ctrl-arr" onClick={() => props.onCycleLayout(-1)} aria-label="Previous layout" disabled={active.variants.length < 2}>‹</button>
+        <button type="button" className="mm-ctrl-arr" onClick={() => props.onCycleLayout(-1)} aria-label="Previous layout" disabled={layout.count < 2}>‹</button>
         <div className="mm-ctrl-center">
           <h2 className="mm-ctrl-section-name">{SECTION_LABELS[active.type]}</h2>
-          <div className="mm-sheet-sub">
-            {active.variants.length > 1 ? `Layout ${layoutIdx + 1} of ${active.variants.length} · swipe to change` : 'One layout'}
+          <div className="mm-sheet-sub" aria-live="polite">
+            {layout.count > 1
+              ? `${layout.label} · ${layout.index + 1} of ${layout.count} · swipe to change`
+              : layout.loading ? 'Generating layouts…' : layout.count === 1 ? 'One layout' : 'No layouts fit this content yet'}
           </div>
         </div>
-        <button type="button" className="mm-ctrl-arr" onClick={() => props.onCycleLayout(1)} aria-label="Next layout" disabled={active.variants.length < 2}>›</button>
+        <button type="button" className="mm-ctrl-arr" onClick={() => props.onCycleLayout(1)} aria-label="Next layout" disabled={layout.count < 2}>›</button>
       </div>
+      {props.onNewOptions && (
+        <button type="button" className="mm-sheet-reroll" onClick={props.onNewOptions} disabled={layout.loading}>
+          {layout.loading ? 'Generating…' : 'New options'}
+        </button>
+      )}
 
       {hasContent && (
         <>
@@ -47,11 +54,11 @@ export function MobileSheet(props: SectionNavProps) {
       )}
 
       {allDone ? (
-        <button type="button" className="mm-ctrl-launch" onClick={props.onFinish}>
+        <button type="button" className="mm-ctrl-launch" onClick={props.onFinish} disabled={layout.loading}>
           <Icon.Arrow size={16} /> Review and go live
         </button>
       ) : (
-        <button type="button" className="mm-ctrl-next" onClick={props.onNext}>
+        <button type="button" className="mm-ctrl-next" onClick={props.onNext} disabled={layout.loading}>
           Next · {SECTION_LABELS[sections[nextIdx].type]} <Icon.Arrow size={14} />
         </button>
       )}

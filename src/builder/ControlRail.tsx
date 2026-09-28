@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { SECTION_LABELS } from '../site/labels'
+import { isPicked } from '../site/sections'
 import { Icon } from '../components/ui/Icon'
 import { SectionContentEditor } from './content/SectionContentEditor'
 import type { SectionNavProps } from './sectionNav'
@@ -10,11 +11,11 @@ interface Props extends SectionNavProps {
 
 /** Desktop side panel: progress, layout switcher and the active section's own content. */
 export function ControlRail(props: Props) {
-  const { site, trade, sections, activeIdx, layoutIdx, doneCount, allDone, deviceLabel } = props
+  const { site, trade, sections, activeIdx, layout, doneCount, allDone, deviceLabel } = props
   const active = sections[activeIdx]
   const nextIdx = Math.min(activeIdx + 1, sections.length - 1)
-  const variant = active.variants[layoutIdx]
-  const revisiting = !!site.selections[active.type]
+  const revisiting = isPicked(site, active.type)
+  const noun = props.onNewOptions ? 'Option' : 'Layout'
 
   return (
     <div className="mm-stack-ctrl">
@@ -37,17 +38,24 @@ export function ControlRail(props: Props) {
         </div>
         <h2 className="sc-name">{SECTION_LABELS[active.type]}</h2>
 
-        {active.variants.length > 1 ? (
+        {layout.count > 1 ? (
           <div className="sc-arrows">
-            <button type="button" className="mm-arrow" onClick={() => props.onCycleLayout(-1)} aria-label="Previous layout">‹</button>
-            <div className="sc-vmeta">
-              <div className="sc-vname">{variant.label}</div>
-              <div className="sc-tip">Layout {layoutIdx + 1} of {active.variants.length}</div>
+            <button type="button" className="mm-arrow" onClick={() => props.onCycleLayout(-1)} aria-label={`Previous ${noun.toLowerCase()}`}>‹</button>
+            <div className="sc-vmeta" aria-live="polite">
+              <div className="sc-vname">{layout.label}</div>
+              <div className="sc-tip">{noun} {layout.index + 1} of {layout.count}</div>
             </div>
-            <button type="button" className="mm-arrow" onClick={() => props.onCycleLayout(1)} aria-label="Next layout">›</button>
+            <button type="button" className="mm-arrow" onClick={() => props.onCycleLayout(1)} aria-label={`Next ${noun.toLowerCase()}`}>›</button>
           </div>
         ) : (
-          <div className="sc-tip">One layout for this section</div>
+          <div className="sc-tip" aria-live="polite">
+            {layout.loading ? 'Generating layouts…' : layout.count === 1 ? `One ${noun.toLowerCase()} for this section` : 'No layouts fit this content yet'}
+          </div>
+        )}
+        {props.onNewOptions && (
+          <button type="button" className="sc-reroll" onClick={props.onNewOptions} disabled={layout.loading}>
+            {layout.loading ? 'Generating…' : 'New options'}
+          </button>
         )}
 
         <div className="sc-content">
@@ -56,11 +64,11 @@ export function ControlRail(props: Props) {
       </div>
 
       {allDone ? (
-        <button type="button" className="sc-launch" onClick={props.onFinish}>
+        <button type="button" className="sc-launch" onClick={props.onFinish} disabled={layout.loading}>
           <Icon.Arrow size={16} /> Review and go live
         </button>
       ) : (
-        <button type="button" className="sc-next" onClick={props.onNext}>
+        <button type="button" className="sc-next" onClick={props.onNext} disabled={layout.loading}>
           Next · {SECTION_LABELS[sections[nextIdx].type]} <Icon.Arrow size={14} />
         </button>
       )}

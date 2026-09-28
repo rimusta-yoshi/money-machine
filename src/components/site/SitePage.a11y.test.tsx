@@ -5,6 +5,7 @@ import axe from 'axe-core'
 import { trades } from '../../trades'
 import { createSite } from '../../site/defaults'
 import type { Site } from '../../site/schema'
+import type { HeroSpec } from '../../gen'
 import type { TradeConfig } from '../../types'
 import type { RenderMode } from '../../site/resolve'
 import { SitePage } from './SitePage'
@@ -26,21 +27,29 @@ const FULL_CONTENT: Site['content'] = {
   },
 }
 
+/** One stored hero per layout index, cycling through generated archetypes. */
+const HERO_PICKS: HeroSpec[] = [
+  { v: 1, section: 'hero', archetype: 'split', params: { ratio: 0.56, side: 'left', valign: 'center', proof: 'strip', mobilePhoto: 'top', tone: 'surface' } },
+  { v: 1, section: 'hero', archetype: 'overlay', params: { anchor: 'center', scrim: 0.65 } },
+  { v: 1, section: 'hero', archetype: 'contact', params: { fields: 4, side: 'right', tone: 'brand' } },
+]
+
 function makeSite(trade: TradeConfig, variantIdx: number, full: boolean): Site {
-  const base = createSite(trade)
+  const base = createSite(trade, 1234)
   const selections = Object.fromEntries(
-    trade.sections.map(s => [s.type, s.variants[variantIdx % s.variants.length].id]),
+    trade.sections.filter(s => s.variants.length > 0).map(s => [s.type, s.variants[variantIdx % s.variants.length].id]),
   )
   return {
     ...base,
     business: { name: 'Joe Pipes', phone: '0113 496 0000', location: 'Leeds', about: '', yearsInBusiness: '12', email: 'joe@example.com' },
     extras: ['reviews'],
     selections,
+    sections: { hero: { seed: 1, spec: HERO_PICKS[variantIdx % HERO_PICKS.length] } },
     content: full ? FULL_CONTENT : base.content,
   }
 }
 
-const maxVariants = (t: TradeConfig) => Math.max(...t.sections.map(s => s.variants.length))
+const maxVariants = (t: TradeConfig) => Math.max(HERO_PICKS.length, ...t.sections.map(s => s.variants.length))
 
 const cases = trades.flatMap(trade =>
   Array.from({ length: maxVariants(trade) }, (_, v) =>
@@ -106,7 +115,7 @@ describe.each(cases)('$trade.id · layout $v · $mode · full content: $full', (
   })
 
   it('announces star ratings as words', () => {
-    renderPage().querySelectorAll('.ff-stars').forEach(stars => {
+    renderPage().querySelectorAll('.ff-stars, .sb-stars').forEach(stars => {
       expect(stars.getAttribute('role')).toBe('img')
       expect(stars.getAttribute('aria-label')).toMatch(/^Rated [\d.]+ out of 5/)
     })

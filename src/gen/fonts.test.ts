@@ -1,0 +1,70 @@
+/// <reference types="node" />
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { fontFaceCss, fontFileName, GEN_CSS, renderSection, resolveSiteStyle, SITE_FONT_FILES, siteFontFaces, THEME_KEYS, THEMES } from '.'
+import { ONE_OF_EACH, RICH } from './test/fixtures'
+
+const root = join(__dirname, '..', '..')
+const fontsDir = join(root, 'public', 'fonts')
+const builderCss = readFileSync(join(fontsDir, 'fonts.css'), 'utf8')
+
+describe('self-hosted fonts', () => {
+  it('has a file for every face a theme can ask for', () => {
+    for (const theme of Object.values(THEMES)) for (const pair of theme.fonts) {
+      expect(SITE_FONT_FILES[pair.display.family], pair.display.family).toContain(pair.display.weight)
+      expect(SITE_FONT_FILES[pair.body.family], pair.body.family).toContain(pair.body.weight)
+    }
+  })
+
+  it('ships every registered file, and the builder stylesheet declares it', () => {
+    for (const [family, weights] of Object.entries(SITE_FONT_FILES)) for (const weight of weights) {
+      const file = fontFileName({ family, weight })
+      expect(existsSync(join(fontsDir, file)), file).toBe(true)
+      expect(builderCss).toContain(`font-family:'${family}';font-style:normal;font-weight:${weight};`)
+    }
+  })
+
+  it('ships the licence alongside the files', () => {
+    expect(readFileSync(join(fontsDir, 'LICENSES.txt'), 'utf8')).toContain('Open Font License')
+  })
+
+  it('gives a site only the faces its style uses, from its own server', () => {
+    for (const theme of THEME_KEYS) for (let seed = 0; seed < 6; seed++) {
+      const style = resolveSiteStyle(theme, '#1E88E5', seed)
+      const css = fontFaceCss(style, 'https://site.example/fonts/')
+      const families = new Set(siteFontFaces(style).map(f => f.family))
+      expect([...families].sort()).toEqual([...new Set([style.display.family, style.body.family])].sort())
+      expect(css).not.toMatch(/fonts\.(googleapis|gstatic)\.com/)
+      for (const url of css.match(/url\('([^']+)'\)/g) ?? []) expect(url).toMatch(/^url\('https:\/\/site\.example\/fonts\/[a-z0-9-]+\.woff2'\)$/)
+    }
+  })
+})
+
+describe('no third-party font requests', () => {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap(d => (d.isDirectory() ? walk(join(dir, d.name)) : [join(dir, d.name)]))
+
+  it('the builder page, app source and public files never reference Google Fonts', () => {
+    const files = [join(root, 'index.html'), ...walk(join(root, 'src')), ...walk(fontsDir).filter(f => f.endsWith('.css'))]
+      .filter(f => !f.endsWith('fonts.test.ts'))
+    for (const f of files.filter(f => /\.(html|css|tsx?)$/.test(f))) {
+      expect(readFileSync(f, 'utf8'), f).not.toMatch(/fonts\.(googleapis|gstatic)\.com/)
+    }
+  })
+
+  it('generated heroes and their stylesheet never reference an external font host', () => {
+    const style = resolveSiteStyle('luxury', '#8C6D3F', 2)
+    for (const spec of ONE_OF_EACH) expect(renderSection(spec, style, RICH)).not.toMatch(/fonts\.(googleapis|gstatic)/)
+    expect(GEN_CSS).not.toMatch(/@import|fonts\.(googleapis|gstatic)/)
+  })
+})
+
+describe('old template hero styles', () => {
+  it('are gone from the section stylesheet', () => {
+    const css = readFileSync(join(root, 'src', 'components', 'sections', 'sections.css'), 'utf8')
+    for (const cls of ['.ff-hero', '.col-photo', '.col-text', '.split-bullets', '.ff-hero-bold']) expect(css, cls).not.toContain(cls)
+    // Shared rules that lived next to them must survive.
+    expect(css).toMatch(/^\.ff-stars \{ color:/m)
+  })
+})
