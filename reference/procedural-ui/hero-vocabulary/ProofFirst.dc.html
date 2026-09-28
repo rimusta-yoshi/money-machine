@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A7 Proof-first hero</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;background:#F4F2EE;color:#1F1D1A}
+.s{box-sizing:border-box;border:1.5px dashed #8A857C;background:#E6E3DD;border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;margin:0;font:inherit;text-align:left;text-decoration:none;color:inherit}
+.m{border:2px solid #B4470F;background:#FBE3D3}
+.img{background-color:#DAD6CE;background-image:repeating-linear-gradient(45deg,transparent 0 14px,rgba(0,0,0,.07) 14px 15px);justify-content:flex-start}
+.t{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1F1D1A}
+.m .t{color:#7A2E07}
+.d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4A463F}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 24px 40px 40px; background: #F4F2EE">
+<div class="s" style="height: 56px; flex-direction: row; align-items: center; justify-content: space-between"><span class="t">Nav</span><span class="d">logo · links · phone</span></div>
+<div style="flex-grow: 1; display: flex; gap: 40px">
+<div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px">
+<div class="s m" style="height: 140px"><span class="t">Headline</span><span class="d">H1 · 4–10 words</span></div>
+<div class="s" style="height: 64px"><span class="t">Subhead</span><span class="d">optional</span></div>
+<div style="display: flex; gap: 12px">
+<button class="s m" style="width: 220px; height: 56px"><span class="t">Primary CTA</span><span class="d">≥ 44px</span></button>
+<a class="s m" href="tel:" style="width: 220px; height: 56px"><span class="t">Phone</span><span class="d">tel: link</span></a>
+</div>
+<div class="s img" style="width: 240px; height: 96px"><span class="t">Team photo</span><span class="d">optional · small</span></div>
+</div>
+<div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px">
+<div class="s m" style="height: 88px; flex-direction: row; align-items: center; justify-content: space-between"><span class="t">Rating summary</span><span class="d">required here · score · count · source</span></div>
+<div class="s m" style="height: 150px"><span class="t">Review card 1</span><span class="d">required here · real quote · name · job · date</span></div>
+<div class="s" style="height: 150px"><span class="t">Review card 2–3</span><span class="d">optional · shown when content exists</span></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

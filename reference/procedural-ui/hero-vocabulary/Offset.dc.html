@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A5 Offset hero</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&amp;family=IBM+Plex+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif;background:#F4F2EE;color:#1F1D1A}
+.s{box-sizing:border-box;border:1.5px dashed #8A857C;background:#E6E3DD;border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;gap:4px;margin:0;font:inherit;text-align:left;text-decoration:none;color:inherit}
+.m{border:2px solid #B4470F;background:#FBE3D3}
+.img{background-color:#DAD6CE;background-image:repeating-linear-gradient(45deg,transparent 0 14px,rgba(0,0,0,.07) 14px 15px);justify-content:flex-start}
+.t{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1F1D1A}
+.m .t{color:#7A2E07}
+.d{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#4A463F}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; display: flex; flex-direction: column; gap: 24px; padding: 24px 40px 40px; background: #F4F2EE">
+<div class="s" style="height: 56px; flex-direction: row; align-items: center; justify-content: space-between"><span class="t">Nav</span><span class="d">logo · links · phone</span></div>
+<div style="flex-grow: 1; position: relative">
+<div class="s" style="position: absolute; left: 0; top: 0; width: 160px; height: 160px"><span class="t">Decor</span><span class="d">accent block · optional</span></div>
+<div class="s img" style="position: absolute; right: 0; top: 24px; width: 700px; height: 520px; align-items: flex-end; text-align: right"><span class="t">Image</span><span class="d">offset down · breaks the grid</span></div>
+<div style="position: absolute; left: 40px; top: 96px; width: 612px; display: flex; flex-direction: column; gap: 16px">
+<div class="s m" style="height: 170px; background: #FBE3D3"><span class="t">Headline</span><span class="d">overlaps image edge · max 25% overlap · never over focal point</span></div>
+<div class="s" style="width: 440px; height: 60px"><span class="t">Subhead</span><span class="d">optional · stays off the image</span></div>
+<div style="display: flex; gap: 12px">
+<button class="s m" style="width: 220px; height: 56px"><span class="t">Primary CTA</span><span class="d">≥ 44px</span></button>
+<a class="s m" href="tel:" style="width: 220px; height: 56px"><span class="t">Phone</span><span class="d">tel: link</span></a>
+</div>
+<div class="s" style="width: 420px; height: 48px"><span class="t">Proof</span><span class="d">optional</span></div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>
