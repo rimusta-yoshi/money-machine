@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 import axe from 'axe-core'
-import { GEN_CSS, renderSection, resolveSiteStyle, THEME_KEYS } from '.'
+import { GEN_CSS, renderHero, resolveSiteStyle, THEME_KEYS } from '.'
 import { ONE_OF_EACH, RICH } from './test/fixtures'
 
 /**
@@ -37,7 +37,7 @@ const cases = ONE_OF_EACH.flatMap(spec =>
 
 describe.each(cases)('$archetype · $theme · $frame', ({ spec, theme, width }) => {
   const style = resolveSiteStyle(theme, '#1E88E5', 3)
-  const render = () => mount(renderSection(spec, style, RICH), width)
+  const render = () => mount(renderHero(spec, style, RICH), width)
 
   it('has no axe violations', async () => {
     expect(await violations(render())).toEqual([])

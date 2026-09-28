@@ -5,38 +5,50 @@
  */
 import { FALLBACK_SPEC } from './hero/archetypes'
 import type { HeroContent } from './hero/content'
-import { estimateMeasurer } from './hero/estimate'
+import { estimateMeasurer } from './core/estimate'
 import { generateHeroOptions } from './hero/options'
-import { renderHero } from './hero/render'
 import type { HeroSpec, SiteStyle } from './schema'
 
 export * from './schema'
 export { resolveSiteStyle } from './style'
 export { fontFaceCss, siteFontFaces, fontFileName, SITE_FONT_FILES } from './fonts'
-export { mulberry32, randomSeed, hashString } from './rng'
+export { mulberry32, randomSeed, hashString, mixSeeds } from './rng'
 export { THEMES, ALL_FONT_FAMILIES } from './themes'
+
+// Generic sections
+export { SECTION_KEYS, BANDS } from './core/types'
+export type { SectionKey, Band, Side, SectionRhythm, SectionDef, AnySpec, Generated, Measurer, Measurement, Check, MeasureInput } from './core/types'
+export {
+  generateOptions, generateSpec, repairSection, fitFailures as sectionFitFailures, defaultSpec, specKey, isPresent,
+  candidateSeed, nextBatchSeed, pickDistinct, features, staticChecksAll, BATCH_SIZE, SHOW,
+} from './core/pipeline'
+export type { Candidate, Options, FitResult as SectionFitResult } from './core/pipeline'
+export { solveRhythm, LOUD_PRIORITY } from './core/rhythm'
+export type { Rhythm, PageEntry } from './core/rhythm'
+export { estimateMeasurer } from './core/estimate'
+export {
+  SECTIONS, GEN_CSS, sectionBatch, viewOf, sectionPresent, presentSections, renderableSpec, resolvePage, rhythmOf,
+  renderPageSection, renderPage,
+} from './page'
+export type { ResolvedSection, SavedSections, ResolveOptions } from './page'
+export type { PageContent, PagePhoto, PageReview } from './content'
+export { heroView, businessName } from './content'
+export { renderHeader } from './sections/header'
+export { sectionSchemas, generatedSectionsSchema } from './specs'
+export type { SectionSpecs, GeneratedSections } from './specs'
+
+// Hero (kept for its dedicated tests and callers)
 export type { HeroContent } from './hero/content'
 export { ARCHETYPES, ARCHETYPE_KEYS, FALLBACK_SPEC } from './hero/archetypes'
-export { generateHeroSpec, allowedArchetypes, specKey } from './hero/generate'
-export { generateHeroOptions, nextBatchSeed, candidateSeed, pickDistinct, BATCH_SIZE, SHOW } from './hero/options'
+export { generateHeroSpec, allowedArchetypes } from './hero/generate'
+export { generateHeroOptions } from './hero/options'
 export type { HeroCandidate, HeroOptions } from './hero/options'
 export { staticChecks, measuredChecks } from './hero/checks'
-export type { Check } from './hero/checks'
-export type { Measurer, HeroMeasurement } from './hero/measure'
-export { estimateMeasurer } from './hero/estimate'
+export type { HeroMeasurement } from './hero/measure'
 export { repairHero, fitFailures } from './hero/repair'
 export type { FitResult } from './hero/repair'
 export { FRAME, HERO_TITLE_ID } from './hero/metrics'
-
-/** The stylesheet every generated section needs. Include once per page. */
-export { HERO_CSS as GEN_CSS } from './hero/css'
-
-export type SectionSpec = HeroSpec
-
-/** Renders a stored section spec to HTML with the site's style and content. */
-export function renderSection(spec: SectionSpec, style: SiteStyle, content: HeroContent): string {
-  return renderHero(spec, style, content)
-}
+export { renderHero } from './hero/render'
 
 /**
  * A hero for a site that has none picked yet, without a DOM: the best candidate of the

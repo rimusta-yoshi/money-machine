@@ -10,9 +10,9 @@ describe('siteSections', () => {
     expect(types[0]).toBe('hero')
   })
 
-  it('includes the reviews section when the extra is on, in trade order', () => {
+  it('includes the reviews section when the extra is on, in trade order, with the footer last', () => {
     const site = { ...createSite(plumber), extras: ['reviews' as const] }
     const types = siteSections(plumber, site).map(s => s.type)
-    expect(types).toEqual(plumber.sections.map(s => s.type))
+    expect(types).toEqual([...plumber.sections.map(s => s.type), 'footer'])
   })
 })

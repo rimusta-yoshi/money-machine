@@ -26,8 +26,6 @@ interface Rule {
   label: string
   /** Section types that use this content; the item appears if the site has any of them. */
   usedBy: SectionType[]
-  /** Extra condition on the chosen layouts, e.g. hours only appear in the full contact layout. */
-  when?: (site: Site) => boolean
   done: (site: Site) => boolean
 }
 
@@ -35,10 +33,10 @@ const filled = (v: unknown[] | null) => v !== null && v.length > 0
 
 const RULES: Rule[] = [
   { id: 'photos.hero', label: 'Main photo', usedBy: ['hero'], done: s => s.content.photos.hero !== null },
-  { id: 'emergency', label: 'Do you offer emergency call-outs?', usedBy: ['services'], done: s => s.content.emergency !== null },
   { id: 'badges', label: 'Your credentials and guarantees', usedBy: ['trust_bar', 'certifications'], done: s => filled(s.content.badges) },
-  { id: 'photos.about', label: 'Team or van photo', usedBy: ['about'], done: s => s.content.photos.about !== null },
-  { id: 'jobsDone', label: 'Roughly how many jobs you’ve done', usedBy: ['about'], done: s => s.content.jobsDone !== null },
+  { id: 'emergency', label: 'Do you offer emergency call-outs?', usedBy: ['trust_bar', 'services', 'contact'], done: s => s.content.emergency !== null },
+  { id: 'jobsDone', label: 'Roughly how many jobs you’ve done', usedBy: ['trust_bar', 'about'], done: s => s.content.jobsDone !== null },
+  { id: 'photos.about', label: 'Team or van photo', usedBy: ['about', 'why_us'], done: s => s.content.photos.about !== null },
   { id: 'photos.gallery', label: 'Photos of your work', usedBy: ['gallery'], done: s => filled(s.content.photos.gallery) },
   { id: 'rating', label: 'Your star rating', usedBy: ['testimonials'], done: s => s.content.rating !== null },
   { id: 'reviews', label: 'Customer reviews', usedBy: ['testimonials'], done: s => filled(s.content.reviews) },
@@ -47,7 +45,6 @@ const RULES: Rule[] = [
     id: 'hours',
     label: 'Opening hours',
     usedBy: ['contact'],
-    when: s => s.selections.contact === 'contact-full',
     done: s => filled(s.content.hours),
   },
 ]
@@ -56,7 +53,7 @@ const RULES: Rule[] = [
 export function buildChecklist(site: Site, trade: TradeConfig): ChecklistItem[] {
   const present = new Set(siteSections(trade, site).map(s => s.type))
   return RULES
-    .filter(r => r.usedBy.some(t => present.has(t)) && (r.when?.(site) ?? true))
+    .filter(r => r.usedBy.some(t => present.has(t)))
     .map(r => ({ id: r.id, label: r.label, done: r.done(site) }))
 }
 

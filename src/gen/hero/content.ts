@@ -1,5 +1,5 @@
 /**
- * Everything a hero can say. Built from the site record by the app (see src/site/heroContent.ts);
+ * Everything a hero can say. Derived from the page content (see heroView in ../content.ts);
  * the generator never invents any of it. Optional slots are empty when the record is.
  */
 export interface HeroContent {
@@ -7,8 +7,8 @@ export interface HeroContent {
   sub: string
   /** Primary call to action. null only if the phone number has no digits. */
   call: { label: string; href: string } | null
-  /** Secondary link, e.g. to the contact section. */
-  quote: { label: string; href: string }
+  /** Secondary link to the contact section; null when there is no contact section. */
+  quote: { label: string; href: string } | null
   photo: { url: string; alt: string } | null
   badges: readonly string[]
   rating: { score: number; count: number } | null

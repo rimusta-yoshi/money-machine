@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Notice } from './useHeroFitRepair'
+import type { Notice } from './useFitRepair'
 
 const AUTO_HIDE_MS = 12000
 

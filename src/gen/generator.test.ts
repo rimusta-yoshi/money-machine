@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   ARCHETYPE_KEYS, allowedArchetypes, candidateSeed, estimateMeasurer, generateHeroOptions, generateHeroSpec,
-  heroSpecSchema, mulberry32, nextBatchSeed, renderSection, resolveSiteStyle, siteStyleSchema, specKey, staticChecks,
+  heroSpecSchema, mulberry32, nextBatchSeed, renderHero, resolveSiteStyle, siteStyleSchema, specKey, staticChecks,
   THEME_KEYS,
 } from '.'
 import type { HeroContent, HeroMeasurement, Measurer } from '.'
@@ -165,9 +165,9 @@ describe('staticChecks', () => {
   })
 })
 
-describe('renderSection', () => {
+describe('renderHero', () => {
   it.each(ONE_OF_EACH)('$archetype renders one h1, a tel: link and a labelled section', spec => {
-    const html = renderSection(spec, style, RICH)
+    const html = renderHero(spec, style, RICH)
     expect(html.match(/<h1\b/g)).toHaveLength(1)
     expect(html).toContain('href="tel:01134960000"')
     expect(html).toMatch(/^<section [^>]*aria-labelledby="sb-hero-title"/)
@@ -179,7 +179,7 @@ describe('renderSection', () => {
       headline: '<img src=x onerror=alert(1)>',
       photo: { url: 'javascript:alert(1)', alt: '" onload="alert(1)' },
     }
-    const html = renderSection(ONE_OF_EACH[0], style, evil)
+    const html = renderHero(ONE_OF_EACH[0], style, evil)
     expect(html).not.toContain('<img src=x')
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;')
     expect(html).not.toContain('javascript:')
@@ -187,7 +187,7 @@ describe('renderSection', () => {
   })
 
   it('shows photos prepared in the builder (data URLs) but refuses other image sources', () => {
-    const withPhoto = (url: string) => renderSection(ONE_OF_EACH[0], style, { ...RICH, photo: { url, alt: 'Van' } })
+    const withPhoto = (url: string) => renderHero(ONE_OF_EACH[0], style, { ...RICH, photo: { url, alt: 'Van' } })
     expect(withPhoto('data:image/webp;base64,UklGRg==')).toContain('<img src="data:image/webp;base64,UklGRg=="')
     for (const bad of ['http://x.example/a.jpg', 'data:image/svg+xml;base64,PHN2Zz4=', 'javascript:alert(1)']) {
       expect(withPhoto(bad)).not.toContain('<img')
@@ -202,10 +202,10 @@ describe('renderSection', () => {
   })
 
   it('shows a rating only when the record has one', () => {
-    const noRating = renderSection(ONE_OF_EACH[1], style, { ...RICH, rating: null })
+    const noRating = renderHero(ONE_OF_EACH[1], style, { ...RICH, rating: null })
     expect(noRating).not.toContain('sb-stars')
     expect(noRating).not.toMatch(/reviews/)
-    const withRating = renderSection(ONE_OF_EACH[1], style, RICH)
+    const withRating = renderHero(ONE_OF_EACH[1], style, RICH)
     expect(withRating).toContain('aria-label="Rated 4.8 out of 5"')
     expect(withRating).toContain('4.8 from 27 reviews')
   })
@@ -213,16 +213,16 @@ describe('renderSection', () => {
   it('falls back rather than render a saved spec that no longer passes the colour checks', () => {
     const weak = { ...style, palette: { ...style.palette, brandFill: '#888888', brandInk: '#FFFFFF' } }
     const brandBand = ONE_OF_EACH.find(s => s.archetype === 'stacked')!
-    expect(renderSection(brandBand, weak, RICH)).toContain('sb-tone--ground')
+    expect(renderHero(brandBand, weak, RICH)).toContain('sb-tone--ground')
   })
 
   it('falls back to a photo-free layout if a saved photo archetype loses its photo', () => {
-    const html = renderSection(ONE_OF_EACH[1], style, { ...RICH, photo: null })
+    const html = renderHero(ONE_OF_EACH[1], style, { ...RICH, photo: null })
     expect(html).toContain('sb-hero--stacked')
     expect(html).not.toContain('<img')
   })
 
   it('is a pure function of spec, style and content', () => {
-    expect(renderSection(ONE_OF_EACH[6], style, RICH)).toBe(renderSection(ONE_OF_EACH[6], style, RICH))
+    expect(renderHero(ONE_OF_EACH[6], style, RICH)).toBe(renderHero(ONE_OF_EACH[6], style, RICH))
   })
 })

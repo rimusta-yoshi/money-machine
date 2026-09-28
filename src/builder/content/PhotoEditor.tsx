@@ -4,6 +4,7 @@ import type { Photo } from '../../site/schema'
 import type { ImageCodec } from '../../photos/resize'
 import type { PhotoStore } from '../../photos/store'
 import { usePhotoPicker } from './usePhotoPicker'
+import { LIMITS } from '../../site/limits'
 import type { PickState } from './usePhotoPicker'
 
 /** Injected in tests; the app uses the browser codec and the data-URL store. */
@@ -80,7 +81,7 @@ function AltField({ alt, onChange, inputRef }: AltProps) {
         ref={inputRef}
         id={id}
         value={value}
-        maxLength={160}
+        maxLength={LIMITS.photoAlt}
         aria-invalid={empty}
         aria-describedby={empty ? errId : undefined}
         onChange={e => {

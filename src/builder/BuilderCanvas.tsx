@@ -1,19 +1,20 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import type { SectionType, TradeConfig } from '../types'
-import type { GeneratedHero as StoredHero } from '../gen'
+import { specKey } from '../gen'
+import type { Generated, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
 import { siteSections } from '../site/sections'
 import { SECTION_LABELS } from '../site/labels'
-import { SectionRenderer } from '../components/sections/SectionRenderer'
-import { GeneratedHero } from '../components/sections/GeneratedHero'
+import { SECTION_NEEDS } from '../site/needs'
+import { sitePage } from '../site/page'
+import { pageContent } from '../site/pageContent'
+import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
-import { useHeroPicker } from './useHeroPicker'
-
-type TemplateSection = Exclude<SectionType, 'hero'>
+import { useSectionPicker } from './useSectionPicker'
 
 interface Props {
   trade: TradeConfig
@@ -21,8 +22,7 @@ interface Props {
   mobile: boolean
   /** Section to open on, e.g. when coming back from the go-live step to add something. */
   initialSection?: SectionType
-  onSelect: (section: TemplateSection, variantId: string) => void
-  onPickHero: (hero: StoredHero) => void
+  onPick: (section: SectionKey, value: Generated) => void
   onContentChange: (patch: Partial<SiteContent>) => void
   onDone: () => void
 }
@@ -39,10 +39,8 @@ function useNarrowDevice() {
   return narrow
 }
 
-export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, onPickHero, onContentChange, onDone }: Props) {
+export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onContentChange, onDone }: Props) {
   const sections = siteSections(trade, site)
-  const selections = site.selections
-  const [previewIdx, setPreviewIdx] = useState<Record<string, number>>({})
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
   const [innerH, setInnerH] = useState(0)
@@ -51,7 +49,16 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
   const stackScrollRef = useRef<HTMLDivElement | null>(null)
   const zoomInnerRef = useRef<HTMLDivElement | null>(null)
   const touchStartX = useRef<number | null>(null)
-  const hero = useHeroPicker(site, trade)
+
+  const activeType = sections[activeIdx]?.type ?? 'hero'
+  const content = useMemo(() => pageContent(site, trade), [site, trade])
+  const picker = useSectionPicker(site, content, activeType)
+  // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
+  const page = useMemo(
+    () => sitePage(site, trade, { overrides: picker.shown ? { [activeType]: picker.shown } : {} }),
+    [site, trade, activeType, picker.shown],
+  )
+  const byType = useMemo(() => new Map<SectionKey, ResolvedSection>(page.map(s => [s.type, s])), [page])
 
   const effectiveMobile = mobile || isNarrowDevice
 
@@ -71,7 +78,7 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
     ro.observe(outer)
     ro.observe(inner)
     return () => ro.disconnect()
-  }, [effectiveMobile, activeIdx, site, previewIdx, hero.shown])
+  }, [effectiveMobile, activeIdx, page])
 
   useEffect(() => {
     const el = bandRefs.current[activeIdx]
@@ -88,73 +95,52 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
 
   if (sections.length === 0) return null
 
-  const getPreviewIdx = (type: TemplateSection) => {
-    if (previewIdx[type] !== undefined) return previewIdx[type]
-    const sec = sections.find(s => s.type === type)
-    return Math.max(0, sec?.variants.findIndex(v => v.id === selections[type]) ?? 0)
-  }
-  const isConfirmed = (type: SectionType) => (type === 'hero' ? !!site.sections.hero : !!selections[type])
+  const present = (type: SectionKey) => byType.has(type)
+  const isConfirmed = (type: SectionKey) => !!site.sections[type]
 
-  /** Saves whatever layout is showing for the active section. */
+  /**
+   * Saves whatever layout is showing for the active section, if the customer moved to a
+   * different one. Just passing through keeps the saved entry as it is (including a
+   * remembered pick from a fit repair).
+   */
   const confirmActive = () => {
-    const sec = sections[activeIdx]
-    if (sec.type === 'hero') {
-      const pick = hero.pick()
-      if (pick) onPickHero(pick)
-      return
-    }
-    const variant = sec.variants[getPreviewIdx(sec.type)] ?? sec.variants[0]
-    onSelect(sec.type, variant.id)
+    const pick = present(activeType) ? picker.pick() : null
+    const saved = site.sections[activeType] as Generated | undefined
+    const unchanged = saved && pick && saved.seed === pick.seed && specKey(saved.spec) === specKey(pick.spec)
+    if (pick && !unchanged) onPick(activeType, pick)
   }
-  // A generated section can't be saved until its options are ready.
-  const busy = sections[activeIdx]?.type === 'hero' && hero.loading
+  // A section can't be saved until its options are ready.
+  const busy = present(activeType) && picker.loading
   const navigateTo = (newIdx: number) => {
     if (newIdx === activeIdx || busy) return
     confirmActive()
     setActiveIdx(newIdx)
-  }
-  const cycle = (dir: 1 | -1) => {
-    const sec = sections[activeIdx]
-    if (sec.type === 'hero') return hero.cycle(dir)
-    const count = sec.variants.length
-    const current = getPreviewIdx(sec.type)
-    setPreviewIdx(p => ({ ...p, [sec.type]: (current + dir + count) % count }))
   }
   const finish = () => {
     if (busy) return
     confirmActive()
     onDone()
   }
-
-  const resolveVariant = (type: TemplateSection) => {
-    const sec = sections.find(s => s.type === type)!
-    const picked = selections[type]
-    if (picked) return sec.variants.find(v => v.id === picked) ?? sec.variants[0]
-    return sec.variants[getPreviewIdx(type)] ?? sec.variants[0]
+  // Sections waiting for content, or not built yet, show a blank band until visited.
+  const showPlaceholder = (sIdx: number) => {
+    const type = sections[sIdx].type
+    return !present(type) || (sIdx !== activeIdx && !isConfirmed(type))
   }
-  const showPlaceholder = (sIdx: number) => sIdx !== activeIdx && !isConfirmed(sections[sIdx].type)
 
   /** The section as it should appear in its band, keyed so a layout change re-animates. */
-  const renderSection = (sIdx: number): { key: string; node: React.ReactNode } => {
-    const type = sections[sIdx].type
-    if (type === 'hero') {
-      const spec = sIdx === activeIdx ? hero.shown : site.sections.hero?.spec
-      if (!spec) return { key: 'hero-loading', node: <div className="mm-band-blank"><span className="mm-band-blank-hint">Generating layouts…</span></div> }
-      return { key: `hero-${JSON.stringify(spec.params)}-${spec.archetype}`, node: <GeneratedHero spec={spec} style={site.style.resolved} content={hero.content} /> }
+  const renderBand = (sIdx: number): { key: string; node: React.ReactNode } => {
+    const section = byType.get(sections[sIdx].type)!
+    const loading = sIdx === activeIdx && !picker.shown
+    if (loading) return { key: `${section.type}-loading`, node: <div className="mm-band-blank"><span className="mm-band-blank-hint">Generating layouts…</span></div> }
+    return {
+      key: `${section.type}-${section.spec.archetype}-${JSON.stringify(section.spec.params)}`,
+      node: <GeneratedSection section={section} style={site.style.resolved} content={content} />,
     }
-    const variant = resolveVariant(type)
-    return { key: `${type}-${variant.id}`, node: <SectionRenderer componentName={variant.component} site={site} trade={trade} mode="builder" /> }
   }
 
-  const activeSec = sections[activeIdx]
-  const layout: LayoutState = activeSec.type === 'hero'
-    ? { index: hero.index, count: hero.count, label: hero.label, loading: hero.loading }
-    : {
-        index: getPreviewIdx(activeSec.type),
-        count: activeSec.variants.length,
-        label: activeSec.variants[getPreviewIdx(activeSec.type)]?.label ?? '',
-        loading: false,
-      }
+  const layout: LayoutState = present(activeType)
+    ? { index: picker.index, count: picker.count, label: picker.label, loading: picker.loading }
+    : { index: 0, count: 0, label: '', loading: false, needs: SECTION_NEEDS[activeType] }
   const navProps: SectionNavProps = {
     site,
     trade,
@@ -162,9 +148,9 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
     activeIdx,
     layout,
     doneCount: sections.filter(s => isConfirmed(s.type)).length,
-    allDone: sections.every((s, i) => i === activeIdx || isConfirmed(s.type)),
-    onCycleLayout: cycle,
-    onNewOptions: activeSec.type === 'hero' ? hero.reroll : undefined,
+    allDone: sections.every((s, i) => i === activeIdx || isConfirmed(s.type) || !present(s.type)),
+    onCycleLayout: picker.cycle,
+    onNewOptions: present(activeType) ? picker.reroll : undefined,
     onNext: () => navigateTo(Math.min(activeIdx + 1, sections.length - 1)),
     onFinish: finish,
     onContentChange,
@@ -175,7 +161,7 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
     if (touchStartX.current === null) return
     const delta = e.changedTouches[0].clientX - touchStartX.current
     touchStartX.current = null
-    if (Math.abs(delta) >= 50) cycle(delta < 0 ? 1 : -1)
+    if (Math.abs(delta) >= 50) picker.cycle(delta < 0 ? 1 : -1)
   }
 
   return (
@@ -190,11 +176,12 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
             ref={zoomInnerRef}
             style={!effectiveMobile ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties : undefined}
           >
-            <div className="mm-stack-site ff-scope">
+            <div className="mm-stack-site">
               {sections.map((sec, i) => {
                 const isActive = i === activeIdx
                 const state = isActive ? 'active' : isConfirmed(sec.type) ? 'done' : 'todo'
                 const label = SECTION_LABELS[sec.type]
+                const waiting = !present(sec.type)
                 return (
                   <div
                     key={sec.type}
@@ -215,10 +202,12 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onSelect, o
                     {showPlaceholder(i) ? (
                       <div className="mm-band-blank">
                         <span className="mm-band-blank-name">{label}</span>
-                        <span className="mm-band-blank-hint">tap to build this section</span>
+                        <span className="mm-band-blank-hint">
+                          {waiting ? SECTION_NEEDS[sec.type] ?? 'Add content to show this section.' : 'tap to build this section'}
+                        </span>
                       </div>
                     ) : (() => {
-                      const { key, node } = renderSection(i)
+                      const { key, node } = renderBand(i)
                       return (
                         <div className="mm-vanim" key={key}>
                           <div style={{ pointerEvents: 'none' }}>{node}</div>

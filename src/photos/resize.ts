@@ -48,8 +48,17 @@ export function fitWithin(width: number, height: number, maxWidth: number, maxHe
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) }
 }
 
+/** iPhone photos (HEIC/HEIF). Windows often reports them with no type at all, so the name counts too. */
+export function isHeic(file: Blob): boolean {
+  const name = 'name' in file && typeof file.name === 'string' ? file.name : ''
+  return /^image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(name)
+}
+
+/** One friendly line with the fix, rather than a converter. */
+export const HEIC_MESSAGE = 'That’s an iPhone HEIC photo, which browsers can’t always open. Export it as JPEG (or share it from Photos) and try again.'
+
 function checkInput(file: Blob): void {
-  if (!file.type.startsWith('image/')) throw new PhotoError('That file isn’t a photo. Choose a JPEG, PNG or WebP image.')
+  if (!file.type.startsWith('image/') && !isHeic(file)) throw new PhotoError('That file isn’t a photo. Choose a JPEG, PNG or WebP image.')
   if (file.size > PHOTO_LIMITS.maxInputBytes) throw new PhotoError('That photo is too large (over 25 MB). Try a smaller one.')
 }
 
@@ -63,7 +72,7 @@ export async function resizePhoto(file: Blob, codec: ImageCodec = browserCodec):
   try {
     image = await codec.decode(file)
   } catch {
-    throw new PhotoError('We couldn’t open that photo. Try a JPEG or PNG version of it.')
+    throw new PhotoError(isHeic(file) ? HEIC_MESSAGE : 'We couldn’t open that photo. Try a JPEG or PNG version of it.')
   }
   try {
     const { width, height } = fitWithin(image.width, image.height, PHOTO_LIMITS.maxWidth, PHOTO_LIMITS.maxHeight)
