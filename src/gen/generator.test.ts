@@ -186,6 +186,21 @@ describe('renderSection', () => {
     expect(html).not.toContain('" onload="')
   })
 
+  it('shows photos prepared in the builder (data URLs) but refuses other image sources', () => {
+    const withPhoto = (url: string) => renderSection(ONE_OF_EACH[0], style, { ...RICH, photo: { url, alt: 'Van' } })
+    expect(withPhoto('data:image/webp;base64,UklGRg==')).toContain('<img src="data:image/webp;base64,UklGRg=="')
+    for (const bad of ['http://x.example/a.jpg', 'data:image/svg+xml;base64,PHN2Zz4=', 'javascript:alert(1)']) {
+      expect(withPhoto(bad)).not.toContain('<img')
+    }
+  })
+
+  it('offers photo layouts once a photo is added', () => {
+    const photo = { url: 'data:image/webp;base64,UklGRg==', alt: 'Van' }
+    const { gated } = generateHeroOptions({ batchSeed: 5, content: { ...BARE, photo }, style, measurer: estimateMeasurer })
+    expect(gated.map(g => g.archetype)).not.toContain('overlay')
+    expect(allowedArchetypes({ ...BARE, photo })).toEqual(expect.arrayContaining(['split', 'overlay', 'card', 'offset']))
+  })
+
   it('shows a rating only when the record has one', () => {
     const noRating = renderSection(ONE_OF_EACH[1], style, { ...RICH, rating: null })
     expect(noRating).not.toContain('sb-stars')

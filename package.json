@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "fonts": "node scripts/copy-fonts.mjs"
   },
   "dependencies": {
     "react": "^19.2.6",
@@ -18,6 +19,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@fontsource/archivo": "^5.3.0",
+    "@fontsource/bodoni-moda": "^5.3.0",
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@fontsource/jost": "^5.3.0",
+    "@fontsource/manrope": "^5.3.0",
+    "@fontsource/nunito": "^5.3.0",
+    "@fontsource/nunito-sans": "^5.3.0",
+    "@fontsource/source-sans-3": "^5.3.0",
+    "@fontsource/source-serif-4": "^5.3.0",
+    "@fontsource/space-mono": "^5.3.0",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",

@@ -7,8 +7,21 @@ export type ExtraId = typeof EXTRA_IDS[number]
 
 const text = (max: number) => z.string().trim().max(max)
 
+/**
+ * Photos are https URLs, or (until uploads go to R2) images resized in the browser and
+ * kept as data URLs. Nothing else, so a stored URL can't carry script or markup.
+ */
+export const PHOTO_DATA_URL = /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/]+=*$/
+/** A 1600px WebP at 80% is well under 1 MB; this leaves room without letting records balloon. */
+const MAX_PHOTO_URL = 3_000_000
+
+export const photoUrlSchema = z.string().max(MAX_PHOTO_URL).refine(
+  u => PHOTO_DATA_URL.test(u) || /^https:\/\/[^\s"'<>]+$/.test(u),
+  'Photos must be an https link or an image prepared in the builder',
+)
+
 const photoSchema = z.object({
-  url: z.string().url(),
+  url: photoUrlSchema,
   alt: text(160).min(1, 'Every photo needs a short description for screen readers'),
 })
 

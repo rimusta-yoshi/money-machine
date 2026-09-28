@@ -6,7 +6,7 @@ import type { ButtonStyle } from '../schema'
 
 export interface Check {
   id: 'headline-contrast' | 'body-contrast' | 'button-contrast' | 'tap-targets' | 'headline-fits' | 'fits-section'
-    | 'fits-phone-width' | 'call-above-fold' | 'overlap'
+    | 'fits-phone-width' | 'call-above-fold' | 'overlap' | 'content-gate'
   label: string
   ok: boolean
   detail: string

@@ -6,6 +6,10 @@ import { ListEditor } from './ListEditor'
 import { HoursEditor } from './HoursEditor'
 import { ReviewsEditor } from './ReviewsEditor'
 import { RatingEditor } from './RatingEditor'
+import { GalleryEditor, PhotoEditor } from './PhotoEditor'
+import { defaultAlt } from '../../site/photoAlt'
+
+const MAX_GALLERY = 12
 
 interface Props {
   id: ChecklistId
@@ -51,9 +55,30 @@ export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props)
     case 'reviews':
       return <ReviewsEditor reviews={c.reviews} onChange={reviews => onContentChange({ reviews })} />
     case 'photos.hero':
+      return (
+        <PhotoEditor
+          photo={c.photos.hero}
+          defaultAlt={defaultAlt('hero', site, trade)}
+          onChange={hero => onContentChange({ photos: { ...c.photos, hero } })}
+        />
+      )
     case 'photos.about':
+      return (
+        <PhotoEditor
+          photo={c.photos.about}
+          defaultAlt={defaultAlt('about', site, trade)}
+          onChange={about => onContentChange({ photos: { ...c.photos, about } })}
+        />
+      )
     case 'photos.gallery':
-      return <p className="mm-note">Photo uploads arrive with publishing. Until then, this part of your site stays hidden.</p>
+      return (
+        <GalleryEditor
+          photos={c.photos.gallery}
+          max={MAX_GALLERY}
+          defaultAlt={i => defaultAlt('gallery', site, trade, i)}
+          onChange={gallery => onContentChange({ photos: { ...c.photos, gallery } })}
+        />
+      )
   }
 }
 

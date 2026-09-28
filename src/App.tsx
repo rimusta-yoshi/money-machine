@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useReducer } from 'react'
+import { useState, useEffect, useRef, useMemo, useReducer, useCallback } from 'react'
 import type { CSSProperties } from 'react'
 import './builder/builder.css'
 import type { SectionType, TradeConfig } from './types'
@@ -14,6 +14,9 @@ import { BuilderCanvas } from './builder/BuilderCanvas'
 import { BuilderTopBar } from './builder/BuilderTopBar'
 import { FinishStep } from './builder/finish/FinishStep'
 import { Icon } from './components/ui/Icon'
+import { useHeroFitRepair } from './builder/useHeroFitRepair'
+import { FitNotice } from './builder/FitNotice'
+import type { GeneratedHero } from './gen'
 
 type Step = 'pick-trade' | 'setup' | 'build' | 'finish'
 
@@ -32,6 +35,10 @@ export default function App() {
   const [focusSection, setFocusSection] = useState<SectionType | undefined>(undefined)
   const trade = site ? tradeById[site.tradeId] : null
   const stageRef = useRef<HTMLDivElement>(null)
+  const repairHero = useCallback((value: GeneratedHero) => dispatch({ type: 'pickGenerated', section: 'hero', value }), [])
+  const editing = step === 'build' || step === 'finish'
+  const fit = useHeroFitRepair(editing ? site : null, trade, repairHero)
+  const dismissFit = fit.dismiss
 
   // Each step starts at the top (the stage is the scroll container, not the window).
   useEffect(() => {
@@ -182,6 +189,8 @@ export default function App() {
 
         </div>
       </div>
+
+      <FitNotice notice={editing ? fit.notice : null} onDismiss={dismissFit} />
 
       {/* Done overlay — only shown after all sections chosen; no StickyCallBar overlap risk */}
       {done && trade && site && (

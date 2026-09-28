@@ -15,8 +15,15 @@ export function useHeroPicker(site: Site, trade: TradeConfig) {
   const stored = site.sections.hero
   const content = useMemo(() => heroContent(site, trade), [site, trade])
   const [batchSeed, setBatchSeed] = useState(() => stored?.seed ?? firstHeroBatch(site.style.seed))
-  const [shownKey, setShownKey] = useState<string | null>(() => (stored ? specKey(stored.spec) : null))
   const { options, pending } = useHeroOptions(content, site.style.resolved, batchSeed)
+  // The customer's browsing choice, remembered against the saved pick it started from. If the
+  // saved pick changes underneath (fit repair) and belongs to the batch on screen, follow it;
+  // otherwise leave the customer where they are.
+  const storedKey = stored ? specKey(stored.spec) : null
+  const [choice, setChoice] = useState<{ key: string | null; base: string | null }>({ key: storedKey, base: storedKey })
+  const follow = choice.base !== storedKey && stored?.seed === batchSeed
+  const shownKey = follow ? storedKey : choice.key
+  const setShownKey = (key: string | null) => setChoice({ key, base: storedKey })
 
   const specs = useMemo<HeroSpec[]>(() => {
     const generated = options?.shown.map(c => c.spec) ?? []
