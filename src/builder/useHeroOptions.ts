@@ -3,7 +3,7 @@ import { generateHeroOptions } from '../gen'
 import type { HeroContent, HeroOptions, SiteStyle } from '../gen'
 import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
 
-const EMPTY = (batchSeed: number): HeroOptions => ({ batchSeed, generated: 0, shown: [], rejected: [], gated: [] })
+const EMPTY = (batchSeed: number): HeroOptions => ({ batchSeed, generated: 0, shown: [], valid: [], rejected: [], gated: [] })
 
 /**
  * Runs the hero generator in the browser: waits for the style's fonts, then measures each

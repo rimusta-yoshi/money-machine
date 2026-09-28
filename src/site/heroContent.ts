@@ -4,13 +4,15 @@ import type { TradeConfig } from '../types'
 import { telHref } from './phone'
 import type { Site } from './schema'
 import { firstHeroBatch } from './style'
+import { FEATURES } from './features'
+import type { Features } from './features'
 
 /**
  * What the generated hero may say, taken only from the site record and the trade's copy.
  * Unlike the template sections, the hero shows no example content: ratings, reviews,
  * badges and photos appear only once the customer has added them.
  */
-export function heroContent(site: Site, trade: TradeConfig): HeroContent {
+export function heroContent(site: Site, trade: TradeConfig, features: Features = FEATURES): HeroContent {
   const { business, content } = site
   const phone = business.phone.trim()
   const location = business.location.trim()
@@ -28,7 +30,8 @@ export function heroContent(site: Site, trade: TradeConfig): HeroContent {
     reviews: reviewsOn
       ? (content.reviews ?? []).map(r => ({ text: r.text, author: r.author, location: r.location, rating: r.rating }))
       : [],
-    quoteForm: business.email.trim() !== '',
+    // A hero form needs somewhere for enquiries to go, and the sending to be built.
+    quoteForm: features.enquiries && business.email.trim() !== '',
   }
 }
 

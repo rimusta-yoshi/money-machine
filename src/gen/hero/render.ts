@@ -1,4 +1,4 @@
-import { cx, esc, safeUrl } from '../html'
+import { cx, esc, safeImageUrl, safeUrl } from '../html'
 import { fontStack } from '../style'
 import type { HeroSpec, ParamsOf, SiteStyle, Tone } from '../schema'
 import { ARCHETYPES, FALLBACK_SPEC } from './archetypes'
@@ -69,8 +69,9 @@ const trust = (items: readonly string[], cls = 'sb-trust') =>
   items.length ? `<ul class="${cls}" aria-label="Credentials">${items.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : ''
 
 function photo(c: HeroContent, cls: string, attrs = ''): string {
-  if (!c.photo) return ''
-  return `<div class="${cls}"${attrs}><img src="${esc(safeUrl(c.photo.url))}" alt="${esc(c.photo.alt)}" decoding="async"></div>`
+  const src = c.photo ? safeImageUrl(c.photo.url) : ''
+  if (!c.photo || !src) return ''
+  return `<div class="${cls}"${attrs}><img src="${esc(src)}" alt="${esc(c.photo.alt)}" decoding="async"></div>`
 }
 
 const review = (r: HeroContent['reviews'][number]) =>

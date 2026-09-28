@@ -23,7 +23,7 @@ export function GalleryMasonry({ content }: SectionProps) {
               </li>
             ))
           : gallery.value.map((photo, i) => (
-              <li className={`ff-gal-cell${i === 0 ? ' wide' : ''}`} key={photo.url}>
+              <li className={`ff-gal-cell${i === 0 ? ' wide' : ''}`} key={i}>
                 <img className="ff-photo-img" src={photo.url} alt={photo.alt} loading="lazy" />
               </li>
             ))}

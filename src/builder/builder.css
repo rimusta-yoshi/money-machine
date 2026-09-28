@@ -1465,3 +1465,18 @@
 
 /* Next/finish wait while a generated section works out its options */
 :is(.sc-next, .sc-launch, .mm-ctrl-next, .mm-ctrl-launch):disabled { opacity: 0.6; cursor: progress; }
+
+/* Heads-up when the saved hero was switched to one that still fits */
+.mm-fit-notice { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; max-width: min(520px, calc(100vw - 32px)); }
+.mm-fit-notice.show {
+  display: flex; align-items: center; gap: 12px; padding: 12px 8px 12px 16px; border-radius: 12px;
+  background: var(--ink, #1a1a1a); color: #fff; font-size: 14px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.mm-fit-notice-text { margin: 0; }
+.mm-fit-notice:not(.show) .mm-fit-notice-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.mm-fit-notice-x {
+  flex: none; width: 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: #fff;
+  font-size: 20px; cursor: pointer;
+}
+.mm-fit-notice-x:hover { background: rgba(255, 255, 255, 0.12); }
+.mm-fit-notice-x:focus-visible { outline: 3px solid #fff; outline-offset: -3px; }

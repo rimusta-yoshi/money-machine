@@ -24,6 +24,8 @@ export interface HeroOptions {
   generated: number
   /** The most different valid candidates, best first. */
   shown: HeroCandidate[]
+  /** Every candidate that passed, shown or held back. */
+  valid: HeroCandidate[]
   rejected: HeroCandidate[]
   /** Archetypes the content ruled out, with the reason. */
   gated: { archetype: ArchetypeKey; why: string }[]
@@ -96,6 +98,7 @@ export function generateHeroOptions(req: OptionsRequest): HeroOptions {
     batchSeed: req.batchSeed,
     generated: count,
     shown: pickDistinct(valid, req.show ?? SHOW),
+    valid,
     rejected: candidates.filter(c => !c.valid),
     gated: ARCHETYPE_KEYS.filter(k => !ARCHETYPES[k].gate(req.content)).map(k => ({ archetype: k, why: ARCHETYPES[k].why })),
   }

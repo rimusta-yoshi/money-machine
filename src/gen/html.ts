@@ -11,5 +11,12 @@ export function safeUrl(url: string): string {
   return '#'
 }
 
+/** Image sources: https, or a base64 data URL of a web image format. Anything else becomes empty. */
+export function safeImageUrl(url: string): string {
+  const u = url.trim()
+  if (/^https:\/\/[^\s"'<>]+$/i.test(u) || /^data:image\/(webp|jpeg|png);base64,[A-Za-z0-9+/]+=*$/.test(u)) return u
+  return ''
+}
+
 /** Joins class names, dropping empty ones. */
 export const cx = (...names: (string | false | null | undefined)[]): string => names.filter(Boolean).join(' ')

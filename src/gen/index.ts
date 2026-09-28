@@ -11,7 +11,8 @@ import { renderHero } from './hero/render'
 import type { HeroSpec, SiteStyle } from './schema'
 
 export * from './schema'
-export { resolveSiteStyle, fontStylesheetHref } from './style'
+export { resolveSiteStyle } from './style'
+export { fontFaceCss, siteFontFaces, fontFileName, SITE_FONT_FILES } from './fonts'
 export { mulberry32, randomSeed, hashString } from './rng'
 export { THEMES, ALL_FONT_FAMILIES } from './themes'
 export type { HeroContent } from './hero/content'
@@ -23,6 +24,8 @@ export { staticChecks, measuredChecks } from './hero/checks'
 export type { Check } from './hero/checks'
 export type { Measurer, HeroMeasurement } from './hero/measure'
 export { estimateMeasurer } from './hero/estimate'
+export { repairHero, fitFailures } from './hero/repair'
+export type { FitResult } from './hero/repair'
 export { FRAME, HERO_TITLE_ID } from './hero/metrics'
 
 /** The stylesheet every generated section needs. Include once per page. */

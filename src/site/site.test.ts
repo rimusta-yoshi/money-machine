@@ -86,6 +86,26 @@ describe('parseSite', () => {
     expect(() => parseSite({ ...site, business: { ...site.business, about: 'x'.repeat(161) } })).toThrow(SiteParseError)
   })
 
+  it('accepts photos as https links or images prepared in the builder', () => {
+    const site = valid()
+    const withHero = (url: string) => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Van' } } } })
+    expect(() => parseSite(withHero('https://cdn.example.com/van.webp'))).not.toThrow()
+    expect(() => parseSite(withHero('data:image/webp;base64,UklGRg=='))).not.toThrow()
+    expect(() => parseSite(withHero('data:image/jpeg;base64,/9j/4AAQ'))).not.toThrow()
+  })
+
+  it.each([
+    'javascript:alert(1)',
+    'http://insecure.example.com/van.jpg',
+    'data:text/html;base64,PHNjcmlwdD4=',
+    'data:image/svg+xml;base64,PHN2Zz4=',
+    'https://x.example/a.jpg" onerror="alert(1)',
+  ])('rejects the photo URL %s', url => {
+    const site = valid()
+    const bad = { ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Van' } } } }
+    expect(() => parseSite(bad)).toThrow(SiteParseError)
+  })
+
   it('gives a readable message naming the bad field', () => {
     try {
       parseSite({ ...valid(), brandColor: 'red' })

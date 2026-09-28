@@ -1,0 +1,15 @@
+Fonts from Fontsource (https://fontsource.org), latin subset.
+Inter: OFL-1.1
+JetBrains Mono: OFL-1.1
+Manrope: OFL-1.1
+Source Sans 3: OFL-1.1
+Source Serif 4: OFL-1.1
+Cormorant Garamond: OFL-1.1
+Bodoni Moda: OFL-1.1
+Jost: OFL-1.1
+Nunito: OFL-1.1
+Nunito Sans: OFL-1.1
+Fraunces: OFL-1.1
+Archivo: OFL-1.1
+Space Mono: OFL-1.1
+SIL Open Font License 1.1: https://openfontlicense.org
