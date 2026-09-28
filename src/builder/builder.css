@@ -1000,6 +1000,26 @@
   color: var(--ink);
   margin-bottom: 7px;
 }
+/* Re-roll for generated sections */
+.sc-reroll, .mm-sheet-reroll {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sc-reroll { width: 100%; margin-top: 10px; }
+.mm-sheet-reroll { align-self: center; margin: 4px auto 0; }
+.sc-reroll:hover:not(:disabled), .mm-sheet-reroll:hover:not(:disabled) { border-color: var(--ink-2); }
+.sc-reroll:disabled, .mm-sheet-reroll:disabled { color: var(--muted); cursor: progress; }
 .sc-tip {
   display: flex;
   align-items: center;
@@ -1442,3 +1462,6 @@
   /* Room under the canvas so the last section can scroll clear of the sheet */
   .mm-wrap.wide { padding-bottom: 75vh; }
 }
+
+/* Next/finish wait while a generated section works out its options */
+:is(.sc-next, .sc-launch, .mm-ctrl-next, .mm-ctrl-launch):disabled { opacity: 0.6; cursor: progress; }

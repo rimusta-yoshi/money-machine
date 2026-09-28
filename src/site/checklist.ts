@@ -35,7 +35,7 @@ const filled = (v: unknown[] | null) => v !== null && v.length > 0
 
 const RULES: Rule[] = [
   { id: 'photos.hero', label: 'Main photo', usedBy: ['hero'], done: s => s.content.photos.hero !== null },
-  { id: 'emergency', label: 'Do you offer emergency call-outs?', usedBy: ['hero'], done: s => s.content.emergency !== null },
+  { id: 'emergency', label: 'Do you offer emergency call-outs?', usedBy: ['services'], done: s => s.content.emergency !== null },
   { id: 'badges', label: 'Your credentials and guarantees', usedBy: ['trust_bar', 'certifications'], done: s => filled(s.content.badges) },
   { id: 'photos.about', label: 'Team or van photo', usedBy: ['about'], done: s => s.content.photos.about !== null },
   { id: 'jobsDone', label: 'Roughly how many jobs you’ve done', usedBy: ['about'], done: s => s.content.jobsDone !== null },

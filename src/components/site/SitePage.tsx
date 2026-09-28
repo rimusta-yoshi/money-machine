@@ -5,7 +5,9 @@ import { resolveContent } from '../../site/resolve'
 import type { RenderMode } from '../../site/resolve'
 import { siteSections } from '../../site/sections'
 import { siteTheme } from '../../site/theme'
+import { heroContent, siteHeroSpec } from '../../site/heroContent'
 import { SectionRenderer } from '../sections/SectionRenderer'
+import { GeneratedHero } from '../sections/GeneratedHero'
 import { FooterFull } from '../sections/FooterFull'
 import { PhoneLink } from '../sections/parts'
 import { Icon } from '../ui/Icon'
@@ -23,6 +25,10 @@ interface Props {
  */
 export function SitePage({ site, trade, mode }: Props) {
   const content = useMemo(() => resolveContent(site, trade, mode), [site, trade, mode])
+  const hero = useMemo(() => {
+    const c = heroContent(site, trade)
+    return { content: c, spec: siteHeroSpec(site, c) }
+  }, [site, trade])
   const name = site.business.name.trim() || `${trade.name} Co.`
 
   return (
@@ -36,7 +42,11 @@ export function SitePage({ site, trade, mode }: Props) {
       </header>
       <main id="main" tabIndex={-1}>
         {siteSections(trade, site).map(sec => {
-          const variant = sec.variants.find(v => v.id === site.selections[sec.type])
+          if (sec.type === 'hero') {
+            return <GeneratedHero key="hero" spec={hero.spec} style={site.style.resolved} content={hero.content} />
+          }
+          const picked = site.selections[sec.type]
+          const variant = sec.variants.find(v => v.id === picked)
             ?? sec.variants.find(v => v.id === sec.recommended)
             ?? sec.variants[0]
           return <SectionRenderer key={sec.type} componentName={variant.component} site={site} trade={trade} mode={mode} />

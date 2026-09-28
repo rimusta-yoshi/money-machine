@@ -161,6 +161,7 @@ export default function App() {
                 mobile={mobile}
                 initialSection={focusSection}
                 onSelect={(section, variantId) => dispatch({ type: 'select', section, variantId })}
+                onPickHero={value => dispatch({ type: 'pickGenerated', section: 'hero', value })}
                 onContentChange={patch => dispatch({ type: 'setContent', patch })}
                 onDone={() => setStep('finish')}
               />

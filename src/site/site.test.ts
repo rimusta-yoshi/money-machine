@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { plumber } from '../trades/plumber'
 import { painter } from '../trades/painter'
 import { createSite } from './defaults'
-import { parseSite, SiteParseError } from './schema'
+import { SiteParseError } from './schema'
+import { parseSite } from './parse'
 import type { Site } from './schema'
 
 describe('createSite', () => {
   it('starts with the trade accent as brand colour and nothing filled in', () => {
     const site = createSite(plumber)
-    expect(site.version).toBe(1)
+    expect(site.version).toBe(2)
     expect(site.tradeId).toBe('plumber')
     expect(site.brandColor).toBe(plumber.colorScheme.accent)
     expect(site.extras).toEqual([])
@@ -41,7 +42,8 @@ describe('parseSite', () => {
     ...createSite(plumber),
     business: { name: 'Joe Pipes', phone: '07700 900123', location: 'Leeds', about: '', yearsInBusiness: '12', email: 'joe@example.com' },
     extras: ['reviews'],
-    selections: { hero: 'hero-dark' },
+    selections: { contact: 'contact-full' },
+    sections: { hero: { seed: 7, spec: { v: 1, section: 'hero', archetype: 'stacked', params: { align: 'center', image: 'none', tone: 'surface' } } } },
   })
 
   it('round-trips a valid site through JSON', () => {

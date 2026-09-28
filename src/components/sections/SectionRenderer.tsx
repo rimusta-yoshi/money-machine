@@ -4,8 +4,6 @@ import type { Site } from '../../site/schema'
 import { resolveContent } from '../../site/resolve'
 import type { RenderMode } from '../../site/resolve'
 import type { SectionProps } from './types'
-import { HeroDark } from './HeroDark'
-import { HeroSplit } from './HeroSplit'
 import { TrustBarScroll } from './TrustBarScroll'
 import { TrustGrid } from './TrustGrid'
 import { ServicesGrid } from './ServicesGrid'
@@ -22,8 +20,6 @@ import { CertsProminent } from './CertsProminent'
 import { CertsBadges } from './CertsBadges'
 
 const COMPONENTS: Record<string, React.ComponentType<SectionProps>> = {
-  HeroDark,
-  HeroSplit,
   TrustBarScroll,
   TrustGrid,
   ServicesGrid,

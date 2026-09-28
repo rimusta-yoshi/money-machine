@@ -1,13 +1,19 @@
+import type { GeneratedHero, ThemeKey } from '../gen'
 import type { BusinessInfo, SectionType, TradeConfig } from '../types'
 import { createSite } from './defaults'
 import type { ExtraId, Site, SiteContent } from './schema'
+import { styleRecord } from './style'
+
+type TemplateSection = Exclude<SectionType, 'hero'>
 
 export type SiteAction =
   | { type: 'pickTrade'; trade: TradeConfig }
   | { type: 'setBusiness'; patch: Partial<BusinessInfo> }
   | { type: 'setBrandColor'; color: string }
   | { type: 'toggleExtra'; extra: ExtraId }
-  | { type: 'select'; section: SectionType; variantId: string }
+  | { type: 'setTheme'; theme: ThemeKey }
+  | { type: 'select'; section: TemplateSection; variantId: string }
+  | { type: 'pickGenerated'; section: 'hero'; value: GeneratedHero }
   | { type: 'setContent'; patch: Partial<SiteContent> }
   | { type: 'reset' }
 
@@ -26,7 +32,10 @@ export function siteReducer(site: Site | null, action: SiteAction): Site | null 
     case 'setBusiness':
       return { ...site, business: { ...site.business, ...action.patch } }
     case 'setBrandColor':
-      return { ...site, brandColor: action.color }
+      if (!/^#[0-9a-fA-F]{6}$/.test(action.color)) return site
+      return { ...site, brandColor: action.color, style: styleRecord(site.style.theme, action.color, site.style.seed) }
+    case 'setTheme':
+      return { ...site, style: styleRecord(action.theme, site.brandColor, site.style.seed) }
     case 'toggleExtra':
       return {
         ...site,
@@ -36,6 +45,8 @@ export function siteReducer(site: Site | null, action: SiteAction): Site | null 
       }
     case 'select':
       return { ...site, selections: { ...site.selections, [action.section]: action.variantId } }
+    case 'pickGenerated':
+      return { ...site, sections: { ...site.sections, [action.section]: action.value } }
     case 'setContent':
       return { ...site, content: { ...site.content, ...action.patch } }
   }
