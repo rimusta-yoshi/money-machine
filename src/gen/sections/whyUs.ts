@@ -1,42 +1,57 @@
 import { z } from 'zod'
-import { esc } from '../html'
+import { cx, esc } from '../html'
 import { pick } from '../rng'
 import type { PageContent, PagePhoto } from '../content'
 import { defineSection, specSchema } from '../core/define'
-import { head, icon, img } from '../core/markup'
+import type { BodyContext } from '../core/define'
+import { head, icon, media } from '../core/markup'
 import type { IconName } from '../core/markup'
+import { rollAlign, rollAsym, rollBreak, rollCrop, rollMotif, textSpan } from '../core/punch'
+import { THEMES } from '../themes'
+import { ALIGNS, ASYMS, BREAKS, CROPS, MOTIFS } from '../themes/types'
+import type { Motif } from '../themes/types'
 
-/** How the business works. Promises about approach, not facts like ratings or years. */
-const POINTS: readonly [string, string][] = [
-  ['Quick to respond', 'We get back to you fast and turn up when we say we will.'],
-  ['Clear pricing', 'A straightforward quote before any work starts. No hidden charges.'],
-  ['Properly qualified', 'Trained and experienced in the work we do.'],
-  ['Clean and tidy', 'Dust sheets down, mess cleared up. We treat your home like ours.'],
-  ['Kept in the loop', 'Updates as the job goes, and a follow-up once it’s done.'],
-]
-const ICONS: IconName[] = ['bolt', 'tag', 'badge', 'sparkle', 'chat']
-const TITLE = 'Five things we get right, every job.'
-
+/**
+ * How the business works. The points come from the theme's voice: promises about
+ * approach, never facts like ratings, years or licences.
+ */
 export interface WhyView {
-  points: readonly [string, string][]
   /** A real photo to sit beside the points, if the customer has one. */
   photo: PagePhoto | null
 }
-export const whyView = (c: PageContent): WhyView => ({ points: POINTS, photo: c.photos.about ?? c.photos.gallery[0] ?? null })
+export const whyView = (c: PageContent): WhyView => ({ photo: c.photos.about ?? c.photos.gallery[0] ?? null })
+
+const ICONS: IconName[] = ['bolt', 'tag', 'badge', 'sparkle', 'chat']
 
 export const whyUsSchema = specSchema('why_us', {
-  grid: { cols: z.union([z.literal(2), z.literal(3)]), style: z.enum(['card', 'plain']), icons: z.boolean() },
-  rows: { icons: z.boolean() },
-  split: { numbered: z.boolean() },
-  numbered: { align: z.enum(['left', 'center']) },
-  photo_points: { icons: z.boolean() },
+  grid: { cols: z.union([z.literal(2), z.literal(3)]), motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
+  rows: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
+  split: { asym: z.enum(ASYMS), motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
+  numbered: { align: z.enum(ALIGNS), brk: z.enum(BREAKS) },
+  photo_points: { asym: z.enum(ASYMS), crop: z.enum(CROPS), motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
+  checkpanel: { motif: z.enum(MOTIFS) },
+  ruled: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
 })
 export type WhyUsSpec = z.infer<typeof whyUsSchema>
 
-const HEAD = (center = false) => head('why_us', { eyebrow: 'Why choose us', title: TITLE, cls: center ? 'sb-head--center' : undefined })
-const point = ([t, d]: readonly [string, string], mark: string) =>
+const LIST_MOTIFS: Motif[] = ['numbers', 'circles', 'ticks']
+
+function HEAD(ctx: BodyContext, align: 'left' | 'center' | 'row' = 'left') {
+  const t = ctx.biome
+  return head('why_us', { eyebrow: t.voice.eyebrows.why_us, title: t.voice.titles.whyUs, align })
+}
+
+const point = ([t, d]: readonly [string, string], mark = '') =>
   `${mark}<div class="sb-point"><h3 class="sb-h3">${esc(t)}</h3><p class="sb-mu">${esc(d)}</p></div>`
-const num = (i: number) => `<span class="sb-num sb-num--big" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span>`
+
+/** A list of the points, marked by the motif (numerals, circles, ticks drawn by CSS) or icons. */
+function pointList(ctx: BodyContext, motif: string, cls = '') {
+  const on = ctx.motif && LIST_MOTIFS.includes(motif as Motif)
+  const tag = on && motif !== 'ticks' ? 'ol' : 'ul'
+  const lc = cx('sb-list sb-points', on && (motif === 'ticks' ? 'sb-list--tick' : 'sb-list--num'), cls)
+  const li = ctx.biome.voice.why.map((p, i) => `<li>${point(p, on ? '' : `<span class="sb-point-icon">${icon(ICONS[i % ICONS.length], 24)}</span>`)}</li>`).join('')
+  return `<${tag} class="${lc}">${li}</${tag}>`
+}
 
 export const whyUs = defineSection<WhyUsSpec, WhyView>({
   type: 'why_us',
@@ -47,87 +62,142 @@ export const whyUs = defineSection<WhyUsSpec, WhyView>({
     grid: {
       label: 'Grid', why: '',
       gate: () => true,
-      params: r => ({ cols: pick(r, [2, 3] as const), style: pick(r, ['card', 'plain'] as const), icons: r() < 0.6 }),
-      features: p => [p.cols === 3 ? 1 : 0, p.style === 'card' ? 1 : 0, p.icons ? 1 : 0],
+      params: (r, { biome: t }) => ({ cols: pick(r, [2, 3] as const), motif: rollMotif(r, t, 'why_us', ['toprule', 'icontile', 'pastel', 'numbers', 'circles'], 0.2), brk: rollBreak(r, t, ['band', 'panel', 'rule']) }),
+      features: p => [p.cols - 2, MOTIFS.indexOf(p.motif) / MOTIFS.length, BREAKS.indexOf(p.brk) / 2],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
+      loud: true,
     },
     rows: {
       label: 'Rows', why: '',
       gate: () => true,
-      params: r => ({ icons: r() < 0.7 }),
-      features: p => [p.icons ? 1 : 0],
+      params: (r, { biome: t }) => ({ motif: rollMotif(r, t, 'why_us', LIST_MOTIFS, 0.3), brk: rollBreak(r, t, ['band', 'rule']) }),
+      features: p => [MOTIFS.indexOf(p.motif) / MOTIFS.length, p.brk === 'rule' ? 1 : 0],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
     },
     split: {
       label: 'Heading and points', why: '',
       gate: () => true,
-      params: r => ({ numbered: r() < 0.5 }),
-      features: p => [p.numbered ? 1 : 0],
+      params: (r, { biome: t }) => ({ asym: rollAsym(r, t, ['4/8', '5/7', '6/6']), motif: rollMotif(r, t, 'why_us', LIST_MOTIFS, 0.25), brk: rollBreak(r, t, ['band', 'panel', 'rule']) }),
+      features: p => [textSpan(p.asym) / 8, MOTIFS.indexOf(p.motif) / MOTIFS.length, BREAKS.indexOf(p.brk) / 2],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
       loud: true,
     },
     numbered: {
-      label: 'Numbered', why: '',
+      label: 'Big numbers', why: '',
       gate: () => true,
-      params: r => ({ align: pick(r, ['left', 'center'] as const) }),
-      features: p => [p.align === 'center' ? 1 : 0],
+      params: (r, { biome: t }) => ({ align: rollAlign(r, t, ['left', 'center']), brk: rollBreak(r, t, ['band', 'panel', 'rule']) }),
+      features: p => [p.align === 'center' ? 1 : 0, BREAKS.indexOf(p.brk) / 2, 1],
+      focal: (_p, z) => ({ focal: z.xl, second: z.h2 * 0.7 }),
       loud: true,
     },
     photo_points: {
       label: 'Photo and points', why: 'needs a photo',
       gate: v => v.photo !== null,
-      params: r => ({ icons: r() < 0.6 }),
-      features: p => [p.icons ? 1 : 0],
+      params: (r, { biome: t }) => ({ asym: rollAsym(r, t, ['7/5', '6/6']), crop: rollCrop(r, t, ['4:5', '1:1']), motif: rollMotif(r, t, 'why_us', LIST_MOTIFS, 0.25), brk: rollBreak(r, t, ['band', 'rule']) }),
+      features: p => [textSpan(p.asym) / 8, CROPS.indexOf(p.crop) / 3, MOTIFS.indexOf(p.motif) / MOTIFS.length],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
       sided: true,
+    },
+    checkpanel: {
+      label: 'Checklist panel', why: '',
+      gate: () => true,
+      params: (r, { biome: t }) => ({ motif: rollMotif(r, t, 'why_us', ['ticks'], 0.15) }),
+      features: p => [p.motif === 'ticks' ? 1 : 0, 1, 1],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
+    },
+    ruled: {
+      label: 'Ruled columns', why: '',
+      gate: () => true,
+      params: (r, { biome: t }) => ({ motif: rollMotif(r, t, 'why_us', ['double'], 0.25), brk: rollBreak(r, t, ['band', 'rule']) }),
+      features: p => [p.motif === 'double' ? 1 : 0, 1, 1],
+      focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
     },
   },
   weights: {
-    professional: { grid: 2.5, rows: 2, split: 2, numbered: 1, photo_points: 2 },
-    luxury: { grid: 1, rows: 2.5, split: 2.5, numbered: 2, photo_points: 2 },
-    family: { grid: 3, rows: 2, split: 1, numbered: 1.5, photo_points: 2.5 },
-    brutalism: { grid: 1.5, rows: 1.5, split: 2, numbered: 3, photo_points: 1 },
+    'workwear': { grid: 2, rows: 1.4, split: 2.4, numbered: 3, photo_points: 2 },
+    'clean-pro': { grid: 3, rows: 1.5, split: 2, numbered: 1, photo_points: 2, checkpanel: 3 },
+    'craft-heritage': { grid: 1.4, rows: 2, split: 2.4, numbered: 1.6, photo_points: 1.6, ruled: 3 },
+    'friendly-local': { grid: 3, rows: 1.2, split: 1.2, numbered: 1.4, photo_points: 3 },
   },
-  fallback: { v: 1, section: 'why_us', archetype: 'rows', params: { icons: true } },
-  cards: s => s.archetype === 'grid' && s.params.style === 'card',
-  body: (s, _style, v) => {
-    const mark = (i: number, on: boolean) => (on ? `<span class="sb-point-icon">${icon(ICONS[i % ICONS.length], 24)}</span>` : '')
+  fallback: { v: 2, section: 'why_us', archetype: 'rows', step: 2, params: { motif: 'none', brk: 'band' } },
+  panel: s => s.archetype === 'checkpanel' || (s.params as { brk?: string }).brk === 'panel',
+  body: (s, v, ctx) => {
+    const t = ctx.biome
     switch (s.archetype) {
       case 'grid': {
-        const li = v.points.map((p, i) => `<li class="${s.params.style === 'card' ? 'sb-card ' : 'sb-rule '}sb-point-cell">${point(p, mark(i, s.params.icons))}</li>`).join('')
-        return { vars: `--sb-cols:${s.params.cols};--sb-cols-m:1;`, inner: `${HEAD()}<ul class="sb-grid">${li}</ul>` }
+        const p = s.params
+        const on = ctx.motif
+        const num = on && (p.motif === 'numbers' || p.motif === 'circles')
+        const mark = (i: number) => (on && p.motif === 'icontile' ? `<span class="sb-icon-tile">${icon(ICONS[i % ICONS.length], 22)}</span>` : num ? '' : `<span class="sb-point-icon">${icon(ICONS[i % ICONS.length], 26)}</span>`)
+        const cls = cx('sb-grid sb-why-grid', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-why-grid--rule')
+        const li = t.voice.why.map((pt, i) => `<li class="sb-card sb-point-cell">${point(pt, mark(i))}</li>`).join('')
+        const tag = num ? 'ol' : 'ul'
+        return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx, 'row')}<${tag} class="${cls}">${li}</${tag}>` }
       }
-      case 'rows': {
-        const li = v.points.map((p, i) => `<li class="sb-point-row">${point(p, mark(i, s.params.icons))}</li>`).join('')
-        return { inner: `${HEAD()}<ul class="sb-points">${li}</ul>` }
-      }
+      case 'rows':
+        return { inner: `${HEAD(ctx)}${pointList(ctx, s.params.motif, 'sb-points--rows')}` }
       case 'split': {
-        const li = v.points.map((p, i) => `<li class="sb-point-row">${point(p, s.params.numbered ? num(i) : mark(i, true))}</li>`).join('')
-        return { inner: `<div class="sb-split sb-split--top">${HEAD()}<ul class="sb-points">${li}</ul></div>` }
+        const p = s.params
+        return { vars: `--sb-ta:${textSpan(p.asym)};`, inner: `<div class="sb-cols sb-cols--top"><div class="sb-main sb-sticky">${HEAD(ctx)}</div><div class="sb-aside">${pointList(ctx, p.motif)}</div></div>` }
       }
       case 'numbered': {
         const center = s.params.align === 'center'
-        const li = v.points.map((p, i) => `<li class="sb-point-num">${point(p, num(i))}</li>`).join('')
-        return { cls: center ? 'sb-center' : '', inner: `${HEAD(center)}<ol class="sb-grid sb-points-num" style="--sb-cols:${v.points.length > 4 ? 3 : 2};--sb-cols-m:1">${li}</ol>` }
+        const li = t.voice.why.map(pt => `<li class="sb-point-num">${point(pt)}</li>`).join('')
+        return { cls: center ? 'sb-center' : '', inner: `${HEAD(ctx, center ? 'center' : 'left')}<ol class="sb-grid sb-why-big" style="--sb-cols:${t.voice.why.length > 4 ? 3 : 2};--sb-cols-m:1">${li}</ol>` }
       }
       case 'photo_points': {
-        const li = v.points.map((p, i) => `<li class="sb-point-row">${point(p, mark(i, s.params.icons))}</li>`).join('')
-        return { inner: `${HEAD()}<div class="sb-split sb-split--top"><ul class="sb-points">${li}</ul>${img(v.photo, 'sb-photo sb-why-photo')}</div>` }
+        const p = s.params
+        return {
+          vars: `--sb-ta:${textSpan(p.asym)};`,
+          inner: `<div class="sb-cols sb-cols--top"><div class="sb-main sb-stack">${HEAD(ctx)}${pointList(ctx, p.motif)}</div>${media(v.photo, { crop: p.crop, cls: 'sb-aside sb-why-photo' })}</div>`,
+        }
+      }
+      case 'checkpanel': {
+        const on = ctx.motif
+        const li = t.voice.why.map(pt => `<li>${point(pt)}</li>`).join('')
+        return { brk: 'panel', vars: '--sb-ta:4;', inner: `<div class="sb-cols sb-cols--top"><div class="sb-main">${HEAD(ctx)}</div><ul class="${cx('sb-aside sb-list sb-list--bare sb-why-checks', on && 'sb-list--tick')}">${li}</ul></div>` }
+      }
+      case 'ruled': {
+        const li = t.voice.why.map(pt => `<li>${point(pt)}</li>`).join('')
+        return { cls: ctx.motif ? 'sb-ruled--double' : '', inner: `${HEAD(ctx, 'center')}<ol class="sb-why-ruled">${li}</ol>` }
       }
     }
   },
-  words: (_s, v) => ({ title: TITLE, texts: v.points.flat() }),
+  words: (s, _v, style) => {
+    const t = THEMES[style.theme]
+    return { title: t.voice.titles.whyUs, texts: t.voice.why.flat(), col: s.archetype === 'split' || s.archetype === 'checkpanel' ? 420 : 760 }
+  },
 })
 
 export const WHY_US_CSS = `
-.sb-points{display:flex;flex-direction:column}
-.sb-point-row{display:flex;gap:16px;align-items:flex-start;padding:18px 0;border-bottom:1px solid color-mix(in srgb,var(--sb-fg) 18%,transparent)}
-.sb-point-row:first-child{padding-top:0}
-.sb-point{display:flex;flex-direction:column;gap:6px}
-.sb-point-cell{display:flex;flex-direction:column;gap:14px}
+.sb-point{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sb-points>li{align-items:flex-start}
 .sb-point-icon{display:inline-flex}
-.sb-num--big{font-size:calc(var(--sb-h2) * 0.8);line-height:1}
-.sb-point-num{display:flex;flex-direction:column;gap:12px}
-.sb-center .sb-point-num{align-items:center;text-align:center}
-.sb-why-photo{aspect-ratio:4/5;min-height:320px}
+.sb-point-cell{justify-content:flex-start}
+.sb-why-grid--rule>li.sb-card{border-top-width:6px}
+.sb-why-big{counter-reset:sb-n;row-gap:calc(var(--sb-gap) * 2.5)}
+.sb-why-big>li{counter-increment:sb-n;display:flex;flex-direction:column;gap:14px}
+.sb-why-big>li::before{content:counter(sb-n,decimal-leading-zero);font-family:var(--sb-fd);font-weight:var(--sb-dw);font-size:var(--sb-xl);line-height:0.9;letter-spacing:var(--sb-dtr);color:var(--sb-link)}
+.sb-center .sb-why-big>li{align-items:center;text-align:center}
+.sb-why-photo .sb-photo{max-height:640px}
+.sb-why-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--sb-gap) * 1.5) calc(var(--sb-gap) * 2.5)}
+.sb-why-checks>li{padding:0}
+.sb-why-ruled{counter-reset:sb-n;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--sb-fg);border-bottom:1px solid var(--sb-fg)}
+.sb-ruled--double .sb-why-ruled{box-shadow:0 -5px 0 -4px var(--sb-fg),0 5px 0 -4px var(--sb-fg)}
+.sb-why-ruled>li{counter-increment:sb-n;display:flex;flex-direction:column;gap:12px;padding:28px 22px;border-left:1px solid var(--sb-hair)}
+.sb-why-ruled>li:first-child{border-left:0}
+.sb-why-ruled>li::before{content:counter(sb-n,upper-roman) ".";font-family:var(--sb-fd);font-style:italic;font-size:24px;color:var(--sb-link)}
+.sb-why-ruled .sb-h3{font-size:22px}
+.sb-sec.sb-th--workwear .sb-why-big>li::before{color:var(--sb-accent)}
+.sb-sec.sb-th--craft-heritage .sb-why-big>li::before{content:counter(sb-n,upper-roman);font-style:italic}
+.sb-sec.sb-th--friendly-local .sb-why-big>li::before{content:counter(sb-n);display:grid;place-items:center;width:1.4em;height:1.4em;border-radius:50%;background:var(--sb-btn-bg);color:var(--sb-btn-fg);font-size:calc(var(--sb-xl) * 0.62)}
+.sb-sec.sb-th--clean-pro .sb-why-big>li::before{font-size:calc(var(--sb-xl) * 0.8)}
 @container (max-width: 719px){
-  .sb-why-photo{aspect-ratio:4/3;min-height:0}
-  .sb-num--big{font-size:calc(var(--sb-h2-m) * 0.9)}
+  .sb-why-photo .sb-photo{max-height:300px}
+  .sb-why-checks{grid-template-columns:1fr}
+  .sb-why-ruled{grid-template-columns:1fr}
+  .sb-why-ruled>li{border-left:0;border-top:1px solid var(--sb-hair);padding:20px 0}
+  .sb-why-ruled>li:first-child{border-top:0}
+  .sb-why-big>li::before{font-size:var(--sb-xlm)}
 }
 `

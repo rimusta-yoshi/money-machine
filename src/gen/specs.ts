@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { heroSpecSchema } from './schema'
+import { heroSchema } from './sections/hero'
+import type { HeroSpec } from './sections/hero'
 import { aboutSchema } from './sections/about'
 import type { AboutSpec } from './sections/about'
 import { areasSchema } from './sections/areas'
@@ -20,7 +21,6 @@ import { trustBarSchema } from './sections/trustBar'
 import type { TrustBarSpec } from './sections/trustBar'
 import { whyUsSchema } from './sections/whyUs'
 import type { WhyUsSpec } from './sections/whyUs'
-import type { HeroSpec } from './schema'
 
 /** The spec type for each section. */
 export interface SectionSpecs {
@@ -39,7 +39,7 @@ export interface SectionSpecs {
 
 /** Stored-spec schemas, by section. Every string is an enum and every number bounded. */
 export const sectionSchemas = {
-  hero: heroSpecSchema,
+  hero: heroSchema,
   trust_bar: trustBarSchema,
   services: servicesSchema,
   about: aboutSchema,
@@ -57,7 +57,7 @@ const generated = <S extends z.ZodType>(spec: S) => z.object({ seed, spec, prefe
 
 /** How the site record stores generated sections: batch seed, resolved spec, and the customer's own pick if a repair replaced it. */
 export const generatedSectionsSchema = z.object({
-  hero: generated(heroSpecSchema).optional(),
+  hero: generated(heroSchema).optional(),
   trust_bar: generated(trustBarSchema).optional(),
   services: generated(servicesSchema).optional(),
   about: generated(aboutSchema).optional(),
