@@ -9,11 +9,14 @@ import { SECTION_LABELS } from '../site/labels'
 import { SECTION_NEEDS } from '../site/needs'
 import { sitePage } from '../site/page'
 import { pageContent } from '../site/pageContent'
+import { withSample } from '../sample/content'
+import { samplePhotos } from '../sample/photos'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
+import type { SiteStyleControls } from './SiteStyleCard'
 import { useSectionPicker } from './useSectionPicker'
 
 interface Props {
@@ -25,6 +28,7 @@ interface Props {
   onPick: (section: SectionKey, value: Generated) => void
   onContentChange: (patch: Partial<SiteContent>) => void
   onDone: () => void
+  siteStyle: SiteStyleControls
 }
 
 const DESK_W = 1200
@@ -39,7 +43,7 @@ function useNarrowDevice() {
   return narrow
 }
 
-export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onContentChange, onDone }: Props) {
+export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
   const sections = siteSections(trade, site)
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
@@ -51,12 +55,14 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
   const touchStartX = useRef<number | null>(null)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
-  const content = useMemo(() => pageContent(site, trade), [site, trade])
+  const sampleOn = siteStyle.sample?.on ?? false
+  // Sample content is view-only: it never reaches the record, so it can't be saved or published.
+  const content = useMemo(() => (sampleOn ? withSample(pageContent(site, trade), samplePhotos()) : pageContent(site, trade)), [site, trade, sampleOn])
   const picker = useSectionPicker(site, content, activeType)
   // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
   const page = useMemo(
-    () => sitePage(site, trade, { overrides: picker.shown ? { [activeType]: picker.shown } : {} }),
-    [site, trade, activeType, picker.shown],
+    () => sitePage(site, trade, { overrides: picker.shown ? { [activeType]: picker.shown } : {}, content }),
+    [site, trade, activeType, picker.shown, content],
   )
   const byType = useMemo(() => new Map<SectionKey, ResolvedSection>(page.map(s => [s.type, s])), [page])
 
@@ -154,6 +160,7 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
     onNext: () => navigateTo(Math.min(activeIdx + 1, sections.length - 1)),
     onFinish: finish,
     onContentChange,
+    siteStyle,
   }
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }

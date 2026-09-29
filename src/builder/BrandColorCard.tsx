@@ -18,9 +18,11 @@ const PRESETS = [
 interface Props {
   color: string
   onChange: (color: string) => void
+  /** The site style adjusted the colour for readability somewhere (text shades, button edges). */
+  tuned?: boolean
 }
 
-export function BrandColorCard({ color, onChange }: Props) {
+export function BrandColorCard({ color, onChange, tuned = false }: Props) {
   const colorInputRef = useRef<HTMLInputElement>(null)
   const isActive = (c: string) => color.toLowerCase() === c.toLowerCase()
 
@@ -62,7 +64,17 @@ export function BrandColorCard({ color, onChange }: Props) {
             />
           ))}
         </div>
+        <TunedNote tuned={tuned} />
       </div>
     </div>
+  )
+}
+
+/** A reassuring note, no action needed: the colour is still used exactly for fills and shapes. */
+export function TunedNote({ tuned }: { tuned: boolean }) {
+  return (
+    <p className="mm-tuned" role="status">
+      {tuned ? 'We’ve tuned your colour slightly so text stays easy to read.' : ''}
+    </p>
   )
 }

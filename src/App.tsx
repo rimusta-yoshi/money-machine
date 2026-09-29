@@ -16,6 +16,7 @@ import { FinishStep } from './builder/finish/FinishStep'
 import { Icon } from './components/ui/Icon'
 import { useFitRepair } from './builder/useFitRepair'
 import { FitNotice } from './builder/FitNotice'
+import { randomSeed } from './gen'
 import type { Generated, SectionKey } from './gen'
 
 type Step = 'pick-trade' | 'setup' | 'build' | 'finish'
@@ -39,6 +40,8 @@ export default function App() {
   const editing = step === 'build' || step === 'finish'
   const fit = useFitRepair(editing ? site : null, trade, repair)
   const dismissFit = fit.dismiss
+  // Dev-only preview switch: sample content for seeing a theme's full range. Stripped from production builds.
+  const [sample, setSample] = useState(false)
 
   // Each step starts at the top (the stage is the scroll container, not the window).
   useEffect(() => {
@@ -170,6 +173,13 @@ export default function App() {
                 onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}
                 onContentChange={patch => dispatch({ type: 'setContent', patch })}
                 onDone={() => setStep('finish')}
+                siteStyle={{
+                  theme: site.style.theme,
+                  tuned: site.style.resolved.palette.tuned,
+                  onTheme: theme => dispatch({ type: 'setTheme', theme }),
+                  onReroll: () => dispatch({ type: 'rerollStyle', seed: randomSeed() }),
+                  sample: import.meta.env.DEV ? { on: sample, set: setSample } : undefined,
+                }}
               />
             </>
           )}

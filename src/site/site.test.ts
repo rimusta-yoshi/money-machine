@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { plumber } from '../trades/plumber'
 import { painter } from '../trades/painter'
 import { createSite } from './defaults'
+import { DEFAULT_THEME } from './style'
 import { SiteParseError } from './schema'
 import { parseSite } from './parse'
 import type { Site } from './schema'
@@ -9,12 +10,20 @@ import type { Site } from './schema'
 describe('createSite', () => {
   it('starts with the trade accent as brand colour and nothing filled in', () => {
     const site = createSite(plumber)
-    expect(site.version).toBe(3)
+    expect(site.version).toBe(4)
     expect(site.tradeId).toBe('plumber')
     expect(site.brandColor).toBe(plumber.colorScheme.accent)
     expect(site.extras).toEqual([])
     expect(site.sections).toEqual({})
     expect(site.business).toEqual({ name: '', phone: '', location: '', about: '', yearsInBusiness: '', email: '' })
+  })
+
+  it('starts on the trade’s default theme, resolved from the style seed', () => {
+    const site = createSite(painter, 5)
+    expect(site.style.theme).toBe(DEFAULT_THEME.painter)
+    expect(site.style.resolved.theme).toBe(DEFAULT_THEME.painter)
+    expect(site.style.resolved.v).toBe(2)
+    expect(createSite(painter, 5).style).toEqual(site.style)
   })
 
   it('leaves every content field unset so nothing invented reaches a live site', () => {
@@ -42,7 +51,7 @@ describe('parseSite', () => {
     ...createSite(plumber),
     business: { name: 'Joe Pipes', phone: '07700 900123', location: 'Leeds', about: '', yearsInBusiness: '12', email: 'joe@example.com' },
     extras: ['reviews'],
-    sections: { hero: { seed: 7, spec: { v: 1, section: 'hero', archetype: 'stacked', params: { align: 'center', image: 'none', tone: 'surface' } } } },
+    sections: { hero: { seed: 7, spec: { v: 2, section: 'hero', archetype: 'stacked', step: 0, params: { align: 'center', image: 'none', tone: 'surface', em: false } } } },
   })
 
   it('round-trips a valid site through JSON', () => {

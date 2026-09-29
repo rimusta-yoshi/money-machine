@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { estimateMeasurer, generateOptions, resolveSiteStyle, SECTIONS, THEME_KEYS, viewOf } from '../gen'
+import type { Candidate } from '../gen'
 import { trades } from '../trades'
 import { createSite } from './defaults'
 import { LIMITS } from './limits'
 import { pageOrder } from './page'
 import { pageContent } from './pageContent'
 import { parseSite } from './parse'
-import { DEFAULT_THEME } from './style'
 import type { Site } from './schema'
 
 /** Real words, repeated to the limit: the longest text a customer could plausibly type. */
@@ -48,6 +48,20 @@ function maxedSite(tradeIdx: number, seed: number): Site {
   }
 }
 
+/** Each failing check across a batch's rejected candidates, with how many candidates it failed. */
+function whyRejected(rejected: readonly Candidate[]): string {
+  if (!rejected.length) return 'no candidates generated'
+  const counts = new Map<string, number>()
+  for (const c of rejected) {
+    for (const check of c.checks) {
+      if (check.ok) continue
+      const key = `${c.spec.archetype} · ${check.id}${check.detail ? ` (${check.detail})` : ''}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+  return [...counts].map(([k, n]) => `${k} ×${n}`).join('; ')
+}
+
 describe('text limits', () => {
   it('are what the record accepts, and not a character more', () => {
     const site = createSite(trades[0], 1)
@@ -56,19 +70,18 @@ describe('text limits', () => {
     expect(() => parseSite(at(exact(LIMITS.location + 1)))).toThrow()
   })
 
-  // With every field full, each section still has at least one layout that passes every hard check,
-  // so the limits are ones the layouts can actually fit. (The fallback remains as a safety net.)
-  // The hero's headline is the trade's own tagline, not customer text; some long taglines don't fit
-  // the luxury and brutalism type scales, which no trade uses by default yet, so the hero is checked
-  // under each trade's own theme.
+  // With every field full, each section (the hero included) still has at least one layout that
+  // passes every hard check, under every theme, so the limits are ones the layouts can actually
+  // fit. (The fallback remains as a safety net.) On failure, the rejected candidates' failing
+  // checks are in the message, so the generator can be tuned.
   it.each(trades.flatMap((t, i) => THEME_KEYS.map(theme => ({ trade: t.id, i, theme }))))('$trade / $theme: every section still fits with every field at its limit', ({ i, theme }) => {
     const site = maxedSite(i, 7)
     const content = pageContent(site, trades[i])
     const style = resolveSiteStyle(theme, '#1E88E5', 7)
-    for (const type of pageOrder(trades[i], site)) {
-      if (type === 'hero' && theme !== DEFAULT_THEME[trades[i].id]) continue
-      const { shown } = generateOptions(SECTIONS[type], { batchSeed: 3, content: viewOf(type, content), style, measurer: estimateMeasurer })
-      expect(shown.length, type).toBeGreaterThan(0)
-    }
+    const failing = pageOrder(trades[i], site).flatMap(type => {
+      const { shown, rejected } = generateOptions(SECTIONS[type], { batchSeed: 3, content: viewOf(type, content), style, measurer: estimateMeasurer })
+      return shown.length ? [] : [`${type}: ${whyRejected(rejected)}`]
+    })
+    expect(failing).toEqual([])
   })
 })

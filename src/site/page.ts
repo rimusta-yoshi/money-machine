@@ -1,5 +1,5 @@
 import { resolvePage, rhythmOf } from '../gen'
-import type { AnySpec, Measurer, ResolvedSection, SavedSections, SectionKey } from '../gen'
+import type { AnySpec, Measurer, PageContent, ResolvedSection, SavedSections, SectionKey } from '../gen'
 import type { TradeConfig } from '../types'
 import { pageContent } from './pageContent'
 import type { Site } from './schema'
@@ -13,13 +13,15 @@ interface PageOpts {
   /** Specs to preview instead of the saved ones (the builder's carousel). */
   overrides?: Partial<Record<SectionKey, AnySpec>>
   measurer?: Measurer
+  /** Content to lay out instead of the record's (the builder's sample preview). */
+  content?: PageContent
 }
 
 type PageSite = Pick<Site, 'business' | 'content' | 'extras' | 'style' | 'sections'>
 
 /** The whole page for a site: every present section's spec plus the solved rhythm. */
 export function sitePage(site: PageSite, trade: TradeConfig, opts: PageOpts = {}): ResolvedSection[] {
-  const content = pageContent(site, trade)
+  const content = opts.content ?? pageContent(site, trade)
   return resolvePage({
     order: pageOrder(trade, site),
     saved: site.sections as SavedSections,

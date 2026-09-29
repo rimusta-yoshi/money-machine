@@ -2,10 +2,13 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import axe from 'axe-core'
+import { THEME_KEYS } from '../../gen'
+import type { ThemeKey } from '../../gen'
 import { trades } from '../../trades'
 import { createSite } from '../../site/defaults'
 import { withRhythm } from '../../site/page'
 import type { Site } from '../../site/schema'
+import { DEFAULT_THEME, styleRecord } from '../../site/style'
 import type { TradeConfig } from '../../types'
 import { SitePage } from './SitePage'
 
@@ -30,17 +33,20 @@ const FULL_CONTENT: Site['content'] = {
   },
 }
 
-function makeSite(trade: TradeConfig, seed: number, full: boolean): Site {
+function makeSite(trade: TradeConfig, theme: ThemeKey, seed: number, full: boolean): Site {
   const base = createSite(trade, seed)
   return withRhythm({
     ...base,
+    style: theme === base.style.theme ? base.style : styleRecord(theme, base.brandColor, seed),
     business: { name: 'Joe Pipes', phone: '0113 496 0000', location: 'Leeds', about: '', yearsInBusiness: full ? '12' : '', email: 'joe@example.com' },
     extras: ['reviews'],
     content: full ? FULL_CONTENT : base.content,
   }, trade)
 }
 
-const cases = trades.flatMap(trade => [11, 22, 33].flatMap(seed => [true, false].map(full => ({ trade, seed, full }))))
+// Each trade's own theme at a few style seeds, and every other theme at one seed.
+const cases = trades.flatMap(trade => THEME_KEYS.flatMap(theme =>
+  (theme === DEFAULT_THEME[trade.id] ? [11, 22, 33] : [44]).flatMap(seed => [true, false].map(full => ({ trade, theme, seed, full })))))
 
 async function axeViolations(container: HTMLElement) {
   const result = await axe.run(container, {
@@ -52,8 +58,8 @@ async function axeViolations(container: HTMLElement) {
 
 const headingLevels = (c: HTMLElement) => Array.from(c.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => Number(h.tagName[1]))
 
-describe.each(cases)('$trade.id · style $seed · full content: $full', ({ trade, seed, full }) => {
-  const site = makeSite(trade, seed, full)
+describe.each(cases)('$trade.id · $theme · style $seed · full content: $full', ({ trade, theme, seed, full }) => {
+  const site = makeSite(trade, theme, seed, full)
   const renderPage = () => render(<SitePage site={site} trade={trade} />).container
 
   it('has no axe violations', async () => {
@@ -85,9 +91,18 @@ describe.each(cases)('$trade.id · style $seed · full content: $full', ({ trade
     expect(c.querySelector('footer')).not.toBeNull()
   })
 
-  it('links the quote button to the contact section', () => {
+  it('renders the chosen theme', () => {
+    expect(renderPage().querySelector(`header.sb-hd .sb-header.sb-th--${theme}`)).not.toBeNull()
+  })
+
+  it('points every in-page link (header nav, quote buttons) at a section on the page', () => {
     const c = renderPage()
-    if (c.querySelector('a[href="#contact"]')) expect(c.querySelector('#contact')).not.toBeNull()
+    const nav = c.querySelector('header nav')
+    if (nav) expect(nav.getAttribute('aria-label')).toBeTruthy()
+    c.querySelectorAll('a[href^="#"]').forEach(a => {
+      const id = a.getAttribute('href')!.slice(1)
+      expect(c.querySelector(`[id="${id}"]`), a.getAttribute('href')!).not.toBeNull()
+    })
   })
 
   it('makes the phone number a real tel: link', () => {
