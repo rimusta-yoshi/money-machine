@@ -1,5 +1,4 @@
-import { contrastRatio } from '../color'
-import { PHOTO_WORST } from './contrast'
+import { photoEdge } from './contrast'
 import { THEMES } from '../themes'
 import { sizesFor, spacing } from '../themes/sizes'
 import type { SiteStyle } from '../schema'
@@ -9,9 +8,6 @@ const quote = (family: string) => (/\s/.test(family) ? `'${family}'` : family)
 
 /** CSS font-family value for a face. Families are schema-checked, so this is safe in a style attribute. */
 export const fontStack = (face: SiteStyle['fonts']['display']): string => `${quote(face.family)}, ${face.fallback}`
-
-/** A button over a scrimmed photo keeps its fill; it gets a white edge unless the fill already stands out 3:1 from the darkest-possible-light photo. */
-export const photoEdge = (fill: string): string => (contrastRatio(fill, PHOTO_WORST(0.55)) >= 3 ? fill : '#FFFFFF')
 
 /** CSS custom properties for a site style: colours, faces and spacing. Values are schema-checked. */
 export function styleVars(style: SiteStyle): string {

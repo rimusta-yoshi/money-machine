@@ -39,10 +39,10 @@ export function SiteStyleCard({ theme, onTheme, onReroll, sample, tuned }: SiteS
       </div>
       <TunedNote tuned={tuned} />
       <button type="button" className="sc-reroll" onClick={onReroll}>Re-roll site style</button>
-      {sample && (
+      {import.meta.env.DEV && sample && (
         <label className="mm-style-sample">
           <input type="checkbox" checked={sample.on} onChange={e => sample.set(e.target.checked)} />
-          Fill with sample content <span>(dev only, never saved or published)</span>
+          Fill with sample content <span>(dev only; nothing is saved while it’s on)</span>
         </label>
       )}
     </fieldset>

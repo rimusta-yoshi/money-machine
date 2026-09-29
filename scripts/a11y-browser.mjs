@@ -13,7 +13,6 @@ const query = `mode=a11y&${i >= 0 ? args[i + 1] : ''}`
 
 const { page, close } = await openSheet(query)
 try {
-  
   await page.waitForFunction(() => window.__a11y?.done, undefined, { timeout: 60 * 60_000, polling: 2000 })
   const state = await page.evaluate(() => window.__a11y)
 

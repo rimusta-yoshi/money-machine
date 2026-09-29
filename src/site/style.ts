@@ -24,7 +24,8 @@ const NEAREST: Record<LegacyThemeKey, ThemeKey> = {
   family: 'friendly-local',
   brutalism: 'workwear',
 }
-const OLD_DEFAULT: Record<TradeId, LegacyThemeKey> = {
+/** The theme each trade had before any theme could be picked. */
+export const OLD_DEFAULT: Record<TradeId, LegacyThemeKey> = {
   plumber: 'professional', electrician: 'professional', roofer: 'professional', painter: 'family', landscaper: 'family',
 }
 export const migrateTheme = (tradeId: TradeId, old: LegacyThemeKey): ThemeKey =>

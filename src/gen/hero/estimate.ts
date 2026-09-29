@@ -60,7 +60,7 @@ export function estimateHero(spec: HeroSpec, style: SiteStyle, c: HeroContent): 
       case 'floatcard': return Math.max(stack, photoH(span(12 - ta), p.crop))
       case 'sticker': return Math.max(stack, photoH(span(12 - ta) * 0.9, p.crop) * 1.1)
       // A trailing photo runs on below the fold; only the text has to fit the first screen.
-      case 'stacked': return stack
+      case 'stacked': return stack + (p.image === 'none' && c.rating ? 30 + gap : 0)
       case 'typeled': return stack + (p.trust ? 56 : 0) + (p.motif === 'stripe' ? 12 + gap : 0)
       case 'proof': {
         const cards = c.reviews.slice(0, p.count as number).reduce((h, x) => h + reviewH(x.text) + s.gap, 0)

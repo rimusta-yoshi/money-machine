@@ -58,7 +58,7 @@ export const friendlyLocal: Biome = {
   },
   motifs: {
     blob: { label: 'Blob behind a photo', sections: ['hero', 'about', 'why_us'], maxPerPage: 2, apart: true },
-    sticker: { label: 'Rotated stickers', sections: ['hero', 'about', 'gallery', 'trust_bar'], maxPerPage: 2, apart: true },
+    sticker: { label: 'Rotated stickers', sections: ['hero', 'about', 'trust_bar', 'certifications'], maxPerPage: 2, apart: true },
     pastel: { label: 'Pastel tiles', sections: ['services', 'why_us', 'areas', 'certifications', 'trust_bar'], maxPerPage: 3 },
     bubble: { label: 'Speech-bubble review', sections: ['testimonials', 'about'], maxPerPage: 1 },
     circles: { label: 'Numbered circles', sections: ['why_us', 'services', 'areas'], maxPerPage: 2 },

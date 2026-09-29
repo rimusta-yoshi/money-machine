@@ -233,12 +233,52 @@ describe('rhythm', () => {
     expect(after.map(s => s.rhythm)).not.toEqual(before.map(s => s.rhythm))
   })
 
+  it('never puts a loud band beside a strong fixed band (a dark footer, a photo hero)', () => {
+    for (const { seed, content } of sites) {
+      const p = page(content, seed).page
+      p.forEach((s, i) => {
+        if (s.rhythm.band !== 'brand' || s.type === 'hero') return
+        for (const n of [p[i - 1], p[i + 1]]) if (n) expect(['brand', 'ink', 'photo'], `${s.type} beside ${n.type}`).not.toContain(n.rhythm.band)
+      })
+    }
+  })
+
   it('ends every page on the footer, on the ground or the inverse band', () => {
     for (const { seed, content } of sites) {
       const last = page(content, seed).page.at(-1)!
       expect(last.type).toBe('footer')
       expect(['ground', 'ink']).toContain(last.rhythm.band)
     }
+  })
+})
+
+describe('review regressions', () => {
+  const friendly = resolveSiteStyle('friendly-local', '#0B6E6D', 1)
+
+  it('never prints a sticker with nothing true to say', () => {
+    const spec: AnySpec = { v: 2, section: 'about', archetype: 'photo_split', step: 0, params: { asym: '6/6', crop: '1:1', bleed: 'none', motif: 'sticker', at: 'ob', rot: 4, stats: false, brk: 'band' } }
+    const noFacts = { ...RICH_PAGE, badges: [], rating: null, reviews: [], emergency: false, jobsDone: null, business: { ...RICH_PAGE.business, years: '' } }
+    const html = SECTIONS.about.render(spec, friendly, viewOf('about', noFacts), { band: 'ground', side: 'left', motif: true })
+    expect(html).not.toMatch(/undefined/)
+    expect(html).not.toContain('sb-sticker')
+  })
+
+  it('counts the stickers a layout always draws against the page quota', () => {
+    const hero: AnySpec = { v: 2, section: 'hero', archetype: 'sticker', step: 0, params: { asym: '6/6', side: 'right', crop: '1:1', rot: 4, count: 1, motif: 'sticker', blob: false, em: false } }
+    const trust: AnySpec = { v: 2, section: 'trust_bar', archetype: 'stickers', step: 0, params: { rot: 4, align: 'center', motif: 'sticker' } }
+    const r = solveRhythm([{ type: 'hero', spec: hero }, { type: 'trust_bar', spec: trust }], SECTIONS, friendly)
+    expect(r.hero?.motif).toBe(true)
+    expect(r.trust_bar?.motif).toBe(false)
+    const html = SECTIONS.trust_bar.render(trust, friendly, viewOf('trust_bar', RICH_PAGE), r.trust_bar!)
+    expect(html).not.toContain('sb-sticker')
+  })
+
+  it('keeps decorations on the photo’s outer side whichever side the rhythm gives it', () => {
+    const style = resolveSiteStyle('workwear', '#FFD400', 1)
+    const spec: AnySpec = { v: 2, section: 'about', archetype: 'photo_split', step: 0, params: { asym: '6/6', crop: '1:1', bleed: 'none', motif: 'stripe', at: 'ob', rot: 0, stats: false, brk: 'band' } }
+    const at = (side: 'left' | 'right') => SECTIONS.about.render(spec, style, viewOf('about', RICH_PAGE), { band: 'ground', side, motif: true }).match(/sb-stripe sb-at--(\w+)/)?.[1]
+    expect(at('right')).toBe('br')
+    expect(at('left')).toBe('bl')
   })
 })
 

@@ -126,7 +126,21 @@ export function img(photo: PagePhoto | null | undefined, cls = 'sb-photo', loadi
 }
 
 export type Corner = 'tl' | 'tr' | 'bl' | 'br'
-export const CORNERS: readonly Corner[] = ['tl', 'tr', 'bl', 'br']
+
+/**
+ * Where a decoration sits relative to the photo and the text: on the photo's outer side
+ * (away from the text) or inner side (towards it), at its top or bottom. Stored this way so
+ * it stays right whichever side the rhythm puts the photo on.
+ */
+export const SPOTS = ['ob', 'ot', 'ib', 'it'] as const
+export type Spot = typeof SPOTS[number]
+
+/** The physical corner of a spot when the photo sits on `side`. */
+export function corner(spot: Spot, side: 'left' | 'right'): Corner {
+  const outer = side === 'right' ? 'r' : 'l'
+  const inner = side === 'right' ? 'l' : 'r'
+  return `${spot[1]}${spot[0] === 'o' ? outer : inner}` as Corner
+}
 
 export interface Sticker { text: string; ink?: boolean; at: Corner }
 

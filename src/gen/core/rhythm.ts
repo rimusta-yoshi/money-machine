@@ -15,7 +15,12 @@ function heroSide(spec: AnySpec): Side | null {
   return p.side ?? null
 }
 
-const motifOf = (spec: AnySpec): Motif => ((spec.params as { motif?: Motif }).motif ?? 'none')
+/** Every motif a spec draws: its own `motif` param plus any its layout always draws. */
+function motifsOf(def: SectionDef, spec: AnySpec): Motif[] {
+  const own = (spec.params as { motif?: Motif }).motif ?? 'none'
+  const drawn = def.archetypes[spec.archetype]?.drawn?.(spec.params as never) ?? []
+  return [...new Set([own, ...drawn])].filter(m => m !== 'none')
+}
 
 /**
  * The derived layer, solved from the whole page on every change and never stored as a
@@ -39,10 +44,13 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
   const index = new Map(page.map((e, i) => [e.type, i]))
   const loud = new Set<SectionKey>()
   const loudAt = new Set<number>(heroIsLoud && heroEntry ? [index.get('hero')!] : [])
+  // Sections that always sit on a strong band (a dark footer, a photo hero) can't have a loud band beside them either.
+  const strongAt = new Set(page.map((e, i) => [defs[e.type].fixedBand?.(e.spec) ?? null, i] as const)
+    .filter(([b]) => b === 'brand' || b === 'ink' || b === 'photo').map(([, i]) => i))
   for (const type of theme.loud.priority) {
     if (loudAt.size >= theme.loud.max) break
     const i = index.get(type)
-    if (i === undefined || loudAt.has(i - 1) || loudAt.has(i + 1)) continue
+    if (i === undefined || [i - 1, i + 1].some(j => loudAt.has(j) || strongAt.has(j))) continue
     const e = page[i]
     const def = defs[type]
     if (def.fixedBand?.(e.spec)) continue
@@ -57,7 +65,7 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
   let lastNeutral: 'ground' | 'surface' = 'surface'
   let lastSide: Side | null = null
   const used = new Map<Motif, number>()
-  let prevMotif: Motif = 'none'
+  let prevMotifs: Motif[] = []
   for (const e of page) {
     const def = defs[e.type]
     const fixed = def.fixedBand?.(e.spec) ?? null
@@ -79,11 +87,14 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
       lastSide = side
     }
 
-    const m = motifOf(e.spec)
-    const rule = m === 'none' ? null : theme.motifs[m]
-    const motif: boolean = !!rule && (used.get(m) ?? 0) < rule.maxPerPage && !(rule.apart && prevMotif === m)
-    if (motif) used.set(m, (used.get(m) ?? 0) + 1)
-    prevMotif = motif ? m : 'none'
+    // A section draws its motifs only if every one of them is still within the page's quotas.
+    const wanted = motifsOf(def, e.spec)
+    const motif = wanted.length > 0 && wanted.every(m => {
+      const rule = theme.motifs[m as Exclude<Motif, 'none'>]
+      return !!rule && (used.get(m) ?? 0) < rule.maxPerPage && !(rule.apart && prevMotifs.includes(m))
+    })
+    if (motif) for (const m of wanted) used.set(m, (used.get(m) ?? 0) + 1)
+    prevMotifs = motif ? wanted : []
 
     // A quiet brand colour (barely different from the ground) only appears on contrasting bands.
     out[e.type] = { band: band === 'brand' && style.palette.quiet ? 'ink' : band, side, motif }

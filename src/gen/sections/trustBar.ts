@@ -35,7 +35,7 @@ export const trustBarSchema = specSchema('trust_bar', {
   strip: { align: z.enum(ALIGNS), divider: z.enum(['dot', 'slash', 'none']), brk: z.enum(BREAKS) },
   tiles: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
   stats: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
-  stickers: { rot: z.number().int().min(-6).max(6), align: z.enum(ALIGNS) },
+  stickers: { rot: z.number().int().min(-6).max(6), align: z.enum(ALIGNS), motif: z.enum(MOTIFS) },
   ledger: { motif: z.enum(MOTIFS) },
   ticks: { brk: z.enum(BREAKS) },
 })
@@ -74,7 +74,7 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
     stickers: {
       label: 'Stickers', why: 'needs 2–5 short credentials or facts',
       gate: v => v.items.length >= 2 && v.items.length <= 5 && v.items.every(i => i.text.length <= 36),
-      params: (r, { biome: t }) => ({ rot: rollRot(r, t), align: rollAlign(r, t, ['center', 'left']) }),
+      params: (r, { biome: t }) => ({ rot: rollRot(r, t), align: rollAlign(r, t, ['center', 'left']), motif: rollMotif(r, t, 'trust_bar', ['sticker'], 0) }),
       features: p => [Math.abs(p.rot) / 6, p.align === 'center' ? 1 : 0, 1],
       focal: () => ({ focal: 18, second: 17 }),
     },
@@ -125,6 +125,11 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
       }
       case 'stickers': {
         const p = s.params
+        // Over the page's sticker quota, the same facts sit as a plain row of chips.
+        if (!ctx.motif) {
+          const chips = v.items.map(i => `<li class="sb-chip">${icon(i.icon, 18)}<span>${esc(i.text)}</span></li>`).join('')
+          return { cls: p.align === 'center' ? 'sb-align--center' : '', inner: `${title}<ul class="sb-row sb-trust-stickers">${chips}</ul>` }
+        }
         const items = v.items.map((i, n) => `<li class="sb-sticker sb-trust-sticker${n % 3 === 1 ? ' sb-sticker--ink' : ''}" data-over style="--sb-rot:${n % 2 === 0 ? p.rot : -p.rot}deg">${esc(i.text)}</li>`).join('')
         return { cls: p.align === 'center' ? 'sb-align--center' : '', inner: `${title}<ul class="sb-trust-stickers">${items}</ul>` }
       }

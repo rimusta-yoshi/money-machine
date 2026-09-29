@@ -66,7 +66,8 @@ describe('repairSection', () => {
   })
 
   it('first tries the same layout with smaller type', () => {
-    const saved = savedFrom(5, 1)
+    const { shown } = generateOptions(SECTIONS.hero, { batchSeed: 5, content: view('hero'), style, measurer: estimateMeasurer })
+    const saved = { seed: 5, spec: shown.find(c => c.spec.step < 2)!.spec }
     const onlySmaller: Measurer = { measure: ({ spec }) => (specKey(spec) === specKey(saved.spec) ? TOO_TALL : spec.archetype === saved.spec.archetype ? FITS : TOO_TALL) }
     const result = repairSection(SECTIONS.hero, saved, view('hero'), style, onlySmaller)
     expect(result.status).toBe('repaired')

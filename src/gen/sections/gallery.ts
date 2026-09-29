@@ -19,7 +19,7 @@ export const gallerySchema = specSchema('gallery', {
   feature: { thumbs: z.union([z.literal(3), z.literal(4)]), brk: z.enum(BREAKS) },
   slab: { cols: z.union([z.literal(3), z.literal(4)]), motif: z.enum(MOTIFS) },
   captioned: { cols: z.union([z.literal(2), z.literal(3)]), stagger: z.boolean(), motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
-  polaroids: { rot: z.number().int().min(-6).max(6), motif: z.enum(MOTIFS) },
+  polaroids: { rot: z.number().int().min(-6).max(6) },
 })
 export type GallerySpec = z.infer<typeof gallerySchema>
 
@@ -89,8 +89,8 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
     polaroids: {
       label: 'Pinned photos', why: 'needs 2+ photos of your work',
       gate: v => v.photos.length >= 2,
-      params: (r, { biome: t }) => ({ rot: rollRot(r, t), motif: rollMotif(r, t, 'gallery', ['sticker'], 0.5) }),
-      features: p => [Math.abs(p.rot) / 6, p.motif === 'sticker' ? 1 : 0, 1],
+      params: (r, { biome: t }) => ({ rot: rollRot(r, t) }),
+      features: p => [Math.abs(p.rot) / 6, 1, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
   },
@@ -160,7 +160,7 @@ export const GALLERY_CSS = `
 .sb-gal-thumbs .sb-gal-cell{aspect-ratio:4/3}
 .sb-gal-slab{display:grid;grid-template-columns:repeat(var(--sb-cols),minmax(0,1fr));gap:0;counter-reset:sb-n;margin:0 calc(-1 * (var(--sb-pad) + (100cqw - min(100cqw, 1200px)) / 2))}
 .sb-gal-slab>li{position:relative;counter-increment:sb-n;aspect-ratio:1/1}
-.sb-gal-slab>li::after{content:counter(sb-n,decimal-leading-zero);position:absolute;left:0;top:0;z-index:2;padding:6px 12px;background:var(--sb-accent);color:var(--sb-bg);font-family:var(--sb-fd);font-size:28px;line-height:1}
+.sb-gal-slab>li::after{content:counter(sb-n,decimal-leading-zero);position:absolute;left:0;top:0;z-index:2;padding:6px 12px;background:var(--sb-btn-bg);color:var(--sb-btn-fg);font-family:var(--sb-fd);font-size:28px;line-height:1}
 .sb-gal-slab .sb-photo{border-radius:0}
 .sb-gal-stripe{width:100%}
 .sb-gal-figs{row-gap:calc(var(--sb-gap) * 2.5)}

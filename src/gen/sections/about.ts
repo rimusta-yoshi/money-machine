@@ -5,8 +5,8 @@ import type { PageContent, PagePhoto, PageReview } from '../content'
 import { facts } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
-import { head, img, media, stars } from '../core/markup'
-import type { Corner } from '../core/markup'
+import { corner, head, img, media, SPOTS, stars } from '../core/markup'
+import type { Spot } from '../core/markup'
 import { rollAlign, rollAsym, rollBreak, rollCrop, rollMotif, rollRot, textSpan } from '../core/punch'
 import { THEMES } from '../themes'
 import { sizesFor } from '../themes/sizes'
@@ -40,10 +40,10 @@ export function aboutView(c: PageContent): AboutView {
   }
 }
 
-const corner = z.enum(['tl', 'tr', 'bl', 'br'])
+const spot = z.enum(SPOTS)
 
 export const aboutSchema = specSchema('about', {
-  photo_split: { asym: z.enum(ASYMS), crop: z.enum(CROPS), bleed: z.enum(BLEEDS), motif: z.enum(MOTIFS), at: corner, rot: z.number().int().min(-6).max(6), stats: z.boolean(), brk: z.enum(BREAKS) },
+  photo_split: { asym: z.enum(ASYMS), crop: z.enum(CROPS), bleed: z.enum(BLEEDS), motif: z.enum(MOTIFS), at: spot, rot: z.number().int().min(-6).max(6), stats: z.boolean(), brk: z.enum(BREAKS) },
   statement: { size: z.enum(['big', 'medium']), align: z.enum(ALIGNS), em: z.boolean(), brk: z.enum(BREAKS) },
   stats_led: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
   banner: { height: z.enum(['short', 'tall']), brk: z.enum(BREAKS) },
@@ -65,8 +65,8 @@ function statsList(v: AboutView, cls = '') {
 const quote = (r: PageReview, cls: string) =>
   `<figure class="${cls}">${stars(r.rating)}<blockquote><p>“${esc(r.text)}”</p></blockquote><figcaption class="sb-mu">${esc(r.author)}${r.location ? ` · ${esc(r.location)}` : ''}</figcaption></figure>`
 
-/** The corner of the photo facing away from the text (decorations never sit between them). */
-const away = (r: () => number): Corner => pick(r, ['br', 'tr'] as const)
+/** A spot on the photo's outer side, away from the text (decorations never sit between them). */
+const away = (r: () => number): Spot => pick(r, ['ob', 'ot'] as const)
 
 export const about = defineSection<AboutSpec, AboutView>({
   type: 'about',
@@ -169,11 +169,13 @@ export const about = defineSection<AboutSpec, AboutView>({
       case 'photo_split': {
         const p = s.params
         const m = ctx.motif ? p.motif : 'none'
-        const float = m === 'floatcard' && v.review ? { html: `${stars(v.review.rating)}<p>“${esc(v.review.text)}”</p><p class="sb-float-l">${esc(v.review.author)}</p>`, at: p.at } : undefined
+        const at = corner(p.at, ctx.rhythm.side)
+        const float = m === 'floatcard' && v.review ? { html: `${stars(v.review.rating)}<p>“${esc(v.review.text)}”</p><p class="sb-float-l">${esc(v.review.author)}</p>`, at } : undefined
         const pic = media(v.photo, {
-          crop: p.crop, cls: cx('sb-aside', p.bleed === 'edge' && 'sb-bleed--edge'), stripe: m === 'stripe' ? p.at : undefined, blob: m === 'blob',
+          crop: p.crop, cls: cx('sb-aside', p.bleed === 'edge' && 'sb-bleed--edge'), stripe: m === 'stripe' ? at : undefined, blob: m === 'blob',
           caption: m === 'caption' ? v.photo?.alt : undefined, float,
-          stickers: m === 'sticker' ? [{ text: v.facts[0], at: p.at }] : undefined, rot: p.rot,
+          // The facts can change after the pick; a sticker only appears with something true to say.
+          stickers: m === 'sticker' && v.facts[0] ? [{ text: v.facts[0], at }] : undefined, rot: p.rot,
         })
         return { vars: `--sb-ta:${textSpan(p.asym)};`, inner: `<div class="sb-cols"><div class="sb-main sb-stack">${h()}${body()}${p.stats ? statsList(v) : ''}</div>${pic}</div>` }
       }

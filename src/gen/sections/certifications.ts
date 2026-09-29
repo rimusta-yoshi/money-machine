@@ -18,7 +18,7 @@ export const certificationsSchema = specSchema('certifications', {
   seals: { shape: z.enum(['circle', 'rounded']), align: z.enum(ALIGNS) },
   plates: { motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
   certificate: { motif: z.enum(MOTIFS) },
-  badges: { rot: z.number().int().min(-6).max(6), align: z.enum(ALIGNS) },
+  badges: { rot: z.number().int().min(-6).max(6), align: z.enum(ALIGNS), motif: z.enum(MOTIFS) },
 })
 export type CertificationsSpec = z.infer<typeof certificationsSchema>
 
@@ -76,7 +76,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
     badges: {
       label: 'Round badges', why: 'needs 2–6 short credentials',
       gate: v => v.badges.length >= 2 && v.badges.length <= 6 && short(v),
-      params: (r, { biome: t }) => ({ rot: rollRot(r, t), align: rollAlign(r, t, ['center', 'left']) }),
+      params: (r, { biome: t }) => ({ rot: rollRot(r, t), align: rollAlign(r, t, ['center', 'left']), motif: rollMotif(r, t, 'certifications', ['sticker'], 0) }),
       features: p => [Math.abs(p.rot) / 6, p.align === 'center' ? 1 : 0, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
@@ -129,7 +129,9 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       }
       case 'badges': {
         const p = s.params
-        const items = v.badges.map((b, i) => `<li class="sb-rbadge${i % 3 === 1 ? ' sb-rbadge--ink' : ''}" data-over style="--sb-rot:${i % 2 === 0 ? p.rot : -p.rot}deg">${icon('badge', 26)}<span>${esc(b)}</span></li>`).join('')
+        // Over the page's sticker quota, the badges sit straight.
+        const rot = ctx.motif ? p.rot : 0
+        const items = v.badges.map((b, i) => `<li class="sb-rbadge${i % 3 === 1 ? ' sb-rbadge--ink' : ''}" data-over style="--sb-rot:${i % 2 === 0 ? rot : -rot}deg">${icon('badge', 26)}<span>${esc(b)}</span></li>`).join('')
         return { inner: `${HEAD(ctx, p.align === 'center' ? 'center' : 'left')}<ul class="sb-rbadges${p.align === 'center' ? ' sb-rbadges--center' : ''}">${items}</ul>` }
       }
     }

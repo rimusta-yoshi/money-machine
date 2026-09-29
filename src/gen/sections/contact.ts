@@ -197,7 +197,7 @@ export const CONTACT_CSS = `
 .sb-contact-note{font-size:18px;font-weight:600;color:var(--sb-mu)}
 .sb-contact-band .sb-wrap{gap:calc(var(--sb-gap) * 1.8)}
 .sb-contact-phone{min-height:76px;padding:14px 34px;font-family:var(--sb-fd) !important;font-weight:var(--sb-dw) !important;font-size:calc(var(--sb-xl) * 0.52) !important;letter-spacing:0.01em !important;text-transform:none !important;white-space:nowrap}
-.sb-contact-big{display:inline-block;min-height:44px;font-family:var(--sb-fd);font-weight:var(--sb-dw);font-size:var(--sb-xl);line-height:0.95;letter-spacing:var(--sb-dtr);color:var(--sb-fg);text-decoration:none;white-space:nowrap}
+.sb-contact-big{display:inline-block;min-height:44px;font-family:var(--sb-fd);font-weight:var(--sb-dw);font-size:var(--sb-h2);line-height:0.95;letter-spacing:var(--sb-dtr);color:var(--sb-fg);text-decoration:none;white-space:nowrap}
 .sb-contact-big:hover{text-decoration:underline;text-decoration-thickness:0.06em}
 .sb-contact-bigphone .sb-contact-big{font-size:calc(var(--sb-xl) * 1.35)}
 .sb-bigphone-l{font-family:var(--sb-fl);font-weight:var(--sb-lw);font-size:18px;letter-spacing:var(--sb-ltr);text-transform:var(--sb-lup);color:var(--sb-mu)}
@@ -214,7 +214,8 @@ export const CONTACT_CSS = `
 .sb-hours-card{display:flex;flex-direction:column;gap:14px}
 @container (max-width: 719px){
   .sb-contact-phone{font-size:calc(var(--sb-xlm) * 0.62) !important;min-height:64px;padding:12px 18px;white-space:normal}
-  .sb-contact-big,.sb-contact-bigphone .sb-contact-big{font-size:var(--sb-xlm);white-space:normal}
+  .sb-contact-big{font-size:var(--sb-h2m);white-space:normal}
+  .sb-contact-bigphone .sb-contact-big{font-size:var(--sb-xlm)}
   .sb-contact-act{align-items:stretch;width:100%}
 }
 `

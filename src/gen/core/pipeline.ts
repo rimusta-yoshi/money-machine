@@ -4,7 +4,7 @@ import { THEMES } from '../themes'
 import { sizesFor } from '../themes/sizes'
 import { themeCheck } from './punch'
 import { MAX_STEP } from './types'
-import type { AnySpec, Band, Check, Generated, Measurement, Measurer, Score, SectionDef, Step } from './types'
+import type { AnySpec, Band, Check, Generated, Measurement, Measurer, Score, SectionDef, Side, Step } from './types'
 
 export interface Candidate<S extends AnySpec = AnySpec> {
   seed: number
@@ -85,8 +85,7 @@ export function generateSpec<S extends AnySpec, C>(def: SectionDef<S, C>, seed: 
 export function features(def: AnyDef, spec: AnySpec): number[] {
   const oneHot = archetypeKeys(def).map(k => (k === spec.archetype ? 1.3 : 0))
   const params = (def.archetypes[spec.archetype]?.features(spec.params as never) ?? []).map(x => x * 0.45)
-  while (params.length < 6) params.push(0)
-  return [...oneHot, ...params]
+  return [...oneHot, ...params, ...Array<number>(Math.max(0, 6 - params.length)).fill(0)]
 }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
@@ -138,12 +137,31 @@ export function staticChecksAll(def: AnyDef, spec: AnySpec, style: SiteStyle, gi
   return [themeCheck(def, spec, style), ...byId.values()]
 }
 
+/** The photo sides a spec can be drawn with: its own (the hero's), both for layouts the rhythm zig-zags, else one. */
+function sidesOf(def: AnyDef, spec: AnySpec): Side[] {
+  const own = (spec.params as { side?: Side }).side
+  if (def.type === 'hero') return [own ?? 'right']
+  return def.archetypes[spec.archetype]?.sided ? ['right', 'left'] : ['right']
+}
+
+/** The worst of several measurements: a layout must pass on every side it can be drawn with. */
+const worst = (ms: readonly Measurement[]): Measurement => ms.reduce((a, b) => ({
+  desktop: { headlineLines: Math.max(a.desktop.headlineLines, b.desktop.headlineLines), heightPx: Math.max(a.desktop.heightPx, b.desktop.heightPx) },
+  phone: {
+    headlineLines: Math.max(a.phone.headlineLines, b.phone.headlineLines),
+    callBottomPx: Math.max(a.phone.callBottomPx, b.phone.callBottomPx),
+    overflowsWidth: a.phone.overflowsWidth || b.phone.overflowsWidth,
+  },
+  minTapPx: Math.min(a.minTapPx, b.minTapPx),
+  coveredText: a.coveredText + b.coveredText,
+}))
+
 export function measure(def: AnyDef, spec: AnySpec, content: unknown, style: SiteStyle, measurer: Measurer): Measurement {
-  return measurer.measure({
+  return worst(sidesOf(def, spec).map(side => measurer.measure({
     spec,
-    render: () => def.render(spec, style, content, { band: ownBands(def, spec, style)[0], side: 'right', motif: true }),
+    render: () => def.render(spec, style, content, { band: ownBands(def, spec, style)[0], side, motif: true }),
     estimate: () => def.estimate(spec, style, content),
-  })
+  })))
 }
 
 const withStep = <S extends AnySpec>(spec: S, step: number): S => ({ ...spec, step: Math.min(step, MAX_STEP) as Step })

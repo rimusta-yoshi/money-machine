@@ -1,18 +1,12 @@
 import { hashString, outsideTheme, renderableSpec, SECTIONS, sectionSchemas } from '../gen'
 import type { AnySpec, GeneratedSections, PageContent, SectionKey, SiteStyle } from '../gen'
-import type { LegacyThemeKey } from '../gen'
 import { tradeById } from '../trades'
-import type { TradeId } from '../types'
 import { LIMITS } from './limits'
 import { pageContent } from './pageContent'
 import { withRhythm } from './page'
 import type { Site, SiteV1, SiteV2, SiteV3 } from './schema'
-import { migrateTheme, styleRecord } from './style'
+import { migrateTheme, OLD_DEFAULT, styleRecord } from './style'
 
-/** The theme each trade used before any theme could be picked. */
-const V1_THEME: Record<TradeId, LegacyThemeKey> = {
-  plumber: 'professional', electrician: 'professional', roofer: 'professional', painter: 'family', landscaper: 'family',
-}
 
 /**
  * v1 → v2. Deterministic: the style seed comes from the trade and business details, so
@@ -29,7 +23,7 @@ export function migrateV1(v1: SiteV1): SiteV2 {
     extras: v1.extras,
     content: v1.content,
     version: 2,
-    style: { theme: V1_THEME[v1.tradeId], seed: hashString(`${v1.tradeId}|${v1.business.name}|${v1.business.phone}`), resolved: null },
+    style: { theme: OLD_DEFAULT[v1.tradeId], seed: hashString(`${v1.tradeId}|${v1.business.name}|${v1.business.phone}`), resolved: null },
     sections: {},
     selections: templates,
   }
@@ -103,9 +97,11 @@ export function migrateV3(v3: SiteV3): Site {
   const sections: GeneratedSections = {}
   for (const [type, saved] of Object.entries(v3.sections) as [SectionKey, NonNullable<SiteV3['sections'][SectionKey]>][]) {
     const spec = upgradeSpec(type, saved.spec, style.resolved, content)
-    if (!spec) continue
     const preferred = upgradeSpec(type, saved.preferred, style.resolved, content)
-    Object.assign(sections, { [type]: preferred ? { seed: saved.seed, spec, preferred } : { seed: saved.seed, spec } })
+    // The customer's own pick wins if only it survives; a stand-in is only kept alongside it.
+    if (!spec && !preferred) continue
+    const entry = spec && preferred ? { seed: saved.seed, spec, preferred } : { seed: saved.seed, spec: (spec ?? preferred)! }
+    Object.assign(sections, { [type]: entry })
   }
   return withRhythm({
     version: 4,

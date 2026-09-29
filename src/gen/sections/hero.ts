@@ -5,8 +5,8 @@ import type { Rng } from '../rng'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { heroMeasuredChecks } from '../core/fit'
-import { button, emphasize, ghost, media, stars } from '../core/markup'
-import type { Corner, Frame, Sticker } from '../core/markup'
+import { button, corner, emphasize, ghost, media, SPOTS, stars } from '../core/markup'
+import type { Frame, Spot, Sticker } from '../core/markup'
 import { hasMotif, rollAsym, rollCrop, rollMotif, rollRot, textSpan } from '../core/punch'
 import type { RollContext } from '../core/types'
 import { ALIGNS, ASYMS, BLEEDS, CROPS, MOTIFS } from '../themes/types'
@@ -16,12 +16,12 @@ import { estimateHero } from '../hero/estimate'
 
 const tone = z.enum(['ground', 'surface', 'brand'])
 const side = z.enum(['left', 'right'])
-const corner = z.enum(['tl', 'tr', 'bl', 'br'])
+const spot = z.enum(SPOTS)
 
 export const heroSchema = specSchema('hero', {
   split: {
     asym: z.enum(ASYMS), side, valign: z.enum(['center', 'end']), proof: z.enum(['under', 'strip', 'none']),
-    crop: z.enum(CROPS), bleed: z.enum(BLEEDS), motif: z.enum(MOTIFS), at: corner, tone, em: z.boolean(), mphoto: z.enum(['top', 'bottom']),
+    crop: z.enum(CROPS), bleed: z.enum(BLEEDS), motif: z.enum(MOTIFS), at: spot, tone, em: z.boolean(), mphoto: z.enum(['top', 'bottom']),
   },
   // 0.55 is the least that keeps white text at 4.5:1 over a pure white photo.
   overlay: { anchor: z.enum(['bottom', 'middle', 'center']), scrim: z.number().min(0.55).max(0.85), em: z.boolean() },
@@ -30,14 +30,14 @@ export const heroSchema = specSchema('hero', {
   proof: { count: z.number().int().min(1).max(3), summary: z.enum(['top', 'bottom', 'none']), tone, em: z.boolean() },
   contact: { fields: z.number().int().min(2).max(4), side, tone, em: z.boolean() },
   // The generator rolls up to 0.32 and the overlap is clamped; only <= 0.25 can be stored.
-  offset: { overlap: z.number().min(0).max(0.25), drop: z.number().int().min(0).max(80), motif: z.enum(MOTIFS), at: corner },
-  bigphone: { photo: z.boolean(), side, crop: z.enum(CROPS), motif: z.enum(MOTIFS), at: corner, tone, em: z.boolean() },
+  offset: { overlap: z.number().min(0).max(0.25), drop: z.number().int().min(0).max(80), motif: z.enum(MOTIFS), at: spot },
+  bigphone: { photo: z.boolean(), side, crop: z.enum(CROPS), motif: z.enum(MOTIFS), stripe: z.boolean(), at: spot, tone, em: z.boolean() },
   floatcard: {
-    asym: z.enum(ASYMS), side, crop: z.enum(CROPS), card: z.enum(['rating', 'fact', 'sub', 'review']), at: corner,
+    asym: z.enum(ASYMS), side, crop: z.enum(CROPS), card: z.enum(['rating', 'fact', 'sub', 'review']), at: spot,
     motif: z.enum(MOTIFS), ticks: z.boolean(), dot: z.boolean(), em: z.boolean(),
   },
   editorial: { image: z.enum(['figure', 'none']), motif: z.enum(MOTIFS), em: z.boolean() },
-  sticker: { asym: z.enum(ASYMS), side, crop: z.enum(CROPS), rot: z.number().int().min(-6).max(6), count: z.number().int().min(1).max(2), motif: z.enum(MOTIFS), em: z.boolean() },
+  sticker: { asym: z.enum(ASYMS), side, crop: z.enum(CROPS), rot: z.number().int().min(-6).max(6), count: z.number().int().min(1).max(2), motif: z.enum(MOTIFS), blob: z.boolean(), em: z.boolean() },
 })
 export type HeroSpec = z.infer<typeof heroSchema>
 type P<K extends HeroSpec['archetype']> = Extract<HeroSpec, { archetype: K }>['params']
@@ -48,10 +48,10 @@ const toneF = (t: string) => ({ ground: 0, surface: 0.5, brand: 1 })[t] ?? 0
 const sideF = (s: string) => (s === 'right' ? 1 : 0)
 const cropF = (c: string) => CROPS.indexOf(c as never) / 3
 
-/** Corners a decoration may sit on, away from the text column (the photo's outer side). */
-const outer = (r: Rng, s: 'left' | 'right'): Corner => (s === 'right' ? pick(r, ['br', 'tr'] as const) : pick(r, ['bl', 'tl'] as const))
-/** Corners on the photo's inner side, facing the text: floating cards overlap the gap there. */
-const inner = (r: Rng, s: 'left' | 'right'): Corner => (s === 'right' ? pick(r, ['bl', 'tl'] as const) : pick(r, ['br', 'tr'] as const))
+/** A spot on the photo's outer side, away from the text column. */
+const outer = (r: Rng): Spot => pick(r, ['ob', 'ot'] as const)
+/** A spot on the photo's inner side, facing the text: floating cards overlap the gap there. */
+const inner = (r: Rng): Spot => pick(r, ['ib', 'it'] as const)
 
 const floatOptions = (c: HeroContent) => [
   ...(c.rating ? ['rating' as const] : []),
@@ -136,11 +136,10 @@ function floatCard(c: HeroContent, kind: P<'floatcard'>['card']): string {
   }
 }
 
-/** Two short true facts for stickers, preferring credentials and the rating. */
-function stickers(c: HeroContent, count: number, s: 'left' | 'right'): Sticker[] {
-  const text = c.facts.slice(0, count)
-  const spots: Corner[] = s === 'right' ? ['bl', 'tr'] : ['br', 'tl']
-  return text.map((t, i) => ({ text: t, ink: i === 1, at: spots[i] }))
+/** Up to two short true facts for stickers: one low on the inner side, one high on the outer. */
+function stickers(c: HeroContent, count: number, side: 'left' | 'right'): Sticker[] {
+  const spots: Spot[] = ['ib', 'ot']
+  return c.facts.slice(0, count).map((t, i) => ({ text: t, ink: i === 1, at: corner(spots[i], side) }))
 }
 
 /* ---------- the section ---------- */
@@ -162,7 +161,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
           asym: rollAsym(r, t, ['7/5', '6/6', '5/7', '8/4']), side: s, valign: pick(r, ['center', 'end'] as const),
           proof: c.rating || c.badges.length ? pick(r, ['under', 'strip', 'none'] as const) : 'none',
           crop: rollCrop(r, t), bleed: pick(r, t.punch.bleed), motif: motif === 'ticks' && !c.badges.length ? 'none' : motif,
-          at: outer(r, s), tone: rollTone(r), em: r() < 0.65, mphoto: pick(r, ['bottom', 'bottom', 'top'] as const),
+          at: outer(r), tone: rollTone(r), em: r() < 0.65, mphoto: pick(r, ['bottom', 'bottom', 'top'] as const),
         }
       },
       features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), p.proof === 'strip' ? 1 : 0, toneF(p.tone), p.bleed === 'edge' ? 1 : 0],
@@ -213,7 +212,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       gate: hasPhoto,
       params: (r, { biome: t }) => ({
         overlap: Math.min(0.25, round2(inRange(r, [0.08, 0.32]))), drop: Math.round(inRange(r, [0, 70])),
-        motif: rollMotif(r, t, 'hero', ['stripe'], 0.3), at: pick(r, ['br', 'bl'] as const),
+        motif: rollMotif(r, t, 'hero', ['stripe'], 0.3), at: pick(r, ['ob', 'ib'] as const),
       }),
       features: p => [p.overlap * 4, p.drop / 70, p.motif === 'none' ? 0 : 1],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
@@ -224,12 +223,13 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       params: (r, { content: c, biome: t }) => {
         const s = pick(r, ['right', 'left'] as const)
         return {
-          photo: hasPhoto(c) && r() < 0.6, side: s, crop: rollCrop(r, t, ['4:5', '1:1']), motif: rollMotif(r, t, 'hero', ['stripe'], 0.3),
-          at: outer(r, s), tone: rollTone(r), em: r() < 0.6,
+          photo: hasPhoto(c) && r() < 0.6, side: s, crop: rollCrop(r, t, ['4:5', '1:1']), motif: rollMotif(r, t, 'hero', ['bigphone'], 0),
+          stripe: hasMotif(t, 'hero', ['stripe']) && r() < 0.7, at: outer(r), tone: rollTone(r), em: r() < 0.6,
         }
       },
-      features: p => [p.photo ? 1 : 0, sideF(p.side), toneF(p.tone), 1],
+      features: p => [p.photo ? 1 : 0, sideF(p.side), toneF(p.tone), p.stripe ? 1 : 0],
       focal: (_p, z) => ({ focal: z.h1, second: z.h2 }),
+      drawn: p => (p.stripe ? ['stripe'] : []),
     },
     floatcard: {
       label: 'Floating card', why: 'needs a photo',
@@ -237,7 +237,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       params: (r, { content: c, biome: t }) => {
         const s = pick(r, ['right', 'left'] as const)
         return {
-          asym: rollAsym(r, t, ['6/6', '7/5']), side: s, crop: rollCrop(r, t, ['4:5', '1:1']), card: pick(r, floatOptions(c)), at: inner(r, s),
+          asym: rollAsym(r, t, ['6/6', '7/5']), side: s, crop: rollCrop(r, t, ['4:5', '1:1']), card: pick(r, floatOptions(c)), at: inner(r),
           motif: 'floatcard' as const, ticks: c.badges.length > 0 && r() < 0.7, dot: r() < 0.6, em: r() < 0.4,
         }
       },
@@ -258,9 +258,11 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       gate: c => hasPhoto(c) && c.facts.length >= 1,
       params: (r, { content: c, biome: t }) => ({
         asym: rollAsym(r, t, ['6/6', '7/5']), side: pick(r, ['right', 'left'] as const), crop: rollCrop(r, t, ['4:5', '1:1']),
-        rot: rollRot(r, t), count: c.facts.length >= 2 && r() < 0.7 ? 2 : 1, motif: rollMotif(r, t, 'hero', ['blob'], 0.2), em: r() < 0.5,
+        rot: rollRot(r, t), count: c.facts.length >= 2 && r() < 0.7 ? 2 : 1, motif: rollMotif(r, t, 'hero', ['sticker'], 0),
+        blob: hasMotif(t, 'hero', ['blob']) && r() < 0.8, em: r() < 0.5,
       }),
-      features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), p.count / 2, p.motif === 'blob' ? 1 : 0],
+      features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), p.count / 2, p.blob ? 1 : 0],
+      drawn: p => (p.blob ? ['blob'] : []),
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
   },
@@ -291,7 +293,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         const strip = p.proof === 'strip' ? `<div class="sb-hero-strip">${rating(c)}${trust(c.badges.slice(0, 3), 'sb-trust sb-trust--plain')}</div>` : ''
         const under = p.proof === 'under' ? rating(c) || trust(c.badges.slice(0, 3)) : ''
         const frame: Frame = {
-          crop: p.crop, cls: p.bleed === 'edge' ? 'sb-bleed--edge' : undefined, stripe: motifOn('stripe') ? p.at : undefined,
+          crop: p.crop, cls: p.bleed === 'edge' ? 'sb-bleed--edge' : undefined, stripe: motifOn('stripe') ? corner(p.at, ctx.rhythm.side) : undefined,
           blob: motifOn('blob'), caption: motifOn('caption') ? c.photo?.alt : undefined,
         }
         const after = `${motifOn('ticks') ? ticks(c) : ''}${under}`
@@ -347,7 +349,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         const sub = c.sub ? `<p class="sb-lead">${esc(c.sub)}</p>` : ''
         return {
           vars: `--sb-drop:${p.drop}px;--sb-k:${k};`,
-          inner: `<div class="sb-offset-photo">${media(c.photo, { crop: 'fill', stripe: motifOn('stripe') ? p.at : undefined }, 'eager')}</div>`
+          inner: `<div class="sb-offset-photo">${media(c.photo, { crop: 'fill', stripe: motifOn('stripe') ? corner(p.at, 'right') : undefined }, 'eager')}</div>`
             + `<div class="sb-hero-text">${eyebrow}${h1}<div class="sb-rest">${sub}${ctas(c, ctx)}${rating(c)}</div></div>`,
         }
       }
@@ -357,12 +359,13 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         const phone = `<p class="sb-bigphone-l">${esc(t.voice.cta.callShort)}</p><a class="sb-bigphone" href="${esc(safeUrl(call.href))}" data-call aria-label="${esc(t.voice.cta.call(call.number))}">${esc(call.number)}</a>`
         const quote = c.quote ? `<div class="sb-ctas">${ghost(c.quote.label, c.quote.href)}</div>` : ''
         // Without a photo, the hazard stripe runs as a divider under the headline instead.
-        const stripe = !p.photo && motifOn('stripe') ? '<div class="sb-divider" aria-hidden="true"><span></span></div>' : ''
+        const stripeOn = ctx.motif && p.stripe
+        const stripe = !p.photo && stripeOn ? '<div class="sb-divider" aria-hidden="true"><span></span></div>' : ''
         const body = text(c, ctx, { em: p.em, noCtas: true, after: `${stripe}<div class="sb-stack">${phone}</div>${quote}` })
         if (!p.photo) return { inner: body }
         return {
           vars: '--sb-ta:8;',
-          inner: `<div class="sb-cols sb-cols--media-last"><div class="sb-main">${body}</div>${media(c.photo, { crop: p.crop, cls: 'sb-aside', stripe: motifOn('stripe') ? p.at : undefined }, 'eager')}</div>`,
+          inner: `<div class="sb-cols sb-cols--media-last"><div class="sb-main">${body}</div>${media(c.photo, { crop: p.crop, cls: 'sb-aside', stripe: stripeOn ? corner(p.at, ctx.rhythm.side) : undefined }, 'eager')}</div>`,
         }
       }
       case 'floatcard': {
@@ -371,7 +374,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         return {
           vars: cols(p.asym),
           inner: `<div class="sb-cols sb-cols--media-last"><div class="sb-main">${text(c, ctx, { em: p.em, dot: p.dot, after: p.ticks ? ticks(c) : '' })}</div>`
-            + `${media(c.photo, { crop: p.crop, cls: 'sb-aside', float: card ? { html: card, at: p.at } : undefined }, 'eager')}</div>`,
+            + `${media(c.photo, { crop: p.crop, cls: 'sb-aside', float: card ? { html: card, at: corner(p.at, ctx.rhythm.side) } : undefined }, 'eager')}</div>`,
         }
       }
       case 'editorial': {
@@ -384,7 +387,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         return {
           vars: cols(p.asym),
           inner: `<div class="sb-cols sb-cols--media-last"><div class="sb-main">${text(c, ctx, { em: p.em })}</div>`
-            + `${media(c.photo, { crop: p.crop, cls: 'sb-aside', blob: motifOn('blob'), stickers: stickers(c, p.count, p.side), rot: p.rot }, 'eager')}</div>`,
+            + `${media(c.photo, { crop: p.crop, cls: 'sb-aside', blob: ctx.motif && p.blob, stickers: motifOn('sticker') ? stickers(c, p.count, ctx.rhythm.side) : [], rot: p.rot }, 'eager')}</div>`,
         }
       }
     }

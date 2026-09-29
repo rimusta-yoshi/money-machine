@@ -55,7 +55,7 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
   const touchStartX = useRef<number | null>(null)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
-  const sampleOn = siteStyle.sample?.on ?? false
+  const sampleOn = import.meta.env.DEV && (siteStyle.sample?.on ?? false)
   // Sample content is view-only: it never reaches the record, so it can't be saved or published.
   const content = useMemo(() => (sampleOn ? withSample(pageContent(site, trade), samplePhotos()) : pageContent(site, trade)), [site, trade, sampleOn])
   const picker = useSectionPicker(site, content, activeType)
@@ -110,6 +110,8 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
    * remembered pick from a fit repair).
    */
   const confirmActive = () => {
+    // Layouts browsed against sample content aren't saved: they were fitted to content the site doesn't have.
+    if (sampleOn) return
     const pick = present(activeType) ? picker.pick() : null
     const saved = site.sections[activeType] as Generated | undefined
     const unchanged = saved && pick && saved.seed === pick.seed && specKey(saved.spec) === specKey(pick.spec)

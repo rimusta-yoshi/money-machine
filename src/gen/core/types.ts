@@ -2,7 +2,7 @@ import type { z } from 'zod'
 import type { Rng } from '../rng'
 import type { SiteStyle, ThemeKey } from '../schema'
 import type { PageContent } from '../content'
-import type { Biome } from '../themes/types'
+import type { Biome, Motif } from '../themes/types'
 
 /** Every section the generator can build, in page order. */
 export const SECTION_KEYS = [
@@ -83,6 +83,8 @@ export interface Archetype<C, P> {
   features: (p: P) => number[]
   /** The biggest and second-biggest type in this layout at a given preset, for scoring punch. */
   focal?: (p: P, sizes: Sizes) => Focal
+  /** Motifs this layout draws besides `params.motif`, so the page's motif quotas count them too. */
+  drawn?: (p: P) => readonly Motif[]
   /** Extra theme rules for params the shared punch keys don't cover. */
   allows?: (p: P, t: Biome) => boolean
   /** Whether this layout has an image that the rhythm layer should place left or right. */

@@ -26,14 +26,3 @@ export function blendUntil(from: string, toward: string, ok: (c: string) => bool
   return toward
 }
 
-/**
- * The brand colour pulled toward `toward` just far enough to reach AA on every background.
- * Used for links, stars, accents and outline buttons.
- */
-export function readableOn(brand: string, backgrounds: readonly string[], toward: string): string {
-  return blendUntil(brand, toward, c => backgrounds.every(bg => contrastRatio(c, bg) >= AA))
-}
-
-/** Whichever of the candidates reads best on a background. */
-export const bestOn = (bg: string, candidates: readonly string[]): string =>
-  [...candidates].sort((a, b) => contrastRatio(b, bg) - contrastRatio(a, bg))[0]

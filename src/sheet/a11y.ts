@@ -22,7 +22,6 @@ async function check(host: HTMLElement, html: string, width: number): Promise<st
   const frame = document.createElement('div')
   frame.style.width = `${width}px`
   frame.className = 'sb-page'
-  // A page-level h1 for lone sections, so their h2s sit in a real outline.
   frame.innerHTML = html
   host.replaceChildren(frame)
   const result = await axe.run(frame, { rules: { 'color-contrast': { enabled: true }, region: { enabled: false } } })
@@ -44,6 +43,7 @@ export async function runA11y(root: HTMLElement, themes: readonly ThemeKey[] = T
       const items: [string, string][] = [['page', samplePage(style, 11, content, measurer)]]
       for (const type of SECTION_KEYS) {
         for (const row of sectionOptions(type, style, content, measurer, batchFor(11, type), options)) {
+          // Lone sections get a page-level h1, so their h2s sit in a real outline.
           items.push([`${type}/${row.candidate.spec.archetype} #${row.candidate.seed}`, type === 'hero' ? row.html : `<h1>Page</h1>${row.html}`])
         }
       }
