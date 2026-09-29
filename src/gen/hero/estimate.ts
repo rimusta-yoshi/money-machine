@@ -59,7 +59,8 @@ export function estimateHero(spec: HeroSpec, style: SiteStyle, c: HeroContent): 
       case 'split': return Math.max(stack, p.bleed === 'edge' ? 560 : photoH(span(12 - ta), p.crop)) + (p.proof === 'strip' ? gap * 2 + 40 : 0)
       case 'floatcard': return Math.max(stack, photoH(span(12 - ta), p.crop))
       case 'sticker': return Math.max(stack, photoH(span(12 - ta) * 0.9, p.crop) * 1.1)
-      case 'stacked': return stack + (p.image === 'none' ? 0 : s.gap * 2.75 + 300)
+      // A trailing photo runs on below the fold; only the text has to fit the first screen.
+      case 'stacked': return stack
       case 'typeled': return stack + (p.trust ? 56 : 0) + (p.motif === 'stripe' ? 12 + gap : 0)
       case 'proof': {
         const cards = c.reviews.slice(0, p.count as number).reduce((h, x) => h + reviewH(x.text) + s.gap, 0)
@@ -67,7 +68,7 @@ export function estimateHero(spec: HeroSpec, style: SiteStyle, c: HeroContent): 
       }
       case 'contact': return Math.max(stack + (c.rating ? 30 + gap : 0), formH(p.fields as number))
       case 'bigphone': return Math.max(stack, p.photo ? photoH(span(4), p.crop) : 0)
-      case 'editorial': return stack + (p.image === 'figure' ? s.gap * 2.75 + 440 + 36 : 24)
+      case 'editorial': return stack + (p.image === 'figure' ? 0 : 24)
       default: return stack + (c.rating ? 30 + gap : 0)
     }
   })()

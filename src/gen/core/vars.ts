@@ -1,3 +1,5 @@
+import { contrastRatio } from '../color'
+import { PHOTO_WORST } from './contrast'
 import { THEMES } from '../themes'
 import { sizesFor, spacing } from '../themes/sizes'
 import type { SiteStyle } from '../schema'
@@ -7,6 +9,9 @@ const quote = (family: string) => (/\s/.test(family) ? `'${family}'` : family)
 
 /** CSS font-family value for a face. Families are schema-checked, so this is safe in a style attribute. */
 export const fontStack = (face: SiteStyle['fonts']['display']): string => `${quote(face.family)}, ${face.fallback}`
+
+/** A button over a scrimmed photo keeps its fill; it gets a white edge unless the fill already stands out 3:1 from the darkest-possible-light photo. */
+export const photoEdge = (fill: string): string => (contrastRatio(fill, PHOTO_WORST(0.55)) >= 3 ? fill : '#FFFFFF')
 
 /** CSS custom properties for a site style: colours, faces and spacing. Values are schema-checked. */
 export function styleVars(style: SiteStyle): string {
@@ -20,7 +25,7 @@ export function styleVars(style: SiteStyle): string {
   return [
     `--sb-ground:${p.ground}`, `--sb-surface:${p.surface}`, `--sb-line:${p.line}`, `--sb-ink:${p.ink}`, `--sb-muted:${p.muted}`,
     `--sb-brand-fill:${p.brandFill}`, `--sb-brand-ink:${p.brandInk}`, `--sb-brand-text:${p.brandText}`,
-    `--sb-brand-edge:${p.brandEdge}`, `--sb-accent-c:${p.accent}`,
+    `--sb-brand-edge:${p.brandEdge}`, `--sb-accent-c:${p.accent}`, `--sb-photo-edge:${photoEdge(p.brandFill)}`,
     // On the ink band the brand fills buttons and accents only where it stands out from the ink.
     `--sb-ink-btn-bg:${p.onInk ? p.brandFill : p.ground}`, `--sb-ink-btn-fg:${p.onInk ? p.brandInk : p.ink}`, `--sb-ink-accent:${p.onInk ? p.brandFill : p.ground}`,
     ...p.tints.map((c, i) => `--sb-tint${i + 1}:${c}`),

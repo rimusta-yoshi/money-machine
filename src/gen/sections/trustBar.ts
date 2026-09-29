@@ -114,7 +114,7 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
         const mark = (i: TrustView['items'][number]) => (on && p.motif === 'icontile' ? `<span class="sb-icon-tile">${icon(i.icon, 22)}</span>` : icon(i.icon, 24))
         const cls = cx('sb-grid sb-trust-tiles', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-trust-tiles--rule')
         const items = v.items.map(i => `<li class="sb-card">${mark(i)}<span>${esc(i.text)}</span></li>`).join('')
-        return { vars: `--sb-cols:${Math.min(4, v.items.length)};--sb-cols-m:${v.items.length >= 4 ? 2 : 1};`, inner: `${title}<ul class="${cls}">${items}</ul>` }
+        return { vars: `--sb-cols:${Math.min(4, v.items.length)};--sb-cols-m:1;`, inner: `${title}<ul class="${cls}">${items}</ul>` }
       }
       case 'stats': {
         const p = s.params

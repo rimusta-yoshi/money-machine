@@ -87,6 +87,18 @@ function coveredText(root: HTMLElement): number {
   }).length
 }
 
+/**
+ * The height the first screen must hold: the whole section, or, for layouts whose photo is a
+ * trailing figure meant to run on below the fold, down to the end of the part marked data-fold.
+ */
+function firstView(section: HTMLElement): number {
+  const top = section.getBoundingClientRect().top
+  const fold = section.querySelector('[data-fold]')
+  if (!fold) return section.getBoundingClientRect().height
+  const pad = parseFloat(getComputedStyle(section.querySelector('.sb-wrap') ?? section).paddingTop) || 0
+  return fold.getBoundingClientRect().bottom - top + pad
+}
+
 export interface DomMeasurer extends Measurer {
   dispose(): void
 }
@@ -116,7 +128,7 @@ export function createDomMeasurer(doc: Document): DomMeasurer {
       const phone = frame(FRAME.phoneWidth, html)
       const call = phone.querySelector('[data-call]')
       const result: Measurement = {
-        desktop: { headlineLines: lineCount(visibleHeading(desk)), heightPx: desk.getBoundingClientRect().height },
+        desktop: { headlineLines: lineCount(visibleHeading(desk)), heightPx: firstView(desk) },
         phone: {
           headlineLines: lineCount(visibleHeading(phone)),
           callBottomPx: call ? call.getBoundingClientRect().bottom - phone.getBoundingClientRect().top : Infinity,

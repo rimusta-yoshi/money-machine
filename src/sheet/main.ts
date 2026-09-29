@@ -23,6 +23,8 @@ const sections = (q.get('section')?.split(',') ?? SECTION_KEYS) as SectionKey[]
 const trade = tradeById[(q.get('trade') ?? 'plumber') as TradeId]
 const baseSeed = Number(q.get('seed') ?? 7)
 const pages = q.get('pages') === '0' ? 0 : 3
+/** Try a customer's colour instead of each mockup's own. */
+const brandOverride = q.get('brand')
 
 const state = { done: false, errors: [] as string[], progress: '' }
 window.__sheet = state
@@ -51,13 +53,14 @@ async function run() {
   try {
     for (const theme of themes) {
       const t = THEMES[theme]
-      const siteStyle = resolveSiteStyle(theme, THEME_BRANDS[theme], baseSeed)
+      const brand = brandOverride ?? THEME_BRANDS[theme]
+      const siteStyle = resolveSiteStyle(theme, brand, baseSeed)
       await loadStyleFonts(document, siteStyle)
       const block = document.createElement('section')
       block.className = 'cs-theme'
       block.id = `t-${theme}`
       block.setAttribute('aria-labelledby', `t-${theme}-h`)
-      block.innerHTML = `<header class="cs-theme-h"><h2 id="t-${theme}-h">${esc(t.label)}</h2><p>${esc(t.blurb)}</p><p class="cs-meta">Brand ${esc(THEME_BRANDS[theme])} · style seed ${baseSeed} · ${styleSummary(siteStyle)} · <a href="../theme-mockups/${theme}.html">mockup</a></p></header>`
+      block.innerHTML = `<header class="cs-theme-h"><h2 id="t-${theme}-h">${esc(t.label)}</h2><p>${esc(t.blurb)}</p><p class="cs-meta">Brand ${esc(brand)}${siteStyle.palette.tuned ? ' (tuned for readability)' : ''} · style seed ${baseSeed} · ${styleSummary(siteStyle)} · <a href="../theme-mockups/${theme}.html">mockup</a></p></header>`
       root.appendChild(block)
       for (const type of sections) {
         say(`${t.label}: ${SECTIONS[type].label}…`)
@@ -75,7 +78,7 @@ async function run() {
       }
       for (let i = 0; i < pages; i++) {
         const seed = baseSeed * 101 + i * 7919 + 1
-        const pageStyle = resolveSiteStyle(theme, THEME_BRANDS[theme], seed)
+        const pageStyle = resolveSiteStyle(theme, brand, seed)
         await loadStyleFonts(document, pageStyle)
         say(`${t.label}: sample page ${i + 1}…`)
         await tick()

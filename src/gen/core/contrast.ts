@@ -45,10 +45,13 @@ function buttonRatio(button: ButtonStyle, s: Surface, style: SiteStyle, band: Ba
   return contrastRatio(s.link, s.bg)
 }
 
+const photoEdgeOf = (fill: string) => (contrastRatio(fill, PHOTO_WORST(0.55)) >= 3 ? fill : WHITE)
+
 /** Which fill and edge a filled button gets on a band (mirrors the base CSS). */
 function buttonShape(band: Band, style: SiteStyle): { fill: string; edge: string } {
   const p = style.palette
   if (band === 'brand') return { fill: p.brandInk, edge: p.brandInk }
+  if (band === 'photo') return { fill: p.brandFill, edge: photoEdgeOf(p.brandFill) }
   if (band === 'ink') return p.onInk ? { fill: p.brandFill, edge: p.brandFill } : { fill: p.ground, edge: p.ground }
   return { fill: p.brandFill, edge: p.brandEdge }
 }

@@ -94,6 +94,7 @@ export const HERO_CSS = `
   .sb-hero--stacked .sb-media .sb-photo,.sb-hero--editorial .sb-media .sb-photo{height:200px}
   .sb-hero--stacked.sb-image--bleed .sb-media{margin:0 -20px -40px}
   .sb-hero--typeled .sb-hero-foot{flex-direction:column;align-items:stretch;gap:calc(var(--sb-gap) * 1.1)}
+  .sb-hero--typeled .sb-hero-foot .sb-lead{flex:none}
   .sb-hero--offset .sb-offset-photo{position:relative;inset:auto;width:100%;height:220px;order:-1}
   .sb-hero--offset .sb-hero-text,.sb-hero--offset .sb-rest{width:auto;max-width:none}
   .sb-hero .sb-review~.sb-review{display:none}

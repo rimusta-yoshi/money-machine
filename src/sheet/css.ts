@@ -2,7 +2,7 @@
 export const SHEET_CSS = `
 body{margin:0;background:#E7E7E4;color:#1A1A1A;font-family:Inter,system-ui,sans-serif}
 #sheet{padding:0 24px 80px}
-.cs-top{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 24px;margin:0 -24px;padding:14px 24px;background:#1A1A1A;color:#F2F2F0}
+.cs-top{position:relative;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 24px;margin:0 -24px;padding:14px 24px;background:#1A1A1A;color:#F2F2F0}
 .cs-top h1{margin:0;font-size:18px}
 .cs-top p{margin:0;font-size:13px;color:#C9C9C4;flex:1 1 400px}
 .cs-nav{display:flex;gap:16px}

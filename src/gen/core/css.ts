@@ -17,12 +17,12 @@ export const BASE_CSS = `
 .sb-sec.sb-tone--surface{--sb-bg:var(--sb-surface);--sb-card-bg:var(--sb-ground)}
 .sb-sec.sb-tone--brand{--sb-bg:var(--sb-brand-fill);--sb-fg:var(--sb-brand-ink);--sb-mu:var(--sb-brand-ink);--sb-link:var(--sb-brand-ink);--sb-accent:var(--sb-brand-ink);--sb-btn-bg:var(--sb-brand-ink);--sb-btn-fg:var(--sb-brand-fill);--sb-btn-edge:var(--sb-brand-ink);--sb-card-bg:var(--sb-ground)}
 .sb-sec.sb-tone--ink{--sb-bg:var(--sb-ink);--sb-fg:var(--sb-ground);--sb-mu:var(--sb-ground);--sb-link:var(--sb-ground);--sb-accent:var(--sb-ink-accent);--sb-btn-bg:var(--sb-ink-btn-bg);--sb-btn-fg:var(--sb-ink-btn-fg);--sb-btn-edge:var(--sb-ink-btn-bg);--sb-card-bg:var(--sb-ground)}
-.sb-sec.sb-tone--photo{--sb-fg:#FFFFFF;--sb-mu:#FFFFFF;--sb-link:#FFFFFF;--sb-accent:#FFFFFF;--sb-hair:rgba(255,255,255,0.4)}
+.sb-sec.sb-tone--photo{--sb-fg:#FFFFFF;--sb-mu:#FFFFFF;--sb-link:#FFFFFF;--sb-accent:#FFFFFF;--sb-btn-edge:var(--sb-photo-edge);--sb-hair:rgba(255,255,255,0.4)}
 .sb-sec *,.sb-sec *::before,.sb-sec *::after{box-sizing:border-box}
 .sb-sec .sb-wrap{position:relative;max-width:1200px;margin:0 auto;padding:var(--sb-py) var(--sb-pad);display:flex;flex-direction:column;gap:calc(var(--sb-gap) * 2.75)}
 /* Breaks: an inset panel on the page ground, or a rule line along the top (drawn by the skin). */
-.sb-sec.sb-brk--panel{background:var(--sb-ground);padding:calc(var(--sb-py) * 0.3) var(--sb-pad)}
-.sb-sec.sb-brk--panel>.sb-wrap{background:var(--sb-bg);border-radius:var(--sb-pr);max-width:calc(1200px - 2 * var(--sb-pad));padding:calc(var(--sb-py) * 0.72) calc(var(--sb-pad) * 1.15)}
+.sb-sec.sb-brk--panel{background:var(--sb-ground)}
+.sb-sec.sb-brk--panel>.sb-wrap{background:var(--sb-bg);border-radius:var(--sb-pr);width:calc(100% - 2 * var(--sb-pad));max-width:calc(1200px - 2 * var(--sb-pad));margin:calc(var(--sb-py) * 0.3) auto;padding:calc(var(--sb-py) * 0.72) calc(var(--sb-pad) * 1.15)}
 .sb-sec .sb-rule-top{position:absolute;left:var(--sb-pad);right:var(--sb-pad);top:0;height:0;pointer-events:none}
 
 .sb-sec p,.sb-sec blockquote,.sb-sec figure,.sb-sec dl,.sb-sec dd{margin:0}
@@ -122,8 +122,7 @@ export const BASE_CSS = `
 
 @container (max-width: 719px){
   .sb-sec .sb-wrap{padding:calc(var(--sb-py) * 0.62) 20px;gap:calc(var(--sb-gap) * 1.8)}
-  .sb-sec.sb-brk--panel{padding:10px}
-  .sb-sec.sb-brk--panel>.sb-wrap{padding:36px 20px}
+  .sb-sec.sb-brk--panel>.sb-wrap{width:calc(100% - 20px);margin:10px auto;padding:36px 20px}
   .sb-sec .sb-h1{font-size:var(--sb-h1m)}
   .sb-sec .sb-h2{font-size:var(--sb-h2m)}
   .sb-sec .sb-xl,.sb-sec .sb-stat-n{font-size:var(--sb-xlm)}
@@ -139,11 +138,12 @@ export const BASE_CSS = `
   .sb-sec .sb-btn{width:100%}
   .sb-sec .sb-form .sb-btn{align-self:stretch}
   .sb-sec .sb-crop--fill .sb-photo{min-height:0;aspect-ratio:4/3}
-  .sb-sec .sb-at--bl,.sb-sec .sb-at--tl{left:0}
-  .sb-sec .sb-at--br,.sb-sec .sb-at--tr{right:0}
+  .sb-sec .sb-at--bl,.sb-sec .sb-at--tl{left:6px}
+  .sb-sec .sb-at--br,.sb-sec .sb-at--tr{right:6px}
   .sb-sec .sb-at--bl,.sb-sec .sb-at--br{bottom:-12px}
   .sb-sec .sb-at--tl,.sb-sec .sb-at--tr{top:-12px}
   .sb-sec [data-scroll]{grid-auto-columns:84%}
+  .sb-sec .sb-blob{inset:-4% 0 -5% 0}
 }
 @media (prefers-reduced-motion: no-preference){
   .sb-sec .sb-btn{transition:filter 0.15s ease,transform 0.15s ease}

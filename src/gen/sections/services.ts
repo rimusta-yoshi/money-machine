@@ -174,7 +174,7 @@ export const services = defineSection<ServicesSpec, ServicesView>({
         const cls = cx('sb-grid sb-svc-cards', numbered && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-svc-cards--rule')
         const li = items.map(t => `<li class="sb-card sb-svc">${mark(t, p.motif, on)}<h3 class="sb-h3">${esc(t)}</h3></li>`).join('')
         const tag = numbered ? 'ol' : 'ul'
-        return { vars: `--sb-cols:${p.cols};--sb-cols-m:${p.cols === 4 ? 2 : 1};`, inner: `${headOf(v, ctx, headAlign(p.align))}<${tag} class="${cls}">${li}</${tag}>` }
+        return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${headOf(v, ctx, headAlign(p.align))}<${tag} class="${cls}">${li}</${tag}>` }
       }
       case 'list': {
         const p = s.params

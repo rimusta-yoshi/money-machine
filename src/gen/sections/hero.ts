@@ -64,6 +64,8 @@ const floatOptions = (c: HeroContent) => [
 
 interface TextOpts {
   em: boolean
+  /** The first screen ends with this text block (a trailing figure may run on below the fold). */
+  fold?: boolean
   center?: boolean
   dot?: boolean
   /** Inner HTML placed under the buttons. */
@@ -83,7 +85,7 @@ function text(c: HeroContent, ctx: BodyContext, o: TextOpts): string {
   const eyebrow = `<p class="sb-eyebrow">${o.dot ? '<span class="sb-dot" aria-hidden="true"></span>' : ''}${esc(c.eyebrow)}</p>`
   const h1 = `<h1 id="sb-hero-title" class="sb-h1" data-heading>${o.headline ?? emphasize(c.headline, o.em)}</h1>`
   const sub = c.sub ? `<p class="sb-lead">${esc(c.sub)}</p>` : ''
-  return `<div class="${cx('sb-hero-text', o.center && 'sb-center')}">${eyebrow}${h1}${sub}${o.noCtas ? '' : ctas(c, ctx)}${o.after ?? ''}</div>`
+  return `<div class="${cx('sb-hero-text', o.center && 'sb-center')}"${o.fold ? ' data-fold' : ''}>${eyebrow}${h1}${sub}${o.noCtas ? '' : ctas(c, ctx)}${o.after ?? ''}</div>`
 }
 
 const rating = (c: HeroContent) =>
@@ -309,7 +311,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       case 'stacked': {
         const p = spec.params
         const image = p.image === 'none' ? '' : media(c.photo, { crop: 'fill' }, 'eager')
-        return { cls: `sb-image--${p.image}`, inner: `${text(c, ctx, { em: p.em, center: p.align === 'center', after: p.image === 'none' ? rating(c) : '' })}${image}` }
+        return { cls: `sb-image--${p.image}`, inner: `${text(c, ctx, { em: p.em, center: p.align === 'center', after: p.image === 'none' ? rating(c) : '', fold: p.image !== 'none' })}${image}` }
       }
       case 'typeled': {
         const p = spec.params
@@ -354,7 +356,9 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         const call = c.call!
         const phone = `<p class="sb-bigphone-l">${esc(t.voice.cta.callShort)}</p><a class="sb-bigphone" href="${esc(safeUrl(call.href))}" data-call aria-label="${esc(t.voice.cta.call(call.number))}">${esc(call.number)}</a>`
         const quote = c.quote ? `<div class="sb-ctas">${ghost(c.quote.label, c.quote.href)}</div>` : ''
-        const body = text(c, ctx, { em: p.em, noCtas: true, after: `<div class="sb-stack">${phone}</div>${quote}` })
+        // Without a photo, the hazard stripe runs as a divider under the headline instead.
+        const stripe = !p.photo && motifOn('stripe') ? '<div class="sb-divider" aria-hidden="true"><span></span></div>' : ''
+        const body = text(c, ctx, { em: p.em, noCtas: true, after: `${stripe}<div class="sb-stack">${phone}</div>${quote}` })
         if (!p.photo) return { inner: body }
         return {
           vars: '--sb-ta:8;',
@@ -373,7 +377,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       case 'editorial': {
         const p = spec.params
         const figure = p.image === 'figure' ? media(c.photo, { crop: 'fill', caption: motifOn('caption') ? c.photo?.alt : undefined }, 'eager') : ''
-        return { cls: `sb-image--${p.image}`, inner: `${text(c, ctx, { em: p.em, center: true })}${figure}` }
+        return { cls: `sb-image--${p.image}`, inner: `${text(c, ctx, { em: p.em, center: true, fold: !!figure })}${figure}` }
       }
       case 'sticker': {
         const p = spec.params
