@@ -12,6 +12,7 @@ export const SECTION_TYPES = [
   'testimonials',
   'areas',
   'contact',
+  'footer',
 ] as const
 export type SectionType = typeof SECTION_TYPES[number]
 
@@ -23,16 +24,9 @@ export interface ColorScheme {
   accentTint: string
 }
 
-export interface SectionVariant {
-  id: string
-  label: string
-  component: string
-}
-
+/** A section the trade's site includes. Its layouts come from the generator (src/gen). */
 export interface SectionConfig {
   type: SectionType
-  recommended: string
-  variants: SectionVariant[]
 }
 
 export interface TradeConfig {

@@ -6,15 +6,16 @@ const SECTION_EXTRA: Partial<Record<SectionType, ExtraId>> = {
   testimonials: 'reviews',
 }
 
-/** The trade's sections this site actually includes, in trade order. */
-export function siteSections(trade: TradeConfig, site: Site): SectionConfig[] {
-  return trade.sections.filter(s => {
+/** The trade's sections this site actually includes, in trade order, then the footer every site has. */
+export function siteSections(trade: TradeConfig, site: Pick<Site, 'extras'>): SectionConfig[] {
+  const own = trade.sections.filter(s => {
     const extra = SECTION_EXTRA[s.type]
-    return !extra || site.extras.includes(extra)
+    return s.type !== 'footer' && (!extra || site.extras.includes(extra))
   })
+  return [...own, { type: 'footer' }]
 }
 
 /** Whether the customer has settled on a layout for this section. */
 export function isPicked(site: Site, type: SectionType): boolean {
-  return type === 'hero' ? !!site.sections.hero : !!site.selections[type]
+  return !!site.sections[type]
 }

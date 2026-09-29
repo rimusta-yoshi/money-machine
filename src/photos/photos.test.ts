@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { fitWithin, PHOTO_LIMITS, PhotoError, resizePhoto } from './resize'
+import { fitWithin, HEIC_MESSAGE, isHeic, PHOTO_LIMITS, PhotoError, resizePhoto } from './resize'
 import type { ImageCodec, OutputType } from './resize'
 import { blobToDataUrl, dataUrlStore } from './store'
 
@@ -65,6 +65,27 @@ describe('resizePhoto', () => {
   it('explains when a photo can’t be opened', async () => {
     const codec: ImageCodec = { decode: () => Promise.reject(new Error('bad')), encode: vi.fn() }
     await expect(resizePhoto(photoFile('image/heic'), codec)).rejects.toThrow(PhotoError)
+  })
+})
+
+describe('iPhone HEIC photos', () => {
+  const failing: ImageCodec = { decode: () => Promise.reject(new Error('unsupported')), encode: vi.fn() }
+
+  it('are recognised by type, or by name when the browser reports no type', () => {
+    expect(isHeic(new File(['x'], 'IMG_0001.jpg', { type: 'image/heic' }))).toBe(true)
+    expect(isHeic(new File(['x'], 'IMG_0001.HEIC', { type: '' }))).toBe(true)
+    expect(isHeic(new File(['x'], 'photo.heif', { type: '' }))).toBe(true)
+    expect(isHeic(new File(['x'], 'photo.jpg', { type: 'image/jpeg' }))).toBe(false)
+  })
+
+  it('get a friendly message with the one-line fix when the browser can’t open them', async () => {
+    await expect(resizePhoto(new File(['x'], 'IMG_0001.HEIC', { type: '' }), failing)).rejects.toThrow(HEIC_MESSAGE)
+    expect(HEIC_MESSAGE).toMatch(/Export it as JPEG/)
+  })
+
+  it('go through normally where the browser can open them (Safari)', async () => {
+    const out = await resizePhoto(new File(['x'], 'IMG_0001.HEIC', { type: 'image/heic' }), fakeCodec(4032, 3024).codec)
+    expect(out.type).toBe('image/webp')
   })
 })
 

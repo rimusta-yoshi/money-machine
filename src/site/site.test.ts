@@ -9,11 +9,11 @@ import type { Site } from './schema'
 describe('createSite', () => {
   it('starts with the trade accent as brand colour and nothing filled in', () => {
     const site = createSite(plumber)
-    expect(site.version).toBe(2)
+    expect(site.version).toBe(3)
     expect(site.tradeId).toBe('plumber')
     expect(site.brandColor).toBe(plumber.colorScheme.accent)
     expect(site.extras).toEqual([])
-    expect(site.selections).toEqual({})
+    expect(site.sections).toEqual({})
     expect(site.business).toEqual({ name: '', phone: '', location: '', about: '', yearsInBusiness: '', email: '' })
   })
 
@@ -42,7 +42,6 @@ describe('parseSite', () => {
     ...createSite(plumber),
     business: { name: 'Joe Pipes', phone: '07700 900123', location: 'Leeds', about: '', yearsInBusiness: '12', email: 'joe@example.com' },
     extras: ['reviews'],
-    selections: { contact: 'contact-full' },
     sections: { hero: { seed: 7, spec: { v: 1, section: 'hero', archetype: 'stacked', params: { align: 'center', image: 'none', tone: 'surface' } } } },
   })
 
@@ -83,7 +82,7 @@ describe('parseSite', () => {
 
   it('rejects over-long text that would break layouts', () => {
     const site = valid()
-    expect(() => parseSite({ ...site, business: { ...site.business, about: 'x'.repeat(161) } })).toThrow(SiteParseError)
+    expect(() => parseSite({ ...site, business: { ...site.business, about: 'x'.repeat(281) } })).toThrow(SiteParseError)
   })
 
   it('accepts photos as https links or images prepared in the builder', () => {

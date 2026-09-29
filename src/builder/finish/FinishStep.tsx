@@ -92,7 +92,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPub
           {/* The scroll box stays interactive so it can scroll; only the site inside is inert. */}
           <div className="mm-finish-preview" role="region" tabIndex={0} aria-label="Preview of your live site, scrollable">
             <div inert>
-              <SitePage site={site} trade={trade} mode="live" />
+              <SitePage site={site} trade={trade} />
             </div>
           </div>
         </aside>

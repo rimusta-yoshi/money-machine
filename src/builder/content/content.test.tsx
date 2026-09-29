@@ -69,7 +69,7 @@ describe('SectionContentEditor', () => {
   })
 
   it('says so when a section has nothing to fill in', () => {
-    renderEditor('why_us')
+    renderEditor('footer')
     expect(screen.getByText(/Nothing to fill in here/)).toBeTruthy()
   })
 

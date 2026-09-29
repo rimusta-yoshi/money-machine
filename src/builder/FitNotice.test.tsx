@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { FitNotice } from './FitNotice'
-import { FALLBACK_NOTICE, REPAIR_NOTICE } from './useHeroFitRepair'
+import { noticeText } from './useFitRepair'
+
+const REPAIR_NOTICE = noticeText([{ type: 'hero', status: 'repaired' }])
 
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
@@ -47,8 +49,10 @@ describe('FitNotice', () => {
     expect(onDismiss).not.toHaveBeenCalled()
   })
 
-  it('says something different when only the simplest layout is left', () => {
-    expect(FALLBACK_NOTICE).not.toBe(REPAIR_NOTICE)
-    expect(FALLBACK_NOTICE).toMatch(/simplest/)
+  it('explains a swap, a return to the customer’s pick, and the simplest-layout case in plain words', () => {
+    expect(noticeText([{ type: 'hero', status: 'repaired' }])).toBe('Your details changed, so the hero section now uses the closest layout that still fits. Yours comes back if it fits again.')
+    expect(noticeText([{ type: 'about', status: 'restored' }])).toBe('The about layout you chose fits again, so it’s back.')
+    expect(noticeText([{ type: 'areas', status: 'fallback' }])).toMatch(/simplest one/)
+    expect(noticeText([{ type: 'hero', status: 'repaired' }, { type: 'gallery', status: 'repaired' }])).toMatch(/^Your details changed, so 2 sections/)
   })
 })

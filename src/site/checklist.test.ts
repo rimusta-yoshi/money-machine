@@ -20,10 +20,8 @@ describe('buildChecklist', () => {
     expect(ids({ ...createSite(plumber), extras: ['reviews'] })).toEqual(expect.arrayContaining(['reviews', 'rating']))
   })
 
-  it('asks for opening hours only with the full contact layout', () => {
-    const base = createSite(plumber)
-    expect(ids({ ...base, selections: { contact: 'contact-full' } })).toContain('hours')
-    expect(ids({ ...base, selections: { contact: 'contact-simple' } })).not.toContain('hours')
+  it('asks for opening hours whenever the site has a contact section', () => {
+    expect(ids(createSite(plumber))).toContain('hours')
   })
 
   it('marks items done once the customer fills them in', () => {
@@ -49,15 +47,16 @@ describe('sectionChecklist', () => {
     expect(ids(site, 'hero')).toEqual(['photos.hero'])
     expect(ids(site, 'areas')).toEqual(['areas'])
     expect(ids(site, 'services')).toEqual(['emergency'])
-    expect(ids(site, 'why_us')).toEqual([])
+    expect(ids(site, 'trust_bar')).toEqual(['badges', 'emergency', 'jobsDone'])
+    expect(ids(site, 'why_us')).toEqual(['photos.about'])
+    expect(ids(site, 'footer')).toEqual([])
   })
 
   it('respects the chosen layout and extras', () => {
     const site = createSite(plumber)
     expect(ids(site, 'testimonials')).toEqual([])
     expect(ids({ ...site, extras: ['reviews'] }, 'testimonials')).toEqual(['rating', 'reviews'])
-    expect(ids({ ...site, selections: { contact: 'contact-full' } }, 'contact')).toEqual(['hours'])
-    expect(ids({ ...site, selections: { contact: 'contact-simple' } }, 'contact')).toEqual([])
+    expect(ids(site, 'contact')).toEqual(['emergency', 'hours'])
   })
 })
 
@@ -66,7 +65,8 @@ describe('sectionForItem', () => {
     const site = { ...createSite(plumber), extras: ['reviews' as const] }
     expect(sectionForItem(site, plumber, 'areas')).toBe('areas')
     expect(sectionForItem(site, plumber, 'reviews')).toBe('testimonials')
-    expect(sectionForItem(site, plumber, 'emergency')).toBe('services')
+    // Edited in the first section on the page that uses it.
+    expect(sectionForItem(site, plumber, 'emergency')).toBe('trust_bar')
   })
 
   it('picks whichever credentials section the trade actually has', () => {

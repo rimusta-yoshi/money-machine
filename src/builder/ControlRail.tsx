@@ -49,10 +49,10 @@ export function ControlRail(props: Props) {
           </div>
         ) : (
           <div className="sc-tip" aria-live="polite">
-            {layout.loading ? 'Generating layouts…' : layout.count === 1 ? `One ${noun.toLowerCase()} for this section` : 'No layouts fit this content yet'}
+            {layout.loading ? 'Generating layouts…' : layout.count === 1 ? `One ${noun.toLowerCase()} for this section` : layout.needs ?? 'No layouts fit this content yet'}
           </div>
         )}
-        {props.onNewOptions && (
+        {props.onNewOptions && layout.count > 0 && (
           <button type="button" className="sc-reroll" onClick={props.onNewOptions} disabled={layout.loading}>
             {layout.loading ? 'Generating…' : 'New options'}
           </button>

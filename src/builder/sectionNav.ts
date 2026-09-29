@@ -7,6 +7,8 @@ export interface LayoutState {
   label: string
   /** A generated section is still working out its options. */
   loading: boolean
+  /** When the content doesn't allow any layout yet: what to add. */
+  needs?: string
 }
 
 /** What the desktop panel and the phone sheet both need to drive the builder. */

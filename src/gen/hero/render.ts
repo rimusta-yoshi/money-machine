@@ -1,5 +1,6 @@
 import { cx, esc, safeImageUrl, safeUrl } from '../html'
-import { fontStack } from '../style'
+import { stars } from '../core/markup'
+import { styleVars } from '../core/vars'
 import type { HeroSpec, ParamsOf, SiteStyle, Tone } from '../schema'
 import { ARCHETYPES, FALLBACK_SPEC } from './archetypes'
 import { formButton, staticChecks } from './checks'
@@ -26,41 +27,21 @@ export function heroToRender(spec: HeroSpec, style: SiteStyle, content: HeroCont
   return fits ? spec : FALLBACK_SPEC
 }
 
-/** CSS custom properties for a site style. Values are schema-checked, so this is safe in a style attribute. */
-export function styleVars(style: SiteStyle): string {
-  const p = style.palette
-  const z = heroSizes(style)
-  return [
-    `--sb-ground:${p.ground}`, `--sb-surface:${p.surface}`, `--sb-ink:${p.ink}`, `--sb-muted:${p.muted}`,
-    `--sb-brand-fill:${p.brandFill}`, `--sb-brand-ink:${p.brandInk}`, `--sb-brand-text:${p.brandText}`,
-    `--sb-r:${style.radius}px`, `--sb-pad:${z.pad}px`, `--sb-gap:${z.gap}px`,
-    `--sb-hs:${z.headline}px`, `--sb-hs-m:${z.headlineMobile}px`,
-    `--sb-fd:${fontStack(style.display)}`, `--sb-dw:${style.display.weight}`,
-    `--sb-fb:${fontStack(style.body)}`, `--sb-bw:${style.body.weight}`,
-    `--sb-up:${style.displayUpper ? 'uppercase' : 'none'}`, `--sb-tr:${style.tracking}em`,
-    `--sb-bh:${style.buttonHeight}px`, `--sb-bd:${style.border}px`,
-    `--sb-bup:${style.buttonUpper ? 'uppercase' : 'none'}`, `--sb-btr:${style.buttonUpper ? '0.08em' : '0'}`,
-  ].join(';') + ';'
-}
-
 /* ---------- shared parts ---------- */
 
 const h1 = (c: HeroContent, highlight = false) =>
-  `<h1 id="${HERO_TITLE_ID}" class="sb-h1">${highlight ? `<span class="sb-hl">${esc(c.headline)}</span>` : esc(c.headline)}</h1>`
+  `<h1 id="${HERO_TITLE_ID}" class="sb-h1" data-heading>${highlight ? `<span class="sb-hl">${esc(c.headline)}</span>` : esc(c.headline)}</h1>`
 
 const sub = (c: HeroContent) => (c.sub ? `<p class="sb-sub">${esc(c.sub)}</p>` : '')
 
 function ctas(style: SiteStyle, c: HeroContent, withQuote = true): string {
   const btn = (label: string, href: string) =>
     `<a class="sb-btn sb-btn--${style.button}" href="${esc(safeUrl(href))}" data-call>${esc(label)}</a>`
-  const quote = `<a class="sb-link" href="${esc(safeUrl(c.quote.href))}">${esc(c.quote.label)}</a>`
-  if (!c.call) return `<div class="sb-ctas">${btn(c.quote.label, c.quote.href)}</div>`
+  const quote = c.quote ? `<a class="sb-link" href="${esc(safeUrl(c.quote.href))}">${esc(c.quote.label)}</a>` : ''
+  if (!c.call) return c.quote ? `<div class="sb-ctas">${btn(c.quote.label, c.quote.href)}</div>` : ''
   return `<div class="sb-ctas">${btn(c.call.label, c.call.href)}${withQuote ? quote : ''}</div>`
 }
 
-const starText = (score: number) => '★'.repeat(Math.round(score)) + '☆'.repeat(5 - Math.round(score))
-const stars = (score: number) =>
-  `<span class="sb-stars" role="img" aria-label="Rated ${esc(score)} out of 5">${starText(score)}</span>`
 
 const rating = (c: HeroContent) =>
   c.rating ? `<p class="sb-rating">${stars(c.rating.score)}<span>${esc(c.rating.score)} from ${esc(c.rating.count)} reviews</span></p>` : ''

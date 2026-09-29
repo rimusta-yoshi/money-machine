@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { fontFaceCss, fontFileName, GEN_CSS, renderSection, resolveSiteStyle, SITE_FONT_FILES, siteFontFaces, THEME_KEYS, THEMES } from '.'
+import { fontFaceCss, fontFileName, GEN_CSS, renderHero, resolveSiteStyle, SITE_FONT_FILES, siteFontFaces, THEME_KEYS, THEMES } from '.'
 import { ONE_OF_EACH, RICH } from './test/fixtures'
 
 const root = join(__dirname, '..', '..')
@@ -55,16 +55,15 @@ describe('no third-party font requests', () => {
 
   it('generated heroes and their stylesheet never reference an external font host', () => {
     const style = resolveSiteStyle('luxury', '#8C6D3F', 2)
-    for (const spec of ONE_OF_EACH) expect(renderSection(spec, style, RICH)).not.toMatch(/fonts\.(googleapis|gstatic)/)
+    for (const spec of ONE_OF_EACH) expect(renderHero(spec, style, RICH)).not.toMatch(/fonts\.(googleapis|gstatic)/)
     expect(GEN_CSS).not.toMatch(/@import|fonts\.(googleapis|gstatic)/)
   })
 })
 
-describe('old template hero styles', () => {
-  it('are gone from the section stylesheet', () => {
-    const css = readFileSync(join(root, 'src', 'components', 'sections', 'sections.css'), 'utf8')
-    for (const cls of ['.ff-hero', '.col-photo', '.col-text', '.split-bullets', '.ff-hero-bold']) expect(css, cls).not.toContain(cls)
-    // Shared rules that lived next to them must survive.
-    expect(css).toMatch(/^\.ff-stars \{ color:/m)
+describe('old hand-made sections', () => {
+  it('are gone: no template components or their stylesheet remain', () => {
+    const dir = join(root, 'src', 'components', 'sections')
+    expect(existsSync(join(dir, 'sections.css'))).toBe(false)
+    expect(readdirSync(dir).sort()).toEqual(['GeneratedSection.tsx'])
   })
 })

@@ -11,4 +11,5 @@ export const SECTION_LABELS: Record<SectionType, string> = {
   testimonials: 'Reviews',
   areas: 'Service Areas',
   contact: 'Contact',
+  footer: 'Footer',
 }

@@ -1,10 +1,10 @@
 import { contrastRatio } from '../color'
 import type { HeroSpec, SiteStyle } from '../schema'
-import { forSpec, ARCHETYPE_KEYS } from './archetypes'
 import { textSurfaces } from './checks'
 import { heroSizes } from './metrics'
 
-export interface Score { hierarchy: number; emphasis: number; total: number }
+import type { Score } from '../core/types'
+export type { Score }
 
 const FILLED = new Set(['solid', 'pill', 'offset'])
 
@@ -24,14 +24,3 @@ export function scoreHero(spec: HeroSpec, style: SiteStyle): Score {
   const emphasis = Math.min(1, contrastRatio(button, main.bg) / 6)
   return { hierarchy, emphasis, total: (hierarchy + emphasis) / 2 }
 }
-
-/** A point in "design space" for the distinctness filter. Archetype dominates. */
-export function heroFeatures(spec: HeroSpec): number[] {
-  const oneHot = ARCHETYPE_KEYS.map(k => (k === spec.archetype ? 1.3 : 0))
-  const params = forSpec(spec, (a, p) => a.features(p)).map(x => x * 0.45)
-  while (params.length < 5) params.push(0)
-  return [...oneHot, ...params]
-}
-
-export const distance = (a: readonly number[], b: readonly number[]): number =>
-  Math.sqrt(a.reduce((sum, v, i) => sum + (v - (b[i] ?? 0)) ** 2, 0))

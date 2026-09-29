@@ -6,6 +6,9 @@ import type { ExtraId, Site } from '../site/schema'
 import { Icon } from '../components/ui/Icon'
 import { BrandColorCard } from './BrandColorCard'
 import { ExtrasCard } from './ExtrasCard'
+import { CharCount } from './content/CharCount'
+import { counted } from './content/counted'
+import { LIMITS } from '../site/limits'
 
 interface Props {
   trade: TradeConfig
@@ -52,16 +55,18 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
           <div className="mm-fieldset">
             <div className="mm-fld">
               <label htmlFor="fld-name">Business name <span className="req">REQUIRED</span></label>
-              <input id="fld-name" value={info.name} onChange={set('name')} placeholder={`${trade.name} Co.`} maxLength={80} autoComplete="organization" />
+              <input id="fld-name" value={info.name} onChange={set('name')} placeholder={`${trade.name} Co.`} autoComplete="organization" {...counted('fld-name-count', info.name, LIMITS.name)} />
+              <CharCount id="fld-name-count" value={info.name} max={LIMITS.name} />
             </div>
             <div className="mm-fld-2">
               <div className="mm-fld">
                 <label htmlFor="fld-phone">Phone <span className="req">REQUIRED</span></label>
-                <input id="fld-phone" value={info.phone} onChange={set('phone')} placeholder="(604) 555-0123" type="tel" maxLength={30} autoComplete="tel" />
+                <input id="fld-phone" value={info.phone} onChange={set('phone')} placeholder="(604) 555-0123" type="tel" maxLength={LIMITS.phone} autoComplete="tel" />
               </div>
               <div className="mm-fld">
                 <label htmlFor="fld-location">Town / City</label>
-                <input id="fld-location" value={info.location} onChange={set('location')} placeholder="Vancouver, BC" maxLength={80} autoComplete="address-level2" />
+                <input id="fld-location" value={info.location} onChange={set('location')} placeholder="Vancouver, BC" autoComplete="address-level2" {...counted('fld-location-count', info.location, LIMITS.location)} />
+                <CharCount id="fld-location-count" value={info.location} max={LIMITS.location} />
               </div>
             </div>
             <div className="mm-fld">
@@ -84,7 +89,7 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
             </div>
             <div className="mm-fld" style={{ maxWidth: 200 }}>
               <label htmlFor="fld-years">Years in business</label>
-              <input id="fld-years" value={info.yearsInBusiness} onChange={set('yearsInBusiness')} placeholder="12" inputMode="numeric" maxLength={10} />
+              <input id="fld-years" value={info.yearsInBusiness} onChange={set('yearsInBusiness')} placeholder="12" inputMode="numeric" maxLength={LIMITS.yearsInBusiness} />
             </div>
             <div className="mm-fld">
               <label htmlFor="fld-about">Short about blurb <span className="sublab">optional</span></label>
@@ -92,11 +97,10 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
                 id="fld-about"
                 value={info.about}
                 onChange={set('about')}
-                maxLength={160}
                 placeholder="Family-owned and operated. Fully licensed and insured…"
-                aria-describedby="fld-about-count"
+                {...counted('fld-about-count', info.about, LIMITS.about)}
               />
-              <div id="fld-about-count" className="count">{info.about.length}/160</div>
+              <CharCount id="fld-about-count" value={info.about} max={LIMITS.about} />
             </div>
           </div>
         </div>

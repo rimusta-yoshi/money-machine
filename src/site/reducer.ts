@@ -1,10 +1,10 @@
-import type { GeneratedHero, ThemeKey } from '../gen'
-import type { BusinessInfo, SectionType, TradeConfig } from '../types'
+import type { Generated, SectionKey, ThemeKey } from '../gen'
+import type { BusinessInfo, TradeConfig } from '../types'
+import { tradeById } from '../trades'
 import { createSite } from './defaults'
+import { withRhythm } from './page'
 import type { ExtraId, Site, SiteContent } from './schema'
 import { styleRecord } from './style'
-
-type TemplateSection = Exclude<SectionType, 'hero'>
 
 export type SiteAction =
   | { type: 'pickTrade'; trade: TradeConfig }
@@ -12,13 +12,23 @@ export type SiteAction =
   | { type: 'setBrandColor'; color: string }
   | { type: 'toggleExtra'; extra: ExtraId }
   | { type: 'setTheme'; theme: ThemeKey }
-  | { type: 'select'; section: TemplateSection; variantId: string }
-  | { type: 'pickGenerated'; section: 'hero'; value: GeneratedHero }
+  /** The customer picked a layout: it replaces any earlier pick and any remembered preference. */
+  | { type: 'pickSection'; section: SectionKey; value: Generated }
+  /** Fit repair swapped (or restored) a layout; `value.preferred` keeps the customer's own pick. */
+  | { type: 'repairSection'; section: SectionKey; value: Generated }
   | { type: 'setContent'; patch: Partial<SiteContent> }
   | { type: 'reset' }
 
-/** All builder edits to the site record. null = no trade picked yet. */
+/**
+ * All builder edits to the site record. null = no trade picked yet. After every edit the
+ * page rhythm is re-solved from the whole page; picks are never changed by it.
+ */
 export function siteReducer(site: Site | null, action: SiteAction): Site | null {
+  const next = edit(site, action)
+  return next && next !== site ? withRhythm(next, tradeById[next.tradeId]) : next
+}
+
+function edit(site: Site | null, action: SiteAction): Site | null {
   if (action.type === 'reset') return null
   if (action.type === 'pickTrade') {
     if (site?.tradeId === action.trade.id) return site
@@ -43,9 +53,9 @@ export function siteReducer(site: Site | null, action: SiteAction): Site | null 
           ? site.extras.filter(e => e !== action.extra)
           : [...site.extras, action.extra],
       }
-    case 'select':
-      return { ...site, selections: { ...site.selections, [action.section]: action.variantId } }
-    case 'pickGenerated':
+    case 'pickSection':
+      return { ...site, sections: { ...site.sections, [action.section]: { seed: action.value.seed, spec: action.value.spec } } }
+    case 'repairSection':
       return { ...site, sections: { ...site.sections, [action.section]: action.value } }
     case 'setContent':
       return { ...site, content: { ...site.content, ...action.patch } }

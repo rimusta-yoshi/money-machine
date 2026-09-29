@@ -1,13 +1,7 @@
 import type { HeroSpec, SiteStyle } from '../schema'
 import type { HeroContent } from './content'
-import type { HeroMeasurement, MeasureInput, Measurer } from './measure'
+import type { HeroMeasurement } from './measure'
 import { FRAME, heroSizes } from './metrics'
-
-/**
- * A layout estimate from average glyph widths, for places without a DOM (tests, a Worker
- * picking a default hero). Deliberately pessimistic; the browser measurer is the real thing.
- */
-export const estimateMeasurer: Measurer = { measure: estimate }
 
 const GLYPH: Record<SiteStyle['display']['fallback'], number> = { 'sans-serif': 0.55, serif: 0.5, monospace: 0.62 }
 
@@ -41,7 +35,11 @@ function headlinePx(spec: HeroSpec, style: SiteStyle, phone: boolean): number {
   return spec.archetype === 'card' ? z.headline * 0.8 : z.headline
 }
 
-function estimate({ spec, style, content: c }: MeasureInput): HeroMeasurement {
+/**
+ * A hero layout estimate from average glyph widths, for places without a DOM.
+ * Deliberately pessimistic; the browser measurer is the real thing.
+ */
+export function estimateHero(spec: HeroSpec, style: SiteStyle, c: HeroContent): HeroMeasurement {
   const { pad, gap } = heroSizes(style)
   const upper = style.displayUpper
   const bh = style.buttonHeight

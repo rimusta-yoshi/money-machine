@@ -1,5 +1,8 @@
 import { useId } from 'react'
 import type { OpeningHours } from '../../site/schema'
+import { CharCount } from './CharCount'
+import { counted } from './counted'
+import { LIMITS } from '../../site/limits'
 
 const TYPICAL: OpeningHours[] = [
   { day: 'Mon – Fri', time: '8:00 – 17:00' },
@@ -38,11 +41,13 @@ export function HoursEditor({ hours, onChange }: Props) {
           <legend className="mm-sr-only">Opening hours row {i + 1}</legend>
           <div className="mm-fld">
             <label htmlFor={`${id}-d${i}`}>Days</label>
-            <input id={`${id}-d${i}`} value={row.day} maxLength={30} onChange={e => update(i, { day: e.target.value })} />
+            <input id={`${id}-d${i}`} value={row.day} {...counted(`${id}-dc${i}`, row.day, LIMITS.hoursDay)} onChange={e => update(i, { day: e.target.value })} />
+            <CharCount id={`${id}-dc${i}`} value={row.day} max={LIMITS.hoursDay} />
           </div>
           <div className="mm-fld">
             <label htmlFor={`${id}-t${i}`}>Hours</label>
-            <input id={`${id}-t${i}`} value={row.time} maxLength={40} onChange={e => update(i, { time: e.target.value })} />
+            <input id={`${id}-t${i}`} value={row.time} {...counted(`${id}-tc${i}`, row.time, LIMITS.hoursTime)} onChange={e => update(i, { time: e.target.value })} />
+            <CharCount id={`${id}-tc${i}`} value={row.time} max={LIMITS.hoursTime} />
           </div>
           <button type="button" className="mm-chip-x" onClick={() => remove(i)} aria-label={`Remove ${row.day || `row ${i + 1}`}`}>×</button>
         </fieldset>

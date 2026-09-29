@@ -8,6 +8,7 @@ import { ReviewsEditor } from './ReviewsEditor'
 import { RatingEditor } from './RatingEditor'
 import { GalleryEditor, PhotoEditor } from './PhotoEditor'
 import { defaultAlt } from '../../site/photoAlt'
+import { LIMITS } from '../../site/limits'
 
 const MAX_GALLERY = 12
 
@@ -29,7 +30,7 @@ export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props)
           onChange={badges => onContentChange({ badges })}
           placeholder="e.g. Gas Safe Registered"
           max={8}
-          maxLength={60}
+          maxLength={LIMITS.badge}
           suggestions={trade.trustSignals}
         />
       )
@@ -41,7 +42,7 @@ export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props)
           onChange={areas => onContentChange({ areas })}
           placeholder="e.g. Headingley"
           max={16}
-          maxLength={60}
+          maxLength={LIMITS.area}
         />
       )
     case 'hours':
@@ -105,7 +106,7 @@ function JobsDoneEditor({ value, onChange }: { value: string | null; onChange: (
       <input
         id={id}
         value={value ?? ''}
-        maxLength={20}
+        maxLength={LIMITS.jobsDone}
         placeholder="e.g. 500+"
         onChange={e => onChange(e.target.value.trim() ? e.target.value : null)}
       />

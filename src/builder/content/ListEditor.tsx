@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { CharCount } from './CharCount'
+import { counted } from './counted'
 
 interface Props {
   label: string
@@ -20,7 +22,8 @@ export function ListEditor({ label, items, onChange, placeholder, max, maxLength
   const has = (value: string) => list.some(i => i.toLowerCase() === value.toLowerCase())
 
   const add = (raw: string) => {
-    const value = raw.trim()
+    // Suggestions can be longer than the field allows; never store more than fits.
+    const value = raw.trim().slice(0, maxLength)
     if (!value || full || has(value)) return
     onChange([...list, value])
     setDraft('')
@@ -49,7 +52,7 @@ export function ListEditor({ label, items, onChange, placeholder, max, maxLength
           <input
             id={id}
             value={draft}
-            maxLength={maxLength}
+            {...counted(`${id}-count`, draft, maxLength)}
             placeholder={placeholder}
             disabled={full}
             onChange={e => setDraft(e.target.value)}
@@ -57,6 +60,7 @@ export function ListEditor({ label, items, onChange, placeholder, max, maxLength
           />
           <button type="button" className="mm-add-btn" onClick={() => add(draft)} disabled={full}>Add</button>
         </div>
+        <CharCount id={`${id}-count`} value={draft} max={maxLength} />
       </div>
       {unused.length > 0 && !full && (
         <div className="mm-suggest">

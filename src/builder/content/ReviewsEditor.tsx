@@ -1,5 +1,8 @@
 import { useId, useState } from 'react'
 import type { Review } from '../../site/schema'
+import { CharCount } from './CharCount'
+import { counted } from './counted'
+import { LIMITS } from '../../site/limits'
 
 const EMPTY: Review = { author: '', location: '', text: '', rating: 5 }
 
@@ -41,16 +44,19 @@ export function ReviewsEditor({ reviews, onChange }: Props) {
         <div className="mm-fld-2">
           <div className="mm-fld">
             <label htmlFor={`${id}-a`}>Their name</label>
-            <input id={`${id}-a`} value={draft.author} maxLength={60} placeholder="Sam P." onChange={e => setDraft({ ...draft, author: e.target.value })} />
+            <input id={`${id}-a`} value={draft.author} {...counted(`${id}-ac`, draft.author, LIMITS.reviewAuthor)} placeholder="Sam P." onChange={e => setDraft({ ...draft, author: e.target.value })} />
+            <CharCount id={`${id}-ac`} value={draft.author} max={LIMITS.reviewAuthor} />
           </div>
           <div className="mm-fld">
             <label htmlFor={`${id}-l`}>Where they live <span className="sublab">optional</span></label>
-            <input id={`${id}-l`} value={draft.location} maxLength={60} placeholder="Headingley" onChange={e => setDraft({ ...draft, location: e.target.value })} />
+            <input id={`${id}-l`} value={draft.location} {...counted(`${id}-lc`, draft.location, LIMITS.reviewLocation)} placeholder="Headingley" onChange={e => setDraft({ ...draft, location: e.target.value })} />
+            <CharCount id={`${id}-lc`} value={draft.location} max={LIMITS.reviewLocation} />
           </div>
         </div>
         <div className="mm-fld">
           <label htmlFor={`${id}-t`}>What they said</label>
-          <textarea id={`${id}-t`} value={draft.text} maxLength={400} onChange={e => setDraft({ ...draft, text: e.target.value })} />
+          <textarea id={`${id}-t`} value={draft.text} {...counted(`${id}-tc`, draft.text, LIMITS.reviewText)} onChange={e => setDraft({ ...draft, text: e.target.value })} />
+          <CharCount id={`${id}-tc`} value={draft.text} max={LIMITS.reviewText} />
         </div>
         <div className="mm-fld" style={{ maxWidth: 160 }}>
           <label htmlFor={`${id}-r`}>Stars</label>
