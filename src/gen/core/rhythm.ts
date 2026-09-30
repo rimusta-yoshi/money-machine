@@ -2,7 +2,7 @@ import type { SiteStyle } from '../schema'
 import { THEMES } from '../themes'
 import type { Motif } from '../themes/types'
 import { staticChecksAll } from './pipeline'
-import type { AnySpec, Band, SectionDef, SectionKey, SectionRhythm, Side } from './types'
+import type { AnySpec, Band, Facet, SectionDef, SectionKey, SectionRhythm, Shows, Side } from './types'
 
 export interface PageEntry { type: SectionKey; spec: AnySpec }
 export type Rhythm = Partial<Record<SectionKey, SectionRhythm>>
@@ -66,11 +66,15 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
   let lastSide: Side | null = null
   const used = new Map<Motif, number>()
   let prevMotifs: Motif[] = []
-  for (const e of page) {
+  page.forEach((e, i) => {
     const def = defs[e.type]
     const fixed = def.fixedBand?.(e.spec) ?? null
     const panel = def.panel?.(e.spec) ?? false
-    const alternate: Band = prev === 'ground' ? 'surface' : prev === 'surface' ? 'ground' : lastNeutral === 'ground' ? 'surface' : 'ground'
+    const next = page[i + 1]
+    const nextFixed = next ? defs[next.type].fixedBand?.(next.spec) ?? null : null
+    const turn: Band = prev === 'ground' ? 'surface' : prev === 'surface' ? 'ground' : lastNeutral === 'ground' ? 'surface' : 'ground'
+    // Look ahead: never take the same background as a neighbour whose band is fixed (a plain footer).
+    const alternate: Band = nextFixed === turn && prev !== (turn === 'ground' ? 'surface' : 'ground') ? (turn === 'ground' ? 'surface' : 'ground') : turn
     let band: Band = fixed ?? (loud.has(e.type) ? 'brand' : alternate)
     if (panel && band === 'ground') band = 'surface'
     if (!panel && (band === 'ground' || band === 'surface')) lastNeutral = band
@@ -97,7 +101,33 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
     prevMotifs = motif ? wanted : []
 
     // A quiet brand colour (barely different from the ground) only appears on contrasting bands.
-    out[e.type] = { band: band === 'brand' && style.palette.quiet ? 'ink' : band, side, motif }
-  }
-  return out
+    out[e.type] = { band: band === 'brand' && style.palette.quiet ? 'ink' : band, side, motif, omit: [] }
+  })
+  return withoutRepeats(page, defs, out)
+}
+
+const showsOf = (defs: Record<SectionKey, SectionDef>, e: PageEntry): readonly Shows[] =>
+  defs[e.type].archetypes[e.spec.archetype]?.shows?.(e.spec.params as never) ?? []
+
+/**
+ * Neighbouring sections never repeat content: when two in a row show the same thing (say
+ * the hero's credential strip and the trust bar under it), the one where it's incidental
+ * leaves it out. If neither is built around it, the later one does; if both are, both keep it.
+ */
+function withoutRepeats(page: readonly PageEntry[], defs: Record<SectionKey, SectionDef>, rhythm: Rhythm): Rhythm {
+  const omit = new Map<SectionKey, Set<Facet>>(page.map(e => [e.type, new Set<Facet>()]))
+  page.forEach((e, i) => {
+    const next = page[i + 1]
+    if (!next) return
+    const a = showsOf(defs, e).filter(s => !omit.get(e.type)!.has(s.facet))
+    const b = showsOf(defs, next)
+    for (const sa of a) {
+      const sb = b.find(s => s.facet === sa.facet)
+      if (!sb || (sa.core && sb.core)) continue
+      // The section built around it keeps it; with neither built around it, the later one drops it.
+      const loser = sb.core ? e.type : next.type
+      omit.get(loser)!.add(sa.facet)
+    }
+  })
+  return Object.fromEntries(Object.entries(rhythm).map(([type, r]) => [type, { ...r!, omit: [...(omit.get(type as SectionKey) ?? [])] }]))
 }

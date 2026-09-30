@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import type { SectionType, TradeConfig } from '../types'
-import { specKey } from '../gen'
-import type { Generated, ResolvedSection, SectionKey } from '../gen'
+import { specKey, THEMES } from '../gen'
+import type { Generated, PagePhoto, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
 import { siteSections } from '../site/sections'
 import { SECTION_LABELS } from '../site/labels'
@@ -11,9 +11,11 @@ import { sitePage } from '../site/page'
 import { pageContent } from '../site/pageContent'
 import { withSample } from '../sample/content'
 import { samplePhotos } from '../sample/photos'
+import { loadStockPhotos } from '../sample/stockPhotos'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
+import { ExampleSection } from './ExampleSection'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
 import type { SiteStyleControls } from './SiteStyleCard'
@@ -56,8 +58,14 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
   const sampleOn = import.meta.env.DEV && (siteStyle.sample?.on ?? false)
+  // Dev-only stock photos for the sample switch; drawn placeholders until (or unless) they load.
+  const [stock, setStock] = useState<PagePhoto[] | null>(null)
+  useEffect(() => { if (sampleOn) loadStockPhotos().then(setStock) }, [sampleOn])
   // Sample content is view-only: it never reaches the record, so it can't be saved or published.
-  const content = useMemo(() => (sampleOn ? withSample(pageContent(site, trade), samplePhotos()) : pageContent(site, trade)), [site, trade, sampleOn])
+  const content = useMemo(
+    () => (sampleOn ? withSample(pageContent(site, trade), stock ?? samplePhotos(), THEMES[site.style.theme].voice.why) : pageContent(site, trade)),
+    [site, trade, sampleOn, stock],
+  )
   const picker = useSectionPicker(site, content, activeType)
   // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
   const page = useMemo(
@@ -208,11 +216,13 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
                       {state === 'done' && <><Icon.Check size={10} /> </>}
                       {isActive ? `Editing · ${label}` : label}
                     </div>
-                    {showPlaceholder(i) ? (
+                    {waiting ? (
+                      <ExampleSection type={sec.type} site={site} content={content} needs={SECTION_NEEDS[sec.type] ?? 'Add content to show this.'} />
+                    ) : showPlaceholder(i) ? (
                       <div className="mm-band-blank">
                         <span className="mm-band-blank-name">{label}</span>
                         <span className="mm-band-blank-hint">
-                          {waiting ? SECTION_NEEDS[sec.type] ?? 'Add content to show this section.' : 'tap to build this section'}
+                          tap to build this section
                         </span>
                       </div>
                     ) : (() => {

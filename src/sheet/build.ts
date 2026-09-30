@@ -17,17 +17,18 @@ export const THEME_BRANDS: Record<ThemeKey, string> = {
 /** A trade's page content with nothing filled in yet, as a brand-new site would have. */
 export function tradeContent(trade: TradeConfig, year = 2026): PageContent {
   return {
-    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, services: trade.services },
+    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, offer: trade.offer, services: trade.services },
     business: { name: '', phone: '', tel: null, email: '', location: '', about: '', years: '' },
-    badges: [], areas: [], hours: [], emergency: false, jobsDone: null, rating: null, reviews: [],
+    badges: [], whyUs: [], certsNote: null, areas: [], hours: [], emergency: false, jobsDone: null, rating: null, reviews: [],
     photos: { hero: null, about: null, gallery: [] },
     quoteForm: false,
     year,
   }
 }
 
-export const sampleFor = (trade: TradeConfig, photos: PageContent['photos']['gallery']): PageContent =>
-  withSample(tradeContent(trade), photos)
+/** A trade's page with sample content, including the theme's own suggested why-us lines. */
+export const sampleFor = (trade: TradeConfig, photos: PageContent['photos']['gallery'], theme: ThemeKey): PageContent =>
+  withSample(tradeContent(trade), photos, THEMES[theme].voice.why)
 
 let uid = 0
 /** Ids made unique per rendered copy, so a sheet full of sections stays a valid document. */

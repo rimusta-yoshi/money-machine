@@ -103,7 +103,8 @@ describe('content rules', () => {
   const allowedFor = (t: SectionKey, c: PageContent) => allowed(SECTIONS[t], viewOf(t, c))
 
   it('leaves out sections whose content is missing, never inventing it', () => {
-    expect(presentSections(SECTION_KEYS, BARE_PAGE)).toEqual(['hero', 'services', 'about', 'why_us', 'contact', 'footer'])
+    // Why-us lines are the customer's to tick or write, so a new site has none.
+    expect(presentSections(SECTION_KEYS, BARE_PAGE)).toEqual(['hero', 'services', 'about', 'contact', 'footer'])
     expect(presentSections(SECTION_KEYS, RICH_PAGE)).toEqual([...SECTION_KEYS])
   })
 
@@ -171,8 +172,10 @@ describe('rhythm', () => {
   it.each(sites)('site $seed: neighbouring full-width sections never share a background', ({ seed, content }) => {
     const { page: p } = page(content, seed)
     const panel = (s: ResolvedSection) => SECTIONS[s.type].panel?.(s.spec as never) ?? false
+    // A fixed band (a plain footer draws its own top rule) can't always alternate.
+    const fixed = (s: ResolvedSection) => !!SECTIONS[s.type].fixedBand?.(s.spec as never)
     p.forEach((s, i) => {
-      if (i === 0 || panel(s) || panel(p[i - 1])) return
+      if (i === 0 || panel(s) || panel(p[i - 1]) || fixed(s) || fixed(p[i - 1])) return
       expect(s.rhythm.band, `${p[i - 1].type} → ${s.type}`).not.toBe(p[i - 1].rhythm.band)
     })
   })

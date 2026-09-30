@@ -33,6 +33,8 @@ function maxedSite(tradeIdx: number, seed: number): Site {
     extras: ['reviews'],
     content: {
       badges: Array.from({ length: 8 }, () => fill(LIMITS.badge)),
+      whyUs: Array.from({ length: 6 }, () => ({ title: fill(LIMITS.whyTitle), text: fill(LIMITS.whyText) })),
+      certsNote: fill(LIMITS.certsNote),
       areas: Array.from({ length: 16 }, () => fill(LIMITS.area)),
       hours: Array.from({ length: 8 }, () => ({ day: fill(LIMITS.hoursDay), time: fill(LIMITS.hoursTime) })),
       emergency: true,

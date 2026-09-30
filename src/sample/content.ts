@@ -13,7 +13,19 @@ export const SAMPLE_REVIEWS: PageContent['reviews'] = [
   { text: 'Clear price up front and no surprises on the bill. Tidy work throughout.', author: 'Mrs E. Walsh', location: 'Pannal', rating: 4 },
 ]
 
-export function withSample(c: PageContent, photos: readonly PagePhoto[]): PageContent {
+/** Why-us lines for samples when no theme's suggestions are given. */
+const SAMPLE_WHY: PageContent['whyUs'] = [
+  ['Quick replies', 'We get back to you promptly and arrive when we say we will.'],
+  ['Clear quotes', 'A written quote before any work starts, with no hidden extras.'],
+  ['Clean and careful', 'We protect your home while we work and tidy up after.'],
+  ['Kept informed', 'Updates as the job progresses, and a follow-up when it’s done.'],
+]
+
+/**
+ * `why` is usually the site theme's own suggested lines. Quote forms keep whatever the
+ * page content says: they stay hidden while enquiries are switched off (FEATURES).
+ */
+export function withSample(c: PageContent, photos: readonly PagePhoto[], why: PageContent['whyUs'] = SAMPLE_WHY): PageContent {
   const [hero, about, ...gallery] = photos
   return {
     ...c,
@@ -28,6 +40,8 @@ export function withSample(c: PageContent, photos: readonly PagePhoto[]): PageCo
       years: c.business.years || '26',
     },
     badges: c.badges.length ? c.badges : ['Fully insured', 'Fixed written quotes', '12-month guarantee'],
+    whyUs: c.whyUs.length ? c.whyUs : why.slice(0, 4),
+    certsNote: c.certsNote ?? 'Certificates available on request.',
     areas: c.areas.length ? c.areas : ['Harrogate', 'Knaresborough', 'Ripon', 'Pannal', 'Wetherby', 'Boroughbridge'],
     hours: c.hours.length ? c.hours : [{ day: 'Mon – Fri', time: '7:00 – 19:00' }, { day: 'Saturday', time: '8:00 – 14:00' }],
     emergency: true,
@@ -39,8 +53,6 @@ export function withSample(c: PageContent, photos: readonly PagePhoto[]): PageCo
       about: c.photos.about ?? about ?? null,
       gallery: c.photos.gallery.length ? c.photos.gallery : gallery,
     },
-    // Forms don't send yet (FEATURES.enquiries), but the sample shows their layouts too.
-    quoteForm: true,
     sample: true,
   }
 }

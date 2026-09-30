@@ -3,6 +3,7 @@ import type { SectionKey, ThemeKey } from '../gen'
 import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
 import { esc } from '../gen/html'
 import { samplePhotos } from '../sample/photos'
+import { loadStockPhotos } from '../sample/stockPhotos'
 import { tradeById } from '../trades'
 import type { TradeId } from '../types'
 import { batchFor, resolveSiteStyle, sampleFor, samplePage, sectionOptions, styleSummary, THEME_BRANDS } from './build'
@@ -45,16 +46,16 @@ function nav(): string {
 }
 
 async function run() {
-  root.innerHTML = `<header class="cs-top"><h1>Theme contact sheet</h1><p>${esc(trade.name)} with sample content. Six options per section, then three whole pages, for each theme. Each option shows desktop (scaled) and phone.</p>${nav()}</header>`
+  root.innerHTML = `<header class="cs-top"><h1>Theme contact sheet</h1><p>${esc(trade.name)} with sample content and sample stock photos (Pexels, see reference/sample-photos/LICENCE.md). Six options per section, then three whole pages, for each theme. Each option shows desktop (scaled) and phone.</p>${nav()}</header>`
   root.appendChild(status)
-  const photos = samplePhotos()
-  const content = sampleFor(trade, photos)
+  const photos = (await loadStockPhotos()) ?? samplePhotos()
   const measurer = createDomMeasurer(document)
   try {
     for (const theme of themes) {
       const t = THEMES[theme]
       const brand = brandOverride ?? THEME_BRANDS[theme]
       const siteStyle = resolveSiteStyle(theme, brand, baseSeed)
+      const content = sampleFor(trade, photos, theme)
       await loadStyleFonts(document, siteStyle)
       const block = document.createElement('section')
       block.className = 'cs-theme'

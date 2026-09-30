@@ -48,7 +48,7 @@ describe('sectionChecklist', () => {
     expect(ids(site, 'areas')).toEqual(['areas'])
     expect(ids(site, 'services')).toEqual(['emergency'])
     expect(ids(site, 'trust_bar')).toEqual(['badges', 'emergency', 'jobsDone'])
-    expect(ids(site, 'why_us')).toEqual(['photos.about'])
+    expect(ids(site, 'why_us')).toEqual(['whyUs', 'photos.about'])
     expect(ids(site, 'footer')).toEqual([])
   })
 

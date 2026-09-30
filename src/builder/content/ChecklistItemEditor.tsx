@@ -9,6 +9,9 @@ import { RatingEditor } from './RatingEditor'
 import { GalleryEditor, PhotoEditor } from './PhotoEditor'
 import { defaultAlt } from '../../site/photoAlt'
 import { LIMITS } from '../../site/limits'
+import { THEMES } from '../../gen'
+import { CERTS_NOTE_SUGGESTION } from '../../site/suggestions'
+import { SuggestedLinesEditor, SuggestedNoteEditor } from './SuggestedLinesEditor'
 
 const MAX_GALLERY = 12
 
@@ -32,6 +35,24 @@ export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props)
           max={8}
           maxLength={LIMITS.badge}
           suggestions={trade.trustSignals}
+        />
+      )
+    case 'whyUs':
+      return (
+        <SuggestedLinesEditor
+          lines={c.whyUs ?? null}
+          suggestions={THEMES[site.style.theme].voice.why}
+          onChange={whyUs => onContentChange({ whyUs })}
+          max={6}
+        />
+      )
+    case 'certsNote':
+      return (
+        <SuggestedNoteEditor
+          note={c.certsNote ?? null}
+          suggestion={CERTS_NOTE_SUGGESTION}
+          onChange={certsNote => onContentChange({ certsNote })}
+          max={LIMITS.certsNote}
         />
       )
     case 'areas':

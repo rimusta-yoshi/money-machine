@@ -1,4 +1,4 @@
-import { resolvePage, rhythmOf } from '../gen'
+import { cautiousMeasurer, presentSections, resolvePage, rhythmOf } from '../gen'
 import type { AnySpec, Measurer, PageContent, ResolvedSection, SavedSections, SectionKey } from '../gen'
 import type { TradeConfig } from '../types'
 import { pageContent } from './pageContent'
@@ -41,7 +41,15 @@ export function withRhythm<S extends Site>(site: S, trade: TradeConfig): S {
   return { ...site, rhythm: rhythmOf(sitePage(site, trade)) }
 }
 
+/**
+ * Sections on the page with no spec in the record yet. The builder measures and saves them
+ * before the finish step; publishing (which never measures) waits until this is empty.
+ */
+export function unsavedSections(site: PageSite, trade: TradeConfig): SectionKey[] {
+  return presentSections(pageOrder(trade, site), pageContent(site, trade)).filter(t => !site.sections[t])
+}
+
 /** The page as it will be published: saved picks, generator defaults, and the rhythm saved in the record. */
 export function publishedPage(site: Site, trade: TradeConfig): ResolvedSection[] {
-  return sitePage(site, trade).map(s => ({ ...s, rhythm: site.rhythm[s.type] ?? s.rhythm }))
+  return sitePage(site, trade, { measurer: cautiousMeasurer }).map(s => ({ ...s, rhythm: site.rhythm[s.type] ?? s.rhythm }))
 }

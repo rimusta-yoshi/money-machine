@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { SECTION_TYPES, TRADE_IDS } from '../types'
 import { LEGACY_THEME_KEYS, siteStyleSchema, THEME_KEYS } from '../gen/schema'
-import { BANDS, SECTION_KEYS } from '../gen/core/types'
+import { BANDS, FACETS, SECTION_KEYS } from '../gen/core/types'
 import { generatedSectionsSchema } from '../gen/specs'
 import { LIMITS } from './limits'
 
@@ -64,6 +64,13 @@ const contentSchemaFor = (L: Limits) => z.object({
   jobsDone: text(L.jobsDone).min(1).nullable(),
   rating: z.object({ score: z.number().min(1).max(5), count: z.number().int().min(1) }).nullable(),
   reviews: z.array(reviewSchemaFor(L)).max(12).nullable(),
+  /**
+   * Why-us lines the customer ticked or wrote (suggestions are never published untouched).
+   * Optional so records from before suggestions existed still parse.
+   */
+  whyUs: z.array(z.object({ title: text(LIMITS.whyTitle).min(1), text: text(LIMITS.whyText) }).strict()).max(6).nullable().optional(),
+  /** A note under the credentials, e.g. "Certificates available on request", only when ticked or written. */
+  certsNote: text(LIMITS.certsNote).min(1).nullable().optional(),
   photos: z.object({
     hero: photoSchemaFor(L).nullable(),
     about: photoSchemaFor(L).nullable(),
@@ -125,7 +132,7 @@ export type SiteV3 = z.infer<typeof siteSchemaV3>
 
 const rhythmSchema = z.partialRecord(
   z.enum(SECTION_KEYS),
-  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean() }).strict(),
+  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean(), omit: z.array(z.enum(FACETS)).optional() }).strict(),
 )
 
 /**

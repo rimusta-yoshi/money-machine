@@ -3,6 +3,7 @@ import { SECTION_KEYS, THEME_KEYS } from '../gen'
 import type { ThemeKey } from '../gen'
 import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
 import { samplePhotos } from '../sample/photos'
+import { loadStockPhotos } from '../sample/stockPhotos'
 import { tradeById } from '../trades'
 import { batchFor, resolveSiteStyle, sampleFor, samplePage, sectionOptions, THEME_BRANDS } from './build'
 
@@ -33,11 +34,12 @@ export async function runA11y(root: HTMLElement, themes: readonly ThemeKey[] = T
   window.__a11y = state
   const host = document.createElement('div')
   root.appendChild(host)
-  const content = sampleFor(tradeById.plumber, samplePhotos())
+  const photos = (await loadStockPhotos()) ?? samplePhotos()
   const measurer = createDomMeasurer(document)
   try {
     for (const theme of themes) for (const brand of [THEME_BRANDS[theme], ...brands]) {
       const style = resolveSiteStyle(theme, brand, 11)
+      const content = sampleFor(tradeById.plumber, photos, theme)
       await loadStyleFonts(document, style)
       state.progress = `${theme} ${brand}`
       const items: [string, string][] = [['page', samplePage(style, 11, content, measurer)]]

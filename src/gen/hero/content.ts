@@ -1,4 +1,4 @@
-import { facts } from '../content'
+import { facts, offerLine } from '../content'
 import type { PageContent, PagePhoto, PageReview } from '../content'
 
 /**
@@ -30,7 +30,7 @@ export function heroView(c: PageContent): HeroContent {
   const { business: b, trade: t } = c
   return {
     headline: t.tagline,
-    sub: `${t.ctaText}${b.location ? ` across ${b.location}` : ''}. ${t.ctaSubtext}.`,
+    sub: offerLine(c),
     eyebrow: b.location ? `${t.name} · ${b.location}` : t.name,
     place: b.location,
     call: b.tel ? { number: b.phone, href: b.tel } : null,
@@ -41,7 +41,7 @@ export function heroView(c: PageContent): HeroContent {
     rating: c.rating,
     reviews: c.reviews,
     facts: facts(c),
-    subtext: t.ctaSubtext,
+    subtext: offerLine(c),
     quoteForm: c.quoteForm,
   }
 }

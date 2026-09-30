@@ -12,8 +12,8 @@ export type { Biome } from './themes'
 export { sizesFor } from './themes/sizes'
 
 // Sections
-export { SECTION_KEYS, BANDS, MAX_STEP } from './core/types'
-export type { SectionKey, Band, Side, SectionRhythm, SectionDef, AnySpec, Generated, Measurer, Measurement, Check, MeasureInput, Step } from './core/types'
+export { SECTION_KEYS, BANDS, FACETS, MAX_STEP } from './core/types'
+export type { Facet, Shows, SectionKey, Band, Side, SectionRhythm, SectionDef, AnySpec, Generated, Measurer, Measurement, Check, MeasureInput, Step } from './core/types'
 export {
   generateOptions, generateSpec, repairSection, fitFailures as sectionFitFailures, defaultSpec, specKey, isPresent,
   candidateSeed, nextBatchSeed, pickDistinct, features, staticChecksAll, punchScore, BATCH_SIZE, SHOW,
@@ -22,7 +22,7 @@ export type { Candidate, Options, FitResult as SectionFitResult } from './core/p
 export { outsideTheme } from './core/punch'
 export { solveRhythm } from './core/rhythm'
 export type { Rhythm, PageEntry } from './core/rhythm'
-export { estimateMeasurer } from './core/estimate'
+export { estimateMeasurer, cautiousMeasurer } from './core/estimate'
 export { FRAME } from './core/fit'
 export {
   SECTIONS, GEN_CSS, sectionBatch, viewOf, sectionPresent, presentSections, renderableSpec, resolvePage, rhythmOf,

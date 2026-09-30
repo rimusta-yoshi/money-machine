@@ -16,6 +16,7 @@ import { FinishStep } from './builder/finish/FinishStep'
 import { Icon } from './components/ui/Icon'
 import { useFitRepair } from './builder/useFitRepair'
 import { FitNotice } from './builder/FitNotice'
+import { verifySite } from './builder/verifySite'
 import { randomSeed } from './gen'
 import type { Generated, SectionKey } from './gen'
 
@@ -40,6 +41,23 @@ export default function App() {
   const editing = step === 'build' || step === 'finish'
   const fit = useFitRepair(editing ? site : null, trade, repair)
   const dismissFit = fit.dismiss
+  // Before the finish step and before publishing, every section is measured on real screens.
+  const [verifying, setVerifying] = useState(false)
+  const verifyThen = async (next: () => void) => {
+    if (!site || !trade) return
+    setVerifying(true)
+    try {
+      for (const v of await verifySite(site, trade)) {
+        dispatch(v.status === 'chosen' ? { type: 'pickSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry })
+      }
+      next()
+    } catch (err) {
+      console.error('Checking the site failed', err)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   // Dev-only preview switch: sample content for seeing a theme's full range. Stripped from production builds.
   const [sample, setSample] = useState(false)
 
@@ -172,7 +190,7 @@ export default function App() {
                 initialSection={focusSection}
                 onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}
                 onContentChange={patch => dispatch({ type: 'setContent', patch })}
-                onDone={() => setStep('finish')}
+                onDone={() => verifyThen(() => setStep('finish'))}
                 siteStyle={{
                   theme: site.style.theme,
                   tuned: site.style.resolved.palette.tuned,
@@ -191,7 +209,7 @@ export default function App() {
               site={site}
               onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
               onEditSection={section => { setFocusSection(section); setStep('build') }}
-              onPublish={() => setDone(true)}
+              onPublish={() => verifyThen(() => setDone(true))}
               onBack={() => setStep('build')}
             />
           )}
@@ -200,6 +218,11 @@ export default function App() {
       </div>
 
       <FitNotice notice={editing ? fit.notice : null} onDismiss={dismissFit} />
+      {verifying && (
+        <div className="mm-verify" role="status" aria-live="polite">
+          <span className="mm-verify-spin" aria-hidden="true" /> Checking every section on a phone and a desktop screen…
+        </div>
+      )}
 
       {/* Done overlay — only shown after all sections chosen; no StickyCallBar overlap risk */}
       {done && trade && site && (

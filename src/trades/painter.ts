@@ -4,7 +4,7 @@ export const painter: TradeConfig = {
   id: 'painter',
   name: 'Painter',
   emoji: '🖌️',
-  tagline: 'Professional painting you can actually see the difference.',
+  tagline: 'Painting and decorating with a finish you’ll notice.',
   colorScheme: {
     navy: '#1E3A5F',
     navyHover: '#2A4F7C',
@@ -20,9 +20,10 @@ export const painter: TradeConfig = {
     { type: 'testimonials' },
     { type: 'contact' },
   ],
-  ctaText: 'Get a Free Quote',
-  ctaSubtext: 'Free, no-obligation quotes',
-  trustSignals: ['Licensed & Insured', 'Free Estimates', 'Local Family Business', '10+ Years Experience', 'Satisfaction Guaranteed'],
-  services: ['Interior Painting', 'Exterior Painting', 'Cabinet Refinishing', 'Deck Staining', 'Colour Consultation', 'Feature Walls'],
+  ctaText: 'Get a free quote',
+  ctaSubtext: 'No obligation',
+  offer: 'Free quotes',
+  trustSignals: ['Fully insured', 'Local family business', 'Dust sheets and a tidy finish', 'Colour advice included'],
+  services: ['Interior painting', 'Exterior painting', 'Kitchen cabinet painting', 'Deck staining', 'Colour advice', 'Feature walls'],
   stickyCallBar: true,
 }

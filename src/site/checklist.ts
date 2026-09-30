@@ -5,6 +5,8 @@ import { siteSections } from './sections'
 
 export type ChecklistId =
   | 'badges'
+  | 'whyUs'
+  | 'certsNote'
   | 'emergency'
   | 'areas'
   | 'hours'
@@ -34,6 +36,8 @@ const filled = (v: unknown[] | null) => v !== null && v.length > 0
 const RULES: Rule[] = [
   { id: 'photos.hero', label: 'Main photo', usedBy: ['hero'], done: s => s.content.photos.hero !== null },
   { id: 'badges', label: 'Your credentials and guarantees', usedBy: ['trust_bar', 'certifications'], done: s => filled(s.content.badges) },
+  { id: 'whyUs', label: 'Why people should choose you', usedBy: ['why_us'], done: s => filled(s.content.whyUs ?? null) },
+  { id: 'certsNote', label: 'A note about your certificates', usedBy: ['certifications'], done: s => !!s.content.certsNote },
   { id: 'emergency', label: 'Do you offer emergency call-outs?', usedBy: ['trust_bar', 'services', 'contact'], done: s => s.content.emergency !== null },
   { id: 'jobsDone', label: 'Roughly how many jobs you’ve done', usedBy: ['trust_bar', 'about'], done: s => s.content.jobsDone !== null },
   { id: 'photos.about', label: 'Team or van photo', usedBy: ['about', 'why_us'], done: s => s.content.photos.about !== null },
