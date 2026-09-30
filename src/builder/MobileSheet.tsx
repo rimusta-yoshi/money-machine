@@ -5,6 +5,7 @@ import { sectionChecklist } from '../site/checklist'
 import { Icon } from '../components/ui/Icon'
 import { SectionContentEditor } from './content/SectionContentEditor'
 import type { SectionNavProps } from './sectionNav'
+import { SiteStyleCard } from './SiteStyleCard'
 
 /** Phone bottom sheet: layout switcher plus the active section's content. Swipe the canvas to change layout. */
 export function MobileSheet(props: SectionNavProps) {
@@ -52,6 +53,11 @@ export function MobileSheet(props: SectionNavProps) {
           </div>
         </>
       )}
+
+      <details className="mm-sheet-style">
+        <summary>Site style</summary>
+        <SiteStyleCard {...props.siteStyle} />
+      </details>
 
       {allDone ? (
         <button type="button" className="mm-ctrl-launch" onClick={props.onFinish} disabled={layout.loading}>

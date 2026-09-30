@@ -144,7 +144,7 @@ export function SetupForm({ trade, site, onBusinessChange, onBrandColorChange, o
         </div>
 
         <div className="mm-step2-side">
-          <BrandColorCard color={site.brandColor} onChange={onBrandColorChange} />
+          <BrandColorCard color={site.brandColor} onChange={onBrandColorChange} tuned={site.style.resolved.palette.tuned} />
           <ExtrasCard extras={site.extras} onToggle={onToggleExtra} />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { isPicked } from '../site/sections'
 import { Icon } from '../components/ui/Icon'
 import { SectionContentEditor } from './content/SectionContentEditor'
 import type { SectionNavProps } from './sectionNav'
+import { SiteStyleCard } from './SiteStyleCard'
 
 interface Props extends SectionNavProps {
   deviceLabel: 'Mobile' | 'Desktop'
@@ -28,6 +29,8 @@ export function ControlRail(props: Props) {
           <div className={`sc-fill${allDone ? ' full' : ''}`} style={{ width: `${(doneCount / sections.length) * 100}%` } as CSSProperties} />
         </div>
       </div>
+
+      <SiteStyleCard {...props.siteStyle} />
 
       <div className="sc-now">
         <div className="sc-now-top">

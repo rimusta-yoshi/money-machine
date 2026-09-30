@@ -2,8 +2,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { fontFaceCss, fontFileName, GEN_CSS, renderHero, resolveSiteStyle, SITE_FONT_FILES, siteFontFaces, THEME_KEYS, THEMES } from '.'
-import { ONE_OF_EACH, RICH } from './test/fixtures'
+import { fontFaceCss, fontFileName, GEN_CSS, renderPage, resolvePage, resolveSiteStyle, SECTION_KEYS, SITE_FONT_FILES, siteFontFaces, THEME_KEYS, THEMES } from '.'
+import { RICH_PAGE } from './test/fixtures'
 
 const root = join(__dirname, '..', '..')
 const fontsDir = join(root, 'public', 'fonts')
@@ -11,17 +11,17 @@ const builderCss = readFileSync(join(fontsDir, 'fonts.css'), 'utf8')
 
 describe('self-hosted fonts', () => {
   it('has a file for every face a theme can ask for', () => {
-    for (const theme of Object.values(THEMES)) for (const pair of theme.fonts) {
-      expect(SITE_FONT_FILES[pair.display.family], pair.display.family).toContain(pair.display.weight)
-      expect(SITE_FONT_FILES[pair.body.family], pair.body.family).toContain(pair.body.weight)
+    for (const theme of Object.values(THEMES)) for (const face of Object.values(theme.fonts)) {
+      expect(SITE_FONT_FILES[face.family], face.family).toContain(String(face.weight))
     }
   })
 
   it('ships every registered file, and the builder stylesheet declares it', () => {
-    for (const [family, weights] of Object.entries(SITE_FONT_FILES)) for (const weight of weights) {
-      const file = fontFileName({ family, weight })
+    for (const [family, faces] of Object.entries(SITE_FONT_FILES)) for (const face of faces) {
+      const [weight, italic] = face.split('-')
+      const file = fontFileName({ family, weight: Number(weight), italic: !!italic })
       expect(existsSync(join(fontsDir, file)), file).toBe(true)
-      expect(builderCss).toContain(`font-family:'${family}';font-style:normal;font-weight:${weight};`)
+      expect(builderCss).toContain(`font-family:'${family}';font-style:${italic ? 'italic' : 'normal'};font-weight:${weight};`)
     }
   })
 
@@ -34,7 +34,7 @@ describe('self-hosted fonts', () => {
       const style = resolveSiteStyle(theme, '#1E88E5', seed)
       const css = fontFaceCss(style, 'https://site.example/fonts/')
       const families = new Set(siteFontFaces(style).map(f => f.family))
-      expect([...families].sort()).toEqual([...new Set([style.display.family, style.body.family])].sort())
+      expect([...families].sort()).toEqual([...new Set(Object.values(style.fonts).map(f => f.family))].sort())
       expect(css).not.toMatch(/fonts\.(googleapis|gstatic)\.com/)
       for (const url of css.match(/url\('([^']+)'\)/g) ?? []) expect(url).toMatch(/^url\('https:\/\/site\.example\/fonts\/[a-z0-9-]+\.woff2'\)$/)
     }
@@ -53,9 +53,12 @@ describe('no third-party font requests', () => {
     }
   })
 
-  it('generated heroes and their stylesheet never reference an external font host', () => {
-    const style = resolveSiteStyle('luxury', '#8C6D3F', 2)
-    for (const spec of ONE_OF_EACH) expect(renderHero(spec, style, RICH)).not.toMatch(/fonts\.(googleapis|gstatic)/)
+  it('generated pages and their stylesheet never reference an external font host', () => {
+    for (const theme of THEME_KEYS) {
+      const style = resolveSiteStyle(theme, '#8C6D3F', 2)
+      const page = resolvePage({ order: SECTION_KEYS, saved: {}, content: RICH_PAGE, style, styleSeed: 2 })
+      expect(renderPage(page, style, RICH_PAGE)).not.toMatch(/fonts\.(googleapis|gstatic)/)
+    }
     expect(GEN_CSS).not.toMatch(/@import|fonts\.(googleapis|gstatic)/)
   })
 })

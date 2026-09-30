@@ -1,17 +1,26 @@
 import { z } from 'zod'
-import type { ButtonStyle, SiteStyle, ThemeKey } from '../schema'
+import type { SiteStyle, ThemeKey } from '../schema'
+import { THEMES } from '../themes'
+import type { Biome, Break } from '../themes/types'
 import { sectionContrast } from './contrast'
+import type { ContrastOpts } from './contrast'
 import { estimateSection, sectionMeasuredChecks } from './fit'
 import { shell } from './markup'
-import type { AnySpec, Archetype, Band, SectionDef, SectionKey, SectionRhythm } from './types'
+import type { AnySpec, Archetype, Band, Check, Measurement, SectionDef, SectionKey, SectionRhythm, Step } from './types'
 
 /** A stored spec schema for one section: a discriminated union over its archetypes. */
 export function specSchema<T extends SectionKey, A extends Record<string, z.ZodRawShape>>(section: T, archetypes: A) {
   const variants = Object.entries(archetypes).map(([archetype, params]) =>
-    z.object({ v: z.literal(1), section: z.literal(section), archetype: z.literal(archetype), params: z.object(params).strict() }).strict(),
+    z.object({
+      v: z.literal(2),
+      section: z.literal(section),
+      archetype: z.literal(archetype),
+      step: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+      params: z.object(params).strict(),
+    }).strict(),
   )
   return z.discriminatedUnion('archetype', variants as unknown as [z.ZodObject, ...z.ZodObject[]]) as unknown as z.ZodType<{
-    [K in keyof A & string]: { v: 1; section: T; archetype: K; params: z.infer<z.ZodObject<A[K]>> }
+    [K in keyof A & string]: { v: 2; section: T; archetype: K; step: Step; params: z.infer<z.ZodObject<A[K]>> }
   }[keyof A & string]>
 }
 
@@ -20,10 +29,20 @@ export type ParamsFor<S extends AnySpec, K extends S['archetype']> = Extract<S, 
 
 export type Archetypes<S extends AnySpec, C> = { [K in S['archetype']]: Archetype<C, ParamsFor<S, K>> }
 
-interface Body {
+export interface Body {
   inner: string
   cls?: string
   vars?: string
+  brk?: Break
+}
+
+/** What a section body gets to render with. */
+export interface BodyContext {
+  style: SiteStyle
+  biome: Biome
+  rhythm: SectionRhythm
+  /** Whether the rhythm lets this section draw its motif. */
+  motif: boolean
 }
 
 interface SectionOpts<S extends AnySpec, C> {
@@ -39,13 +58,14 @@ interface SectionOpts<S extends AnySpec, C> {
   tag?: 'section' | 'footer'
   checkBands?: readonly Band[]
   fixedBand?: (spec: S) => Band | null
-  /** Whether this layout puts text on cards (checked for contrast too). */
-  cards?: (spec: S) => boolean
-  /** The button style this layout draws, if any. */
-  button?: (spec: S, style: SiteStyle) => ButtonStyle | null
-  body: (spec: S, style: SiteStyle, c: C, rhythm: SectionRhythm) => Body
-  /** The heading and the longest texts, for the estimator. */
-  words: (spec: S, c: C) => { title: string; texts: readonly string[] }
+  panel?: (spec: S) => boolean
+  /** Contrast options: cards on this layout, the button style it draws, a scrim. */
+  contrast?: (spec: S, style: SiteStyle) => ContrastOpts
+  measured?: (spec: S, m: Measurement) => Check[]
+  estimate?: (spec: S, style: SiteStyle, c: C) => Measurement
+  body: (spec: S, c: C, ctx: BodyContext) => Body
+  /** The heading, the longest texts and the heading's column width, for the estimator. */
+  words: (spec: S, c: C, style: SiteStyle) => { title: string; texts: readonly string[]; col?: number; px?: { d: number; m: number } }
 }
 
 /** Builds a full SectionDef with the standard contrast, fit checks and estimate. */
@@ -60,16 +80,19 @@ export function defineSection<S extends AnySpec, C>(o: SectionOpts<S, C>): Secti
     fallback: o.fallback,
     checkBands: o.checkBands ?? ['ground', 'surface'],
     fixedBand: o.fixedBand,
+    panel: o.panel ?? (spec => (spec.params as { brk?: Break }).brk === 'panel'),
     render: (spec, style, c, rhythm) => {
-      const b = o.body(spec, style, c, rhythm)
-      return shell(o.type, style, rhythm, { archetype: spec.archetype, cls: b.cls, vars: b.vars, anchor: o.anchor, tag: o.tag }, b.inner)
+      const biome = THEMES[style.theme]
+      const motif = rhythm.motif && ((spec.params as { motif?: string }).motif ?? 'none') !== 'none'
+      const b = o.body(spec, c, { style, biome, rhythm, motif })
+      return shell(o.type, style, rhythm, { archetype: spec.archetype, step: spec.step, cls: b.cls, vars: b.vars, anchor: o.anchor, tag: o.tag, brk: b.brk ?? (spec.params as { brk?: Break }).brk }, b.inner)
     },
-    staticChecks: (spec, style, band) =>
-      sectionContrast(style, band, { cards: o.cards?.(spec) ?? true, button: o.button?.(spec, style) ?? null }),
-    measuredChecks: (_spec, m) => sectionMeasuredChecks(m),
+    staticChecks: (spec, style, band) => sectionContrast(style, band, { cards: true, button: style.button, ...o.contrast?.(spec, style) }),
+    measuredChecks: (spec, m) => (o.measured ?? ((_s: S, x: Measurement) => sectionMeasuredChecks(x)))(spec, m),
     estimate: (spec, style, c) => {
-      const w = o.words(spec, c)
-      return estimateSection(style, w.title, w.texts)
+      if (o.estimate) return o.estimate(spec, style, c)
+      const w = o.words(spec, c, style)
+      return estimateSection(style, spec.step, w.title, w.texts, w.col, w.px)
     },
   }
 }

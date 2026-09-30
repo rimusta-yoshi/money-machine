@@ -8,6 +8,7 @@ import type { PageContent } from './content'
 import { HERO_CSS } from './hero/css'
 import { hashString, mixSeeds } from './rng'
 import type { SiteStyle } from './schema'
+import { THEME_CSS } from './themes'
 import { about, ABOUT_CSS } from './sections/about'
 import { areas, AREAS_CSS } from './sections/areas'
 import { certifications, CERTIFICATIONS_CSS } from './sections/certifications'
@@ -37,7 +38,7 @@ export const SECTIONS = {
 } as unknown as Record<SectionKey, SectionDef>
 
 /** Everything a generated page needs. Include once per page. */
-export const GEN_CSS = [PAGE_CSS, HERO_CSS, BASE_CSS, TRUST_BAR_CSS, SERVICES_CSS, ABOUT_CSS, WHY_US_CSS, GALLERY_CSS, CERTIFICATIONS_CSS, TESTIMONIALS_CSS, AREAS_CSS, CONTACT_CSS, FOOTER_CSS].join('\n')
+export const GEN_CSS = [PAGE_CSS, BASE_CSS, HERO_CSS, TRUST_BAR_CSS, SERVICES_CSS, ABOUT_CSS, WHY_US_CSS, GALLERY_CSS, CERTIFICATIONS_CSS, TESTIMONIALS_CSS, AREAS_CSS, CONTACT_CSS, FOOTER_CSS, THEME_CSS].join('\n')
 
 /** A section's first batch seed, derived from the site's style seed (the hero's matches firstHeroBatch). */
 export const sectionBatch = (styleSeed: number, type: SectionKey): number => mixSeeds(styleSeed, hashString(type))
@@ -111,17 +112,28 @@ export const rhythmOf = (page: readonly ResolvedSection[]): Rhythm =>
  */
 export function renderPageSection(s: Pick<ResolvedSection, 'type' | 'spec' | 'rhythm'>, style: SiteStyle, content: PageContent): string {
   const def = SECTIONS[s.type]
-  const passes = (spec: AnySpec, band: Band) =>
-    staticChecksAll(def, spec, style, [def.fixedBand?.(spec) === 'photo' || band === 'photo' ? 'ground' : band]).every(c => c.ok)
+  // Only a layout that owns its photo band may use it; anything else gets its own band or ground.
+  const bandFor = (spec: AnySpec): Band => {
+    const own = def.fixedBand?.(spec) ?? null
+    return s.rhythm.band === 'photo' && own !== 'photo' ? own ?? 'ground' : s.rhythm.band
+  }
+  const passes = (spec: AnySpec) => staticChecksAll(def, spec, style, [bandFor(spec)]).every(c => c.ok)
   const view = viewOf(s.type, content)
-  if (passes(s.spec, s.rhythm.band)) return def.render(s.spec, style, view, s.rhythm)
-  if (passes(def.fallback, s.rhythm.band)) return def.render(def.fallback, style, view, s.rhythm)
-  return def.render(def.fallback, style, view, { ...s.rhythm, band: 'ground' })
+  if (passes(s.spec)) return def.render(s.spec, style, view, { ...s.rhythm, band: bandFor(s.spec) })
+  if (passes(def.fallback)) return def.render(def.fallback, style, view, { ...s.rhythm, band: bandFor(def.fallback) })
+  return def.render(def.fallback, style, view, { ...s.rhythm, band: 'ground', motif: false })
 }
 
-/** The full page body: skip link, header, main content and footer. */
-export function renderPage(page: readonly ResolvedSection[], style: SiteStyle, content: PageContent): string {
+export interface RenderPageOptions {
+  /** Allow builder-only sample content (the contact sheet and dev previews). Publishing never sets this. */
+  preview?: boolean
+}
+
+/** The full page body: skip link, header, main content and footer. Refuses sample content unless previewing. */
+export function renderPage(page: readonly ResolvedSection[], style: SiteStyle, content: PageContent, opts: RenderPageOptions = {}): string {
+  if (content.sample && !opts.preview) throw new Error('Sample content is for previews only and can never be published')
   const main = page.filter(s => s.type !== 'footer').map(s => renderPageSection(s, style, content)).join('')
   const foot = page.find(s => s.type === 'footer')
-  return `<a class="sb-skip" href="#main">Skip to main content</a>${renderHeader(style, content)}<main id="main" tabindex="-1">${main}</main>${foot ? renderPageSection(foot, style, content) : ''}`
+  const header = renderHeader(style, content, page.map(s => s.type))
+  return `<a class="sb-skip" href="#main">Skip to main content</a>${header}<main id="main" tabindex="-1">${main}</main>${foot ? renderPageSection(foot, style, content) : ''}`
 }

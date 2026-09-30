@@ -3,6 +3,8 @@ import { buttonColors, contrastRatio } from './contrast'
 export { buttonColors, contrastRatio }
 
 export const AA = 4.5
+export const WHITE = '#FFFFFF'
+export const BLACK = '#000000'
 
 const channels = (hex: string): number[] => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
 
@@ -15,15 +17,12 @@ export function mix(a: string, b: string, t: number): string {
     .toUpperCase()
 }
 
-/**
- * The brand colour pulled toward `toward` just far enough to reach AA on every background.
- * Used for links, stars and outline buttons.
- */
-export function readableOn(brand: string, backgrounds: readonly string[], toward: string): string {
-  const ok = (c: string) => backgrounds.every(bg => contrastRatio(c, bg) >= AA)
-  for (let t = 0; t <= 1.0001; t += 0.05) {
-    const shade = mix(brand, toward, t)
-    if (ok(shade)) return shade
+/** The first blend of `from` toward `toward` (in 2.5% steps) that passes `ok`, or `toward` itself. */
+export function blendUntil(from: string, toward: string, ok: (c: string) => boolean, maxT = 1): string {
+  for (let t = 0; t <= maxT + 1e-9; t += 0.025) {
+    const c = mix(from, toward, t)
+    if (ok(c)) return c
   }
   return toward
 }
+

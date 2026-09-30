@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import type { Rng } from '../rng'
 import type { SiteStyle, ThemeKey } from '../schema'
 import type { PageContent } from '../content'
+import type { Biome, Motif } from '../themes/types'
 
 /** Every section the generator can build, in page order. */
 export const SECTION_KEYS = [
@@ -9,7 +10,7 @@ export const SECTION_KEYS = [
 ] as const
 export type SectionKey = typeof SECTION_KEYS[number]
 
-/** Section backgrounds. ground/surface alternate; brand is the one loud band; ink is the footer; photo is a hero over its photo. */
+/** Section backgrounds. ground/surface alternate; brand is the loud band; ink is the inverse band; photo is a hero over its photo. */
 export const BANDS = ['ground', 'surface', 'brand', 'ink', 'photo'] as const
 export type Band = typeof BANDS[number]
 export type Side = 'left' | 'right'
@@ -19,6 +20,8 @@ export interface SectionRhythm {
   band: Band
   /** Which side the image sits on, for layouts that have one. */
   side: Side
+  /** Whether this section may draw its motif (the page's motif quotas are shared out in order). */
+  motif: boolean
 }
 
 export interface Check {
@@ -40,30 +43,64 @@ export interface Measurement {
   }
   /** Height of the smallest link, button or field, across both frames. */
   minTapPx: number
+  /** Overlapping or rotated decorations that cover text or the call button, across both frames. */
+  coveredText: number
 }
 
 export interface Score { total: number; [part: string]: number }
 
+/** How far a spec's display type has stepped down its preset's ladder to fit (0 = as designed). */
+export const MAX_STEP = 2
+export type Step = 0 | 1 | 2
+
 /** A stored section spec: plain JSON. */
 export interface AnySpec {
-  v: 1
+  v: 2
   section: string
   archetype: string
+  step: Step
   params: object
 }
+
+/** Everything an archetype's roll may look at. */
+export interface RollContext<C> {
+  content: C
+  biome: Biome
+  style: SiteStyle
+}
+
+/** Type sizes in px, for the soft score: the section's biggest element and the next biggest. */
+export interface Focal { focal: number; second: number }
 
 export interface Archetype<C, P> {
   label: string
   /** Content this layout needs to be honest (e.g. real photos, 3+ reviews). */
   gate: (c: C) => boolean
   why: string
-  params: (r: Rng, c: C) => P
+  /** Rolls parameters inside the theme's ranges. */
+  params: (r: Rng, ctx: RollContext<C>) => P
   /** Numbers in 0..1 describing the parameters, for the distinctness filter. */
   features: (p: P) => number[]
+  /** The biggest and second-biggest type in this layout at a given preset, for scoring punch. */
+  focal?: (p: P, sizes: Sizes) => Focal
+  /** Motifs this layout draws besides `params.motif`, so the page's motif quotas count them too. */
+  drawn?: (p: P) => readonly Motif[]
+  /** Extra theme rules for params the shared punch keys don't cover. */
+  allows?: (p: P, t: Biome) => boolean
   /** Whether this layout has an image that the rhythm layer should place left or right. */
   sided?: boolean
-  /** Whether it can carry the page's one loud brand-colour band. */
+  /** Whether it can carry a loud brand-colour band. */
   loud?: boolean
+}
+
+/** Type sizes for one section at its step (see themes/sizes.ts). */
+export interface Sizes {
+  h1: number; h1m: number
+  h2: number; h2m: number
+  xl: number; xlm: number
+  h3: number
+  lead: number
+  body: number
 }
 
 /**
@@ -75,14 +112,17 @@ export interface SectionDef<S extends AnySpec = AnySpec, C = unknown> {
   label: string
   view: (page: PageContent) => C
   archetypes: Record<string, Archetype<C, never>>
+  /** How likely each archetype is per theme. Missing or 0 means the theme never uses it. */
   weights: Record<ThemeKey, Record<string, number>>
   schema: z.ZodType<S>
-  /** Used when a saved spec no longer fits and nothing else does. Its gate is the section's presence gate. */
+  /** Used when a saved spec no longer fits and nothing else does. Allowed in every theme; its gate is the section's presence gate. */
   fallback: S
   /** Backgrounds a candidate must pass on (the rhythm may give it any of these). */
   checkBands: readonly Band[]
-  /** A band the section always has, whatever the rhythm (hero tone, footer ink). */
+  /** A band the section always has, whatever the rhythm (hero tone, footer). */
   fixedBand?: (spec: S) => Band | null
+  /** Whether this layout sits in an inset panel (so its band is never plain ground). */
+  panel?: (spec: S) => boolean
   render: (spec: S, style: SiteStyle, content: C, rhythm: SectionRhythm) => string
   staticChecks: (spec: S, style: SiteStyle, band: Band) => Check[]
   measuredChecks: (spec: S, m: Measurement) => Check[]

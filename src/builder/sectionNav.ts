@@ -1,5 +1,6 @@
 import type { SectionConfig, TradeConfig } from '../types'
 import type { Site, SiteContent } from '../site/schema'
+import type { SiteStyleControls } from './SiteStyleCard'
 
 export interface LayoutState {
   index: number
@@ -27,4 +28,6 @@ export interface SectionNavProps {
   onNext: () => void
   onFinish: () => void
   onContentChange: (patch: Partial<SiteContent>) => void
+  /** Theme picker, style re-roll and (in development) the sample-content switch. */
+  siteStyle: SiteStyleControls
 }

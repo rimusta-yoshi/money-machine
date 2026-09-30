@@ -12,6 +12,8 @@ export type SiteAction =
   | { type: 'setBrandColor'; color: string }
   | { type: 'toggleExtra'; extra: ExtraId }
   | { type: 'setTheme'; theme: ThemeKey }
+  /** "Re-roll site style": the same theme and brand colour, a new style seed. The seed comes in so the reducer stays pure. */
+  | { type: 'rerollStyle'; seed: number }
   /** The customer picked a layout: it replaces any earlier pick and any remembered preference. */
   | { type: 'pickSection'; section: SectionKey; value: Generated }
   /** Fit repair swapped (or restored) a layout; `value.preferred` keeps the customer's own pick. */
@@ -45,7 +47,10 @@ function edit(site: Site | null, action: SiteAction): Site | null {
       if (!/^#[0-9a-fA-F]{6}$/.test(action.color)) return site
       return { ...site, brandColor: action.color, style: styleRecord(site.style.theme, action.color, site.style.seed) }
     case 'setTheme':
+      if (action.theme === site.style.theme) return site
       return { ...site, style: styleRecord(action.theme, site.brandColor, site.style.seed) }
+    case 'rerollStyle':
+      return { ...site, style: styleRecord(site.style.theme, site.brandColor, action.seed) }
     case 'toggleExtra':
       return {
         ...site,

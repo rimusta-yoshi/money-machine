@@ -1,5 +1,3 @@
-import type { HeroContent } from './hero/content'
-
 export interface PagePhoto { url: string; alt: string }
 export interface PageReview { text: string; author: string; location: string; rating: number }
 
@@ -39,24 +37,26 @@ export interface PageContent {
   quoteForm: boolean
   /** For the footer's copyright line. Passed in so rendering stays a pure function. */
   year: number
+  /**
+   * Builder-only sample content for previewing layouts. Never part of a site record, and
+   * the publishing renderer refuses it (see renderPage).
+   */
+  sample?: true
 }
 
 /** Display name, never empty. */
 export const businessName = (c: PageContent): string => c.business.name || `${c.trade.name} Co.`
 
-/** The hero's slice of the page. */
-export function heroView(c: PageContent): HeroContent {
-  const { business: b, trade: t } = c
-  return {
-    headline: t.tagline,
-    sub: `${t.ctaText}${b.location ? ` across ${b.location}` : ''}. ${t.ctaSubtext}.`,
-    call: b.tel ? { label: `Call ${b.phone}`, href: b.tel } : null,
-    // The contact section only exists with a phone number or email to show.
-    quote: b.tel || b.email ? { label: t.ctaText, href: '#contact' } : null,
-    photo: c.photos.hero,
-    badges: c.badges,
-    rating: c.rating,
-    reviews: c.reviews,
-    quoteForm: c.quoteForm,
-  }
+/**
+ * Short, true things about the business, for stickers, floating cards and proof strips:
+ * the customer's own credentials, rating, emergency cover, years and place. Never invented.
+ */
+export function facts(c: PageContent): string[] {
+  return [
+    ...(c.rating ? [`★ ${c.rating.score} from ${c.rating.count} reviews`] : []),
+    ...c.badges.filter(b => b.length <= 32),
+    ...(c.emergency ? ['Emergency call-outs'] : []),
+    ...(c.business.years ? [`${c.business.years} years in business`] : []),
+    ...(c.jobsDone ? [`${c.jobsDone} jobs done`] : []),
+  ]
 }

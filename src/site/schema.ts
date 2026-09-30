@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { SECTION_TYPES, TRADE_IDS } from '../types'
-import { generatedHeroSchema, siteStyleSchema, THEME_KEYS } from '../gen/schema'
+import { LEGACY_THEME_KEYS, siteStyleSchema, THEME_KEYS } from '../gen/schema'
 import { BANDS, SECTION_KEYS } from '../gen/core/types'
 import { generatedSectionsSchema } from '../gen/specs'
 import { LIMITS } from './limits'
@@ -85,6 +85,16 @@ const styleSchema = z.object({
   resolved: siteStyleSchema,
 })
 
+const seed = z.number().int().min(0).max(0xffffffff)
+
+/**
+ * Records from before the theme biomes (v1–v3) are read loosely: their resolved style and
+ * generated specs belong to a generator that no longer exists, so migration keeps the
+ * customer's details, content, theme and style seed, and re-checks each stored layout.
+ */
+const legacyStyleSchema = z.object({ theme: z.enum(LEGACY_THEME_KEYS), seed, resolved: z.unknown() })
+const legacySpec = z.object({ seed, spec: z.record(z.string(), z.unknown()), preferred: z.record(z.string(), z.unknown()).optional() })
+
 /** v1: every section was a hand-built template, picked by variant id. */
 export const siteSchemaV1 = z.object({
   version: z.literal(1),
@@ -93,29 +103,40 @@ export const siteSchemaV1 = z.object({
 })
 export type SiteV1 = z.infer<typeof siteSchemaV1>
 
-/** v2: the hero was generated ({ seed, spec }); other sections were templates picked by variant id. */
+/** v2: the hero was generated; other sections were templates picked by variant id. */
 export const siteSchemaV2 = z.object({
   version: z.literal(2),
   ...commonFor(V2_LIMITS),
-  style: styleSchema,
-  sections: z.object({ hero: generatedHeroSchema.optional() }),
+  style: legacyStyleSchema,
+  sections: z.object({ hero: legacySpec.optional() }),
   selections: z.partialRecord(z.enum(SECTION_TYPES).exclude(['hero']), z.string().min(1)),
 })
 export type SiteV2 = z.infer<typeof siteSchemaV2>
 
+/** v3: every section generated, under the four original themes. */
+export const siteSchemaV3 = z.object({
+  version: z.literal(3),
+  ...commonFor(LIMITS),
+  style: legacyStyleSchema,
+  sections: z.partialRecord(z.enum(SECTION_KEYS), legacySpec),
+  rhythm: z.unknown(),
+})
+export type SiteV3 = z.infer<typeof siteSchemaV3>
+
 const rhythmSchema = z.partialRecord(
   z.enum(SECTION_KEYS),
-  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']) }).strict(),
+  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean() }).strict(),
 )
 
 /**
- * v3: every section is generated. Each stores its batch seed and fully resolved spec (plus
- * the customer's own pick if a fit repair replaced it), so generator changes can never
- * alter a saved site. `rhythm` is derived from the whole page on every change and saved
- * alongside, so publishing renders exactly what the builder showed.
+ * v4: themes are biomes (workwear, clean-pro, craft-heritage, friendly-local). Each section
+ * stores its batch seed and fully resolved spec (plus the customer's own pick if a fit
+ * repair replaced it), so generator changes can never alter a saved site. `rhythm` is
+ * derived from the whole page on every change and saved alongside, so publishing renders
+ * exactly what the builder showed.
  */
 export const siteSchema = z.object({
-  version: z.literal(3),
+  version: z.literal(4),
   ...commonFor(LIMITS),
   style: styleSchema,
   sections: generatedSectionsSchema,

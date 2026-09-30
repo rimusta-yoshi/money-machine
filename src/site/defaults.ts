@@ -10,7 +10,7 @@ import { withRhythm } from './page'
  */
 export function createSite(trade: TradeConfig, styleSeed: number = randomSeed()): Site {
   return withRhythm({
-    version: 3,
+    version: 4,
     tradeId: trade.id,
     business: { name: '', phone: '', location: '', about: '', yearsInBusiness: '', email: '' },
     brandColor: trade.colorScheme.accent,

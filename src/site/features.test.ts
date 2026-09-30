@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { contact } from '../gen/sections/contact'
-import { estimateMeasurer, generateHeroOptions, generateOptions, heroView, renderPage, viewOf } from '../gen'
+import { estimateMeasurer, generateOptions, heroView, renderPage, SECTIONS, viewOf } from '../gen'
+import type { SectionSpecs } from '../gen'
 import { plumber } from '../trades/plumber'
 import { createSite } from './defaults'
 import { FEATURES } from './features'
@@ -20,7 +21,7 @@ describe('enquiries feature flag', () => {
   it('hides the Contact-panel hero while off, even when there is an email', () => {
     const content = heroView(pageContent(site, plumber))
     expect(content.quoteForm).toBe(false)
-    const options = generateHeroOptions({ batchSeed: 1, content, style: site.style.resolved, measurer: estimateMeasurer })
+    const options = generateOptions(SECTIONS.hero, { batchSeed: 1, content, style: site.style.resolved, measurer: estimateMeasurer })
     expect(options.gated.map(g => g.archetype)).toContain('contact')
     expect([...options.valid, ...options.rejected].some(c => c.spec.archetype === 'contact')).toBe(false)
   })
@@ -40,8 +41,8 @@ describe('enquiries feature flag', () => {
     const saved = {
       ...site,
       sections: {
-        hero: { seed: 1, spec: { v: 1 as const, section: 'hero' as const, archetype: 'contact' as const, params: { fields: 3, side: 'right' as const, tone: 'ground' as const } } },
-        contact: { seed: 1, spec: { v: 1 as const, section: 'contact' as const, archetype: 'form' as const, params: { fields: 4 as const } } },
+        hero: { seed: 1, spec: { v: 2, section: 'hero', archetype: 'contact', step: 0, params: { fields: 3, side: 'right', tone: 'ground', em: false } } satisfies SectionSpecs['hero'] },
+        contact: { seed: 1, spec: { v: 2, section: 'contact', archetype: 'form', step: 0, params: { fields: 4, brk: 'band' } } satisfies SectionSpecs['contact'] },
       },
     }
     const html = renderPage(publishedPage(saved, plumber), saved.style.resolved, pageContent(saved, plumber))
