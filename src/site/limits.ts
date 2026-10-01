@@ -26,6 +26,8 @@ export const LIMITS = {
   whyTitle: 40,
   whyText: 120,
   certsNote: 80,
+  /** One service, e.g. "EV charger installation"; shown as a card title and in the footer. */
+  service: 32,
 } as const
 
 export type LimitKey = keyof typeof LIMITS

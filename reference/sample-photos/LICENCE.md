@@ -1,9 +1,10 @@
 # Sample photos
 
-Stock photos for **previews only**: the contact sheet (`npm run sheet`) and the builder's
-dev-only "Fill with sample content" switch. They are never published on a customer's site,
-never offered to customers, and never presented as anyone's own work (their alt text says
-"Sample photo"). They live here, outside `public/`, so they are not part of the production build.
+Stock photos for **previews only**: the contact sheet (`npm run sheet`) and, on the dev
+server, the builder preview's empty photo slots. They are never published on a customer's
+site, never offered as the customer's own, and never presented as anyone's own work (their
+alt text says "Sample photo"). They live here, outside `public/`, so they are not part of the
+production build, where the builder draws placeholder photos instead.
 
 All are from [Pexels](https://www.pexels.com) under the
 [Pexels License](https://www.pexels.com/license/): free to use, including commercially,

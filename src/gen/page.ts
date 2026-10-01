@@ -1,6 +1,6 @@
 import { BASE_CSS } from './core/css'
 import { estimateMeasurer } from './core/estimate'
-import { defaultSpec, isPresent, staticChecksAll } from './core/pipeline'
+import { defaultSpec, isPresent, specKey, staticChecksAll } from './core/pipeline'
 import { solveRhythm } from './core/rhythm'
 import type { Rhythm } from './core/rhythm'
 import type { AnySpec, Band, Generated, Measurer, SectionDef, SectionKey, SectionRhythm } from './core/types'
@@ -84,6 +84,12 @@ export interface ResolveOptions {
   /** Specs to use instead of the saved ones, e.g. the option being previewed in the builder. */
   overrides?: Partial<Record<SectionKey, AnySpec>>
   measurer?: Measurer
+  /**
+   * The rhythm the page had before this change. Picked sections keep their loud bands from
+   * it, except `changed` and any whose override differs from the pick (the one being browsed).
+   */
+  prior?: Rhythm
+  changed?: SectionKey
 }
 
 /**
@@ -99,7 +105,13 @@ export function resolvePage(o: ResolveOptions): ResolvedSection[] {
     const chosen = o.overrides?.[type] ?? saved?.spec ?? defaultSpec(def, seed, viewOf(type, o.content), o.style, measurer)
     return { type, seed, spec: renderableSpec(type, chosen, o.content), picked: !!saved }
   })
-  const rhythm = solveRhythm(entries, SECTIONS, o.style)
+  const settled = (type: SectionKey) => {
+    const saved = o.saved[type]
+    const override = o.overrides?.[type]
+    return !!saved && type !== o.changed && (!override || specKey(override) === specKey(saved.spec))
+  }
+  const settle = o.prior ? { prior: o.prior, settled: new Set(entries.map(e => e.type).filter(settled)) } : undefined
+  const rhythm = solveRhythm(entries, SECTIONS, o.style, settle)
   return entries.map(e => ({ ...e, rhythm: rhythm[e.type]! }))
 }
 

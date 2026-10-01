@@ -7,6 +7,7 @@ import { LIMITS } from './limits'
 import { pageOrder } from './page'
 import { pageContent } from './pageContent'
 import { parseSite } from './parse'
+import { MAX_SERVICES } from './schema'
 import type { Site } from './schema'
 
 /** Real words, repeated to the limit: the longest text a customer could plausibly type. */
@@ -34,6 +35,7 @@ function maxedSite(tradeIdx: number, seed: number): Site {
     content: {
       badges: Array.from({ length: 8 }, () => fill(LIMITS.badge)),
       whyUs: Array.from({ length: 6 }, () => ({ title: fill(LIMITS.whyTitle), text: fill(LIMITS.whyText) })),
+      services: Array.from({ length: MAX_SERVICES }, (_, i) => `${i} ${fill(LIMITS.service)}`.slice(0, LIMITS.service)),
       certsNote: fill(LIMITS.certsNote),
       areas: Array.from({ length: 16 }, () => fill(LIMITS.area)),
       hours: Array.from({ length: 8 }, () => ({ day: fill(LIMITS.hoursDay), time: fill(LIMITS.hoursTime) })),

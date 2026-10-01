@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { repairSection, SECTIONS, sectionPresent, specKey, viewOf } from '../gen'
-import type { Generated, SectionKey } from '../gen'
+import type { Generated, PageContent, SectionKey } from '../gen'
 import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
 import type { TradeConfig } from '../types'
 import { SECTION_LABELS } from '../site/labels'
@@ -39,18 +39,19 @@ export function noticeText(changes: readonly Change[]): string {
  * - if the customer's own pick (kept as `preferred`) fits again, it comes back;
  * - if the current layout no longer fits, it switches to the nearest passing option from
  *   the same batch, remembering the customer's pick.
- * Returns a notice to show when anything changed.
+ * Returns a notice to show when anything changed. `preview` is the content the builder is
+ * showing (sample photos included), so a pick is never repaired away for something on screen.
  */
-export function useFitRepair(site: Site | null, trade: TradeConfig | null, onRepair: (type: SectionKey, value: Generated) => void) {
+export function useFitRepair(site: Site | null, trade: TradeConfig | null, onRepair: (type: SectionKey, value: Generated) => void, preview?: PageContent | null) {
   const [notice, setNotice] = useState<Notice | null>(null)
   const input = useMemo(() => {
     if (!site || !trade) return null
-    const content = pageContent(site, trade)
+    const content = preview ?? pageContent(site, trade)
     const saved = pageOrder(trade, site)
       .filter(t => site.sections[t] && sectionPresent(t, content))
       .map(t => ({ type: t, entry: site.sections[t] as Generated }))
     return saved.length ? { saved, content, style: site.style.resolved } : null
-  }, [site, trade])
+  }, [site, trade, preview])
   // Re-run only when something that affects fit actually changed.
   const key = useMemo(
     () => (input ? `${JSON.stringify([input.saved, input.style])}|${contentKey(input.content)}` : null),

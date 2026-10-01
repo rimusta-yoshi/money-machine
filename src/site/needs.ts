@@ -7,6 +7,7 @@ import type { SectionType } from '../types'
  */
 export const SECTION_NEEDS: Partial<Record<SectionType, string>> = {
   trust_bar: 'Add a credential, your star rating, jobs done or years in business to show this.',
+  services: 'Add the services you offer to show this.',
   why_us: 'Add your reasons to choose you to show this.',
   gallery: 'Add photos of your work to show this.',
   certifications: 'Add your credentials to show this.',

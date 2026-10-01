@@ -6,6 +6,12 @@ import type { PhotoStore } from '../../photos/store'
 import { usePhotoPicker } from './usePhotoPicker'
 import { LIMITS } from '../../site/limits'
 import type { PickState } from './usePhotoPicker'
+import { SAMPLE_PHOTOS_WHILE_BUILDING } from '../usePreviewContent'
+
+/** Shown while an empty slot is filled with a sample in the preview. */
+const SampleNote = () => (SAMPLE_PHOTOS_WHILE_BUILDING
+  ? <p className="mm-note">The preview shows a sample photo until you add your own. Samples are never published.</p>
+  : null)
 
 /** Injected in tests; the app uses the browser codec and the data-URL store. */
 export interface PhotoDeps {
@@ -159,6 +165,7 @@ export function PhotoEditor({ photo, defaultAlt, onChange, store, codec }: Photo
         />
         {photo && <button type="button" className="mm-add-btn" onClick={remove}>Remove</button>}
       </div>
+      {!photo && <SampleNote />}
       <Status id={statusId} state={state} />
     </div>
   )
@@ -220,6 +227,7 @@ export function GalleryEditor({ photos, max, defaultAlt, onChange, store, codec 
             inputRef={fileRef}
           />
         )}
+      {photos.length === 0 && <SampleNote />}
       <Status id={statusId} state={state} />
     </div>
   )

@@ -1,17 +1,14 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import type { SectionType, TradeConfig } from '../types'
-import { specKey, THEMES } from '../gen'
-import type { Generated, PagePhoto, ResolvedSection, SectionKey } from '../gen'
+import { specKey } from '../gen'
+import type { Generated, PageContent, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
 import { siteSections } from '../site/sections'
 import { SECTION_LABELS } from '../site/labels'
 import { SECTION_NEEDS } from '../site/needs'
 import { sitePage } from '../site/page'
 import { pageContent } from '../site/pageContent'
-import { withSample } from '../sample/content'
-import { samplePhotos } from '../sample/photos'
-import { loadStockPhotos } from '../sample/stockPhotos'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
@@ -24,6 +21,8 @@ import { useSectionPicker } from './useSectionPicker'
 interface Props {
   trade: TradeConfig
   site: Site
+  /** What to lay out: the customer's content plus any sample photos or text (see usePreviewContent). */
+  content?: PageContent
   mobile: boolean
   /** Section to open on, e.g. when coming back from the go-live step to add something. */
   initialSection?: SectionType
@@ -45,7 +44,7 @@ function useNarrowDevice() {
   return narrow
 }
 
-export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
+export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
   const sections = siteSections(trade, site)
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
@@ -57,15 +56,8 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
   const touchStartX = useRef<number | null>(null)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
-  const sampleOn = import.meta.env.DEV && (siteStyle.sample?.on ?? false)
-  // Dev-only stock photos for the sample switch; drawn placeholders until (or unless) they load.
-  const [stock, setStock] = useState<PagePhoto[] | null>(null)
-  useEffect(() => { if (sampleOn) loadStockPhotos().then(setStock) }, [sampleOn])
-  // Sample content is view-only: it never reaches the record, so it can't be saved or published.
-  const content = useMemo(
-    () => (sampleOn ? withSample(pageContent(site, trade), stock ?? samplePhotos(), THEMES[site.style.theme].voice.why) : pageContent(site, trade)),
-    [site, trade, sampleOn, stock],
-  )
+  // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
+  const content = useMemo(() => preview ?? pageContent(site, trade), [preview, site, trade])
   const picker = useSectionPicker(site, content, activeType)
   // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
   const page = useMemo(

@@ -2,9 +2,9 @@ import type { PagePhoto } from '../gen'
 
 /**
  * Stock photos (reference/sample-photos, see its LICENCE.md) for the contact sheet and the
- * builder's dev-only sample switch. Served only by the dev server, read into data URLs so
- * they pass the same image rules as customer photos, and labelled as samples in their alt
- * text. Never used for examples customers see, never published.
+ * builder preview's empty photo slots (usePreviewContent). Served only by the dev server,
+ * read into data URLs so they pass the same image rules as customer photos, and labelled as
+ * samples in their alt text. Never in the faded examples, never published.
  */
 const FILES: readonly [string, string][] = [
   ['bathroom.jpg', 'Sample photo: a finished bathroom with a glass shower'],

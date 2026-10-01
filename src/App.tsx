@@ -15,6 +15,7 @@ import { BuilderTopBar } from './builder/BuilderTopBar'
 import { FinishStep } from './builder/finish/FinishStep'
 import { Icon } from './components/ui/Icon'
 import { useFitRepair } from './builder/useFitRepair'
+import { usePreviewContent } from './builder/usePreviewContent'
 import { FitNotice } from './builder/FitNotice'
 import { verifySite } from './builder/verifySite'
 import { randomSeed } from './gen'
@@ -39,7 +40,10 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement>(null)
   const repair = useCallback((section: SectionKey, value: Generated) => dispatch({ type: 'repairSection', section, value }), [])
   const editing = step === 'build' || step === 'finish'
-  const fit = useFitRepair(editing ? site : null, trade, repair)
+  // Dev-only preview switch: sample content for seeing a theme's full range. Stripped from production builds.
+  const [sample, setSample] = useState(false)
+  const preview = usePreviewContent(step === 'build' ? site : null, trade, import.meta.env.DEV && sample)
+  const fit = useFitRepair(editing ? site : null, trade, repair, step === 'build' ? preview : null)
   const dismissFit = fit.dismiss
   // Before the finish step and before publishing, every section is measured on real screens.
   const [verifying, setVerifying] = useState(false)
@@ -57,9 +61,6 @@ export default function App() {
       setVerifying(false)
     }
   }
-
-  // Dev-only preview switch: sample content for seeing a theme's full range. Stripped from production builds.
-  const [sample, setSample] = useState(false)
 
   // Each step starts at the top (the stage is the scroll container, not the window).
   useEffect(() => {
@@ -186,6 +187,7 @@ export default function App() {
                 key={focusSection ?? 'start'}
                 trade={trade}
                 site={site}
+                content={preview ?? undefined}
                 mobile={mobile}
                 initialSection={focusSection}
                 onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}

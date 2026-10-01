@@ -6,6 +6,9 @@ import { generatedSectionsSchema } from '../gen/specs'
 import { LIMITS } from './limits'
 
 export const EXTRA_IDS = ['reviews'] as const
+
+/** Most services a site lists (the trades start with six). */
+export const MAX_SERVICES = 8
 export type ExtraId = typeof EXTRA_IDS[number]
 
 const text = (max: number) => z.string().trim().max(max)
@@ -69,6 +72,11 @@ const contentSchemaFor = (L: Limits) => z.object({
    * Optional so records from before suggestions existed still parse.
    */
   whyUs: z.array(z.object({ title: text(LIMITS.whyTitle).min(1), text: text(LIMITS.whyText) }).strict()).max(6).nullable().optional(),
+  /**
+   * The services the customer offers, in their order. Absent until they edit the list,
+   * meaning the trade's usual services; an empty list hides the services section.
+   */
+  services: z.array(text(LIMITS.service).min(1)).max(MAX_SERVICES).optional(),
   /** A note under the credentials, e.g. "Certificates available on request", only when ticked or written. */
   certsNote: text(LIMITS.certsNote).min(1).nullable().optional(),
   photos: z.object({

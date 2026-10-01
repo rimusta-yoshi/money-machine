@@ -42,7 +42,9 @@ export const HERO_CSS = `
 .sb-hero--stacked .sb-wrap{justify-content:flex-start}
 .sb-hero--stacked.sb-image--none .sb-wrap{justify-content:center}
 .sb-hero--stacked .sb-hero-text{max-width:980px}
-.sb-hero--stacked .sb-media .sb-photo{aspect-ratio:auto;height:300px;max-height:none}
+/* the photo spans the column (or, bled, the whole band) even when the headline is centred */
+.sb-hero--stacked .sb-media{align-self:stretch}
+.sb-hero--stacked .sb-media .sb-photo{aspect-ratio:auto;flex:1 0 300px;width:100%;height:auto;min-height:0;max-height:none}
 .sb-hero--stacked.sb-image--bleed .sb-media{margin:0 calc(-1 * (var(--sb-pad) + (100cqw - min(100cqw, 1200px)) / 2)) calc(var(--sb-py) * -0.8)}
 .sb-hero--stacked.sb-image--bleed .sb-photo{border-radius:0}
 
@@ -91,7 +93,7 @@ export const HERO_CSS = `
   .sb-hero.sb-img--right .sb-bleed--edge,.sb-hero.sb-img--left .sb-bleed--edge{margin:0 -20px}
   .sb-hero .sb-hero-strip{gap:8px 20px}
   .sb-hero--overlay .sb-wrap{min-height:0;padding-top:150px}
-  .sb-hero--stacked .sb-media .sb-photo,.sb-hero--editorial .sb-media .sb-photo{height:200px}
+  .sb-hero--stacked .sb-media .sb-photo,.sb-hero--editorial .sb-media .sb-photo{height:200px;flex-basis:200px}
   .sb-hero--stacked.sb-image--bleed .sb-media{margin:0 -20px -40px}
   .sb-hero--typeled .sb-hero-foot{flex-direction:column;align-items:stretch;gap:calc(var(--sb-gap) * 1.1)}
   .sb-hero--typeled .sb-hero-foot .sb-lead{flex:none}

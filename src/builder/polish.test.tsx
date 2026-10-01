@@ -9,6 +9,7 @@ import { publishedPage } from '../site/page'
 import { SECTION_NEEDS } from '../site/needs'
 import { ExampleSection } from './ExampleSection'
 import { SuggestedLinesEditor, SuggestedNoteEditor } from './content/SuggestedLinesEditor'
+import { SectionContentEditor } from './content/SectionContentEditor'
 
 afterEach(cleanup)
 
@@ -85,5 +86,33 @@ describe('SuggestedNoteEditor', () => {
     render(<SuggestedNoteEditor note={null} suggestion="Certificates available on request." onChange={onChange} max={80} />)
     fireEvent.click(screen.getByRole('checkbox', { name: /Certificates available on request/ }))
     expect(onChange).toHaveBeenCalledWith('Certificates available on request.')
+  })
+})
+
+describe('services editor', () => {
+  const site = { ...createSite(plumber, 3), business: { name: 'Joe Pipes', phone: '0113 496 0000', location: 'Leeds', about: '', yearsInBusiness: '', email: '' } }
+
+  it('starts from the trade’s services, and removing one saves the rest', () => {
+    const onContentChange = vi.fn()
+    render(<SectionContentEditor site={site} trade={plumber} section="services" onContentChange={onContentChange} />)
+    const first = plumber.services[0]
+    fireEvent.click(screen.getByRole('button', { name: `Remove ${first}` }))
+    expect(onContentChange).toHaveBeenCalledWith({ services: plumber.services.slice(1) })
+  })
+
+  it('lets the customer type their own', () => {
+    const onContentChange = vi.fn()
+    render(<SectionContentEditor site={site} trade={plumber} section="services" onContentChange={onContentChange} />)
+    fireEvent.change(screen.getByLabelText('Add a service'), { target: { value: 'Smart thermostats' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(onContentChange).toHaveBeenCalledWith({ services: [...plumber.services, 'Smart thermostats'] })
+  })
+
+  it('keeps an emptied list empty, so the section hides instead of resetting', () => {
+    const onContentChange = vi.fn()
+    const one = { ...site, content: { ...site.content, services: ['Rewiring'] } }
+    render(<SectionContentEditor site={one} trade={plumber} section="services" onContentChange={onContentChange} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Rewiring' }))
+    expect(onContentChange).toHaveBeenCalledWith({ services: [] })
   })
 })

@@ -18,7 +18,7 @@ export function pageContent(site: Record_, trade: TradeConfig, features: Feature
   const phone = b.phone.trim()
   const email = b.email.trim()
   return {
-    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, offer: trade.offer, services: trade.services },
+    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, offer: trade.offer, services: c.services ?? trade.services },
     business: {
       name: b.name.trim(),
       phone,

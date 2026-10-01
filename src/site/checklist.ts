@@ -4,6 +4,7 @@ import type { Site } from './schema'
 import { siteSections } from './sections'
 
 export type ChecklistId =
+  | 'services'
   | 'badges'
   | 'whyUs'
   | 'certsNote'
@@ -35,6 +36,7 @@ const filled = (v: unknown[] | null) => v !== null && v.length > 0
 
 const RULES: Rule[] = [
   { id: 'photos.hero', label: 'Main photo', usedBy: ['hero'], done: s => s.content.photos.hero !== null },
+  { id: 'services', label: 'The services you offer', usedBy: ['services'], done: s => (s.content.services?.length ?? 1) > 0 },
   { id: 'badges', label: 'Your credentials and guarantees', usedBy: ['trust_bar', 'certifications'], done: s => filled(s.content.badges) },
   { id: 'whyUs', label: 'Why people should choose you', usedBy: ['why_us'], done: s => filled(s.content.whyUs ?? null) },
   { id: 'certsNote', label: 'A note about your certificates', usedBy: ['certifications'], done: s => !!s.content.certsNote },

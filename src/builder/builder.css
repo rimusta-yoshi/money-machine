@@ -842,6 +842,9 @@
   padding: 22px;
   height: 76vh;
   overflow-y: auto;
+  /* Always keep the scrollbar's space: otherwise a page just the height of the view flips
+     the scrollbar on and off, the zoom follows the width, and the preview shakes. */
+  scrollbar-gutter: stable;
 }
 .mm-stack-view::-webkit-scrollbar { width: 9px; }
 .mm-stack-view::-webkit-scrollbar-thumb {

@@ -21,7 +21,7 @@ export {
 export type { Candidate, Options, FitResult as SectionFitResult } from './core/pipeline'
 export { outsideTheme } from './core/punch'
 export { solveRhythm } from './core/rhythm'
-export type { Rhythm, PageEntry } from './core/rhythm'
+export type { Rhythm, PageEntry, Settle } from './core/rhythm'
 export { estimateMeasurer, cautiousMeasurer } from './core/estimate'
 export { FRAME } from './core/fit'
 export {

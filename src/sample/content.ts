@@ -26,9 +26,9 @@ const SAMPLE_WHY: PageContent['whyUs'] = [
  * page content says: they stay hidden while enquiries are switched off (FEATURES).
  */
 export function withSample(c: PageContent, photos: readonly PagePhoto[], why: PageContent['whyUs'] = SAMPLE_WHY): PageContent {
-  const [hero, about, ...gallery] = photos
   return {
     ...c,
+    trade: { ...c.trade, services: c.trade.services.length ? c.trade.services : ['Repairs', 'New installations', 'Safety checks'] },
     business: {
       ...c.business,
       name: c.business.name || 'Hartley & Sons',
@@ -48,11 +48,23 @@ export function withSample(c: PageContent, photos: readonly PagePhoto[], why: Pa
     jobsDone: c.jobsDone ?? '1,200+',
     rating: c.rating ?? { score: 4.9, count: 86 },
     reviews: c.reviews.length ? c.reviews : SAMPLE_REVIEWS,
-    photos: {
-      hero: c.photos.hero ?? hero ?? null,
-      about: c.photos.about ?? about ?? null,
-      gallery: c.photos.gallery.length ? c.photos.gallery : gallery,
-    },
+    photos: withSamplePhotos(c, photos).photos,
     sample: true,
   }
+}
+
+/**
+ * Sample photos in every photo slot the customer hasn't filled: hero, about, then the
+ * gallery. Marked `sample` whenever one is used, so the result can never be published.
+ */
+export function withSamplePhotos(c: PageContent, photos: readonly PagePhoto[]): PageContent {
+  const [hero, about, ...gallery] = photos
+  const used = (!c.photos.hero && !!hero) || (!c.photos.about && !!about) || (!c.photos.gallery.length && gallery.length > 0)
+  if (!used) return c
+  const slots = {
+    hero: c.photos.hero ?? hero ?? null,
+    about: c.photos.about ?? about ?? null,
+    gallery: c.photos.gallery.length ? c.photos.gallery : gallery,
+  }
+  return { ...c, photos: slots, sample: true }
 }

@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import type { TradeConfig } from '../../types'
 import type { ChecklistId } from '../../site/checklist'
+import { MAX_SERVICES } from '../../site/schema'
 import type { Site, SiteContent } from '../../site/schema'
 import { ListEditor } from './ListEditor'
 import { HoursEditor } from './HoursEditor'
@@ -25,6 +26,19 @@ interface Props {
 export function ChecklistItemEditor({ id, site, trade, onContentChange }: Props) {
   const c = site.content
   switch (id) {
+    case 'services':
+      return (
+        <ListEditor
+          label="Add a service"
+          items={c.services ?? trade.services}
+          // An emptied list is kept (not reset to the trade's), so the services section hides.
+          onChange={services => onContentChange({ services: services ?? [] })}
+          placeholder="e.g. Bathroom fitting"
+          max={MAX_SERVICES}
+          maxLength={LIMITS.service}
+          suggestions={trade.services}
+        />
+      )
     case 'badges':
       return (
         <ListEditor
