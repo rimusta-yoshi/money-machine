@@ -4,7 +4,7 @@ export const electrician: TradeConfig = {
   id: 'electrician',
   name: 'Electrician',
   emoji: '⚡',
-  tagline: 'Certified electricians — safe, reliable, local.',
+  tagline: 'Safe, tidy electrical work from local electricians.',
   colorScheme: {
     navy: '#1C1710',
     navyHover: '#2A2318',
@@ -20,9 +20,10 @@ export const electrician: TradeConfig = {
     { type: 'testimonials' },
     { type: 'contact' },
   ],
-  ctaText: 'Book an Electrician',
-  ctaSubtext: 'Free, no-obligation quotes',
-  trustSignals: ['Master Electrician Certified', 'NICEIC Approved', 'Fully Insured', '24/7 Emergency Calls', 'Free Safety Inspections', 'EV Charger Specialists'],
-  services: ['Panel Upgrades', 'Rewiring', 'EV Charger Install', 'Lighting', 'Safety Inspections', 'Emergency Repairs'],
+  ctaText: 'Book an electrician',
+  ctaSubtext: 'No obligation',
+  offer: 'Free quotes',
+  trustSignals: ['NICEIC approved', 'Fully insured', '24/7 emergency call-outs', 'Part P registered', 'EV charger installer'],
+  services: ['Fuse board upgrades', 'Rewiring', 'EV charger installation', 'Lighting', 'Safety inspections', 'Emergency repairs'],
   stickyCallBar: false,
 }

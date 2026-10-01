@@ -15,6 +15,13 @@ export const BANDS = ['ground', 'surface', 'brand', 'ink', 'photo'] as const
 export type Band = typeof BANDS[number]
 export type Side = 'left' | 'right'
 
+/** Kinds of content that more than one section can show. */
+export const FACETS = ['badges', 'rating', 'stats', 'reviews', 'areas'] as const
+export type Facet = typeof FACETS[number]
+
+/** Content a layout shows; `core` when it's what the section is for (a trust bar's credentials). */
+export interface Shows { facet: Facet; core?: boolean }
+
 /** What the rhythm layer decides for one section. Derived from the whole page, never picked. */
 export interface SectionRhythm {
   band: Band
@@ -22,6 +29,8 @@ export interface SectionRhythm {
   side: Side
   /** Whether this section may draw its motif (the page's motif quotas are shared out in order). */
   motif: boolean
+  /** Content this section leaves out because a neighbour already shows it. */
+  omit?: readonly Facet[]
 }
 
 export interface Check {
@@ -83,6 +92,8 @@ export interface Archetype<C, P> {
   features: (p: P) => number[]
   /** The biggest and second-biggest type in this layout at a given preset, for scoring punch. */
   focal?: (p: P, sizes: Sizes) => Focal
+  /** The content this layout shows, so neighbours never repeat each other. */
+  shows?: (p: P) => readonly Shows[]
   /** Motifs this layout draws besides `params.motif`, so the page's motif quotas count them too. */
   drawn?: (p: P) => readonly Motif[]
   /** Extra theme rules for params the shared punch keys don't cover. */

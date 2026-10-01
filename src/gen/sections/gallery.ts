@@ -96,7 +96,7 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
   },
   weights: {
     'workwear': { grid: 2, mosaic: 1.6, strip: 1.6, feature: 1.4, slab: 3 },
-    'clean-pro': { grid: 3, mosaic: 2, strip: 1.6, feature: 2.4 },
+    'clean-pro': { grid: 1.4, mosaic: 2.6, strip: 1.6, feature: 3 },
     'craft-heritage': { grid: 1.6, mosaic: 1, strip: 1, feature: 2, captioned: 3.5 },
     'friendly-local': { grid: 2.4, mosaic: 2.4, strip: 1.4, feature: 1, polaroids: 3.5 },
   },

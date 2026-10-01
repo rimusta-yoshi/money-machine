@@ -4,7 +4,7 @@ export const roofer: TradeConfig = {
   id: 'roofer',
   name: 'Roofer',
   emoji: '🏠',
-  tagline: 'Trusted roofing — local, licensed, and guaranteed.',
+  tagline: 'Roofing done properly, by local roofers.',
   colorScheme: {
     navy: '#0D2113',
     navyHover: '#163320',
@@ -20,9 +20,10 @@ export const roofer: TradeConfig = {
     { type: 'testimonials' },
     { type: 'contact' },
   ],
-  ctaText: 'Get a Free Roof Inspection',
-  ctaSubtext: 'No obligation — we come to you',
-  trustSignals: ['30+ Years Experience', 'Fully Licensed & Insured', 'Manufacturer Warranty', 'Emergency Service Available', 'Free Estimates', 'Storm Damage Specialists'],
-  services: ['Roof Replacement', 'Roof Repair', 'Gutters & Fascia', 'Storm Damage', 'Flat Roofing', 'Inspections'],
+  ctaText: 'Book a free roof inspection',
+  ctaSubtext: 'No obligation, and we come to you',
+  offer: 'Free roof inspections',
+  trustSignals: ['Fully insured', 'Manufacturer-backed warranty', 'Emergency repairs', 'Local family business', 'Storm damage repairs'],
+  services: ['Roof replacement', 'Roof repairs', 'Gutters and fascias', 'Storm damage', 'Flat roofing', 'Roof inspections'],
   stickyCallBar: false,
 }

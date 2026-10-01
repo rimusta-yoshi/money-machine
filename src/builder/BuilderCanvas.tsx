@@ -2,18 +2,17 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import type { SectionType, TradeConfig } from '../types'
 import { specKey } from '../gen'
-import type { Generated, ResolvedSection, SectionKey } from '../gen'
+import type { Generated, PageContent, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
 import { siteSections } from '../site/sections'
 import { SECTION_LABELS } from '../site/labels'
 import { SECTION_NEEDS } from '../site/needs'
 import { sitePage } from '../site/page'
 import { pageContent } from '../site/pageContent'
-import { withSample } from '../sample/content'
-import { samplePhotos } from '../sample/photos'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
+import { ExampleSection } from './ExampleSection'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
 import type { SiteStyleControls } from './SiteStyleCard'
@@ -22,6 +21,8 @@ import { useSectionPicker } from './useSectionPicker'
 interface Props {
   trade: TradeConfig
   site: Site
+  /** What to lay out: the customer's content plus any sample photos or text (see usePreviewContent). */
+  content?: PageContent
   mobile: boolean
   /** Section to open on, e.g. when coming back from the go-live step to add something. */
   initialSection?: SectionType
@@ -43,7 +44,7 @@ function useNarrowDevice() {
   return narrow
 }
 
-export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
+export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
   const sections = siteSections(trade, site)
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
@@ -55,9 +56,8 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
   const touchStartX = useRef<number | null>(null)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
-  const sampleOn = import.meta.env.DEV && (siteStyle.sample?.on ?? false)
-  // Sample content is view-only: it never reaches the record, so it can't be saved or published.
-  const content = useMemo(() => (sampleOn ? withSample(pageContent(site, trade), samplePhotos()) : pageContent(site, trade)), [site, trade, sampleOn])
+  // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
+  const content = useMemo(() => preview ?? pageContent(site, trade), [preview, site, trade])
   const picker = useSectionPicker(site, content, activeType)
   // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
   const page = useMemo(
@@ -110,8 +110,6 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
    * remembered pick from a fit repair).
    */
   const confirmActive = () => {
-    // Layouts browsed against sample content aren't saved: they were fitted to content the site doesn't have.
-    if (sampleOn) return
     const pick = present(activeType) ? picker.pick() : null
     const saved = site.sections[activeType] as Generated | undefined
     const unchanged = saved && pick && saved.seed === pick.seed && specKey(saved.spec) === specKey(pick.spec)
@@ -208,11 +206,13 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
                       {state === 'done' && <><Icon.Check size={10} /> </>}
                       {isActive ? `Editing · ${label}` : label}
                     </div>
-                    {showPlaceholder(i) ? (
+                    {waiting ? (
+                      <ExampleSection type={sec.type} site={site} content={content} needs={SECTION_NEEDS[sec.type] ?? 'Add content to show this.'} />
+                    ) : showPlaceholder(i) ? (
                       <div className="mm-band-blank">
                         <span className="mm-band-blank-name">{label}</span>
                         <span className="mm-band-blank-hint">
-                          {waiting ? SECTION_NEEDS[sec.type] ?? 'Add content to show this section.' : 'tap to build this section'}
+                          tap to build this section
                         </span>
                       </div>
                     ) : (() => {

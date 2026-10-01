@@ -59,6 +59,7 @@ export const footer = defineSection<FooterSpec, FooterView>({
   schema: footerSchema,
   tag: 'footer',
   checkBands: ['ground', 'ink'],
+  trim: (v, omit) => (omit.has('areas') ? { ...v, areas: [] } : v),
   fixedBand: s => ('tone' in s.params && s.params.tone === 'inverse' ? 'ink' : 'ground'),
   archetypes: {
     simple: {
@@ -72,6 +73,7 @@ export const footer = defineSection<FooterSpec, FooterView>({
       label: 'Columns', why: '',
       gate: () => true,
       params: (r, { content: v, biome: t }) => ({ lists: v.areas.length ? pick(r, ['services', 'both'] as const) : 'services', tone: rollTone(r, t) }),
+      shows: p => (p.lists === 'both' ? [{ facet: 'areas' }] : []),
       features: p => [p.lists === 'both' ? 1 : 0, p.tone === 'inverse' ? 1 : 0],
       allows: (p, t) => p.tone === 'plain' || canInvert(t),
     },

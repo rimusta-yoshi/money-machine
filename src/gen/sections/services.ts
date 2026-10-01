@@ -159,7 +159,7 @@ export const services = defineSection<ServicesSpec, ServicesView>({
   },
   weights: {
     'workwear': { cards: 3, list: 1.6, split: 2, feature: 1.2, chips: 0.6, poster: 3 },
-    'clean-pro': { cards: 3, list: 1.2, split: 2, feature: 1.6, chips: 1, bento: 2.6 },
+    'clean-pro': { cards: 1, list: 1, split: 2.6, feature: 2.4, chips: 0.8, bento: 3.6 },
     'craft-heritage': { cards: 1, list: 1.4, split: 2, feature: 1, pricelist: 4 },
     'friendly-local': { cards: 3.5, list: 1.2, split: 1.2, feature: 1.2, chips: 2 },
   },

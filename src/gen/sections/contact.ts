@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { cx, esc, safeUrl } from '../html'
 import { pick } from '../rng'
 import type { PageContent } from '../content'
+import { offerLine } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { button, head, icon, link } from '../core/markup'
@@ -24,7 +25,7 @@ export interface ContactView {
 export const contactView = (c: PageContent): ContactView => ({
   trade: c.trade.name.toLowerCase(),
   cta: c.trade.ctaText,
-  lead: `${c.trade.ctaSubtext}. Serving ${c.business.location || 'your area'}.`,
+  lead: offerLine(c),
   phone: c.business.tel ? { number: c.business.phone, href: c.business.tel } : null,
   email: c.business.email,
   hours: c.hours,
@@ -97,6 +98,7 @@ export const contact = defineSection<ContactSpec, ContactView>({
       label: 'Contact details', why: 'needs a phone number or email',
       gate: reachable,
       params: (r, { biome: t }) => ({ brk: rollBreak(r, t, ['band', 'rule']) }),
+      shows: () => [{ facet: 'areas' }],
       features: p => [p.brk === 'rule' ? 1 : 0],
       focal: (_p, z) => ({ focal: z.h2, second: 18 }),
     },
@@ -133,12 +135,13 @@ export const contact = defineSection<ContactSpec, ContactView>({
   },
   weights: {
     'workwear': { band: 3, details: 1.4, hours: 1.6, form: 1.4, inline: 1.4, bigphone: 3.2 },
-    'clean-pro': { band: 2, details: 3, hours: 2, form: 3, inline: 1 },
+    'clean-pro': { band: 2.8, details: 1.2, hours: 2.2, form: 3, inline: 1.2 },
     'craft-heritage': { band: 3.5, details: 1.6, hours: 2, form: 1.2, inline: 1.4 },
     'friendly-local': { band: 3.5, details: 2, hours: 2, form: 2, inline: 1 },
   },
   fallback: { v: 2, section: 'contact', archetype: 'details', step: 2, params: { brk: 'band' } },
   contrast: (_s, style) => ({ button: style.button }),
+  trim: (v, omit) => (omit.has('areas') ? { ...v, areas: [] } : v),
   body: (s, v, ctx) => {
     const t = ctx.biome
     const h = (align: 'left' | 'center' | 'row' = 'left', lead = true) => head('contact', { eyebrow: t.voice.eyebrows.contact, title: titleOf(v, ctx), lead: lead ? v.lead : undefined, align })

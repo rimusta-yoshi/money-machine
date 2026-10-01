@@ -9,8 +9,12 @@ import { rollAlign, rollBreak, rollMotif, rollRot } from '../core/punch'
 import { THEMES } from '../themes'
 import { ALIGNS, BREAKS, MOTIFS } from '../themes/types'
 
-export interface CertsView { badges: readonly string[] }
-export const certsView = (c: PageContent): CertsView => ({ badges: c.badges })
+export interface CertsView {
+  badges: readonly string[]
+  /** The customer's own note, e.g. "Certificates available on request". Never added for them. */
+  note: string | null
+}
+export const certsView = (c: PageContent): CertsView => ({ badges: c.badges, note: c.certsNote })
 
 export const certificationsSchema = specSchema('certifications', {
   cards: { cols: z.union([z.literal(2), z.literal(3), z.literal(4)]), mark: z.enum(['badge', 'shield']), motif: z.enum(MOTIFS), brk: z.enum(BREAKS) },
@@ -22,8 +26,8 @@ export const certificationsSchema = specSchema('certifications', {
 })
 export type CertificationsSpec = z.infer<typeof certificationsSchema>
 
-const HEAD = (ctx: BodyContext, align: 'left' | 'center' | 'row' = 'left') =>
-  head('certifications', { eyebrow: ctx.biome.voice.eyebrows.certifications, title: ctx.biome.voice.titles.certifications, align })
+const HEAD = (ctx: BodyContext, v: CertsView, align: 'left' | 'center' | 'row' = 'left') =>
+  head('certifications', { eyebrow: ctx.biome.voice.eyebrows.certifications, title: ctx.biome.voice.titles.certifications, lead: v.note ?? undefined, align })
 
 const short = (v: CertsView) => v.badges.every(b => b.length <= 32)
 
@@ -40,6 +44,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
         cols: v.badges.length % 4 === 0 ? 4 : v.badges.length % 3 === 0 || v.badges.length > 4 ? 3 : 2, mark: pick(r, ['badge', 'shield'] as const),
         motif: rollMotif(r, t, 'certifications', ['toprule', 'icontile', 'pastel', 'numbers'], 0.2), brk: rollBreak(r, t, ['band', 'rule']),
       }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [(p.cols - 2) / 2, p.mark === 'badge' ? 1 : 0, MOTIFS.indexOf(p.motif) / MOTIFS.length],
       focal: (_p, z) => ({ focal: z.h2, second: z.h3 }),
     },
@@ -47,6 +52,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       label: 'Checklist', why: 'needs your credentials',
       gate: v => v.badges.length >= 1,
       params: (r, { biome: t }) => ({ layout: pick(r, ['beside', 'below'] as const), motif: rollMotif(r, t, 'certifications', ['ticks', 'leaders', 'numbers'], 0.25), brk: rollBreak(r, t, ['band', 'panel', 'rule']) }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [p.layout === 'beside' ? 1 : 0, MOTIFS.indexOf(p.motif) / MOTIFS.length, BREAKS.indexOf(p.brk) / 2],
       focal: (_p, z) => ({ focal: z.h2, second: 18 }),
     },
@@ -54,6 +60,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       label: 'Seals', why: 'needs 2–6 short credentials',
       gate: v => v.badges.length >= 2 && v.badges.length <= 6 && short(v),
       params: (r, { biome: t }) => ({ shape: pick(r, ['circle', 'rounded'] as const), align: rollAlign(r, t, ['center', 'left']) }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [p.shape === 'circle' ? 1 : 0, p.align === 'center' ? 1 : 0, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 16 }),
       loud: true,
@@ -62,6 +69,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       label: 'Plates', why: 'needs your credentials',
       gate: v => v.badges.length >= 1,
       params: (r, { biome: t }) => ({ motif: rollMotif(r, t, 'certifications', ['stripe'], 0.3), brk: rollBreak(r, t, ['band', 'rule']) }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [p.motif === 'stripe' ? 1 : 0, 1, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 24 }),
       loud: true,
@@ -70,6 +78,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       label: 'Certificate', why: 'needs your credentials',
       gate: v => v.badges.length >= 1,
       params: (r, { biome: t }) => ({ motif: rollMotif(r, t, 'certifications', ['double', 'diamond'], 0.1) }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [MOTIFS.indexOf(p.motif) / MOTIFS.length, 1, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 15 }),
     },
@@ -77,13 +86,14 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       label: 'Round badges', why: 'needs 2–6 short credentials',
       gate: v => v.badges.length >= 2 && v.badges.length <= 6 && short(v),
       params: (r, { biome: t }) => ({ rot: rollRot(r, t), align: rollAlign(r, t, ['center', 'left']), motif: rollMotif(r, t, 'certifications', ['sticker'], 0) }),
+      shows: () => [{ facet: 'badges', core: true }],
       features: p => [Math.abs(p.rot) / 6, p.align === 'center' ? 1 : 0, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
   },
   weights: {
     'workwear': { cards: 2, checklist: 2, seals: 1.4, plates: 3 },
-    'clean-pro': { cards: 3, checklist: 2.5, seals: 1.4 },
+    'clean-pro': { cards: 0.6, checklist: 3, seals: 1.8 },
     'craft-heritage': { cards: 1, checklist: 2.5, seals: 1.2, certificate: 3.5 },
     'friendly-local': { cards: 2.4, checklist: 1.4, seals: 1.6, badges: 3 },
   },
@@ -98,7 +108,7 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
         const cls = cx('sb-grid sb-cert-cards', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-cert-cards--rule')
         const tag = num ? 'ol' : 'ul'
         const items = v.badges.map(b => `<li class="sb-card sb-cert">${mark}<p class="sb-h3">${esc(b)}</p></li>`).join('')
-        return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx, 'row')}<${tag} class="${cls}">${items}</${tag}>` }
+        return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx, v, 'row')}<${tag} class="${cls}">${items}</${tag}>` }
       }
       case 'checklist': {
         const p = s.params
@@ -108,35 +118,35 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
         const items = v.badges.map(b => `<li>${m === 'none' ? icon('check', 22) : ''}<span>${esc(b)}</span>${m === 'leaders' ? '<span class="sb-dots" aria-hidden="true"></span><span class="sb-end" aria-hidden="true">✓</span>' : ''}</li>`).join('')
         const list = `<${tag} class="${cls}">${items}</${tag}>`
         return p.layout === 'beside'
-          ? { vars: '--sb-ta:5;', inner: `<div class="sb-cols sb-cols--top"><div class="sb-main">${HEAD(ctx)}</div><div class="sb-aside">${list}</div></div>` }
-          : { inner: `${HEAD(ctx)}${list}` }
+          ? { vars: '--sb-ta:5;', inner: `<div class="sb-cols sb-cols--top"><div class="sb-main">${HEAD(ctx, v)}</div><div class="sb-aside">${list}</div></div>` }
+          : { inner: `${HEAD(ctx, v)}${list}` }
       }
       case 'seals': {
         const p = s.params
         const center = p.align === 'center'
         const items = v.badges.map(b => `<li class="sb-seal">${icon('badge', 28)}<span>${esc(b)}</span></li>`).join('')
-        return { cls: `sb-shape--${p.shape}`, inner: `${HEAD(ctx, center ? 'center' : 'left')}<ul class="sb-seals${center ? ' sb-seals--center' : ''}">${items}</ul>` }
+        return { cls: `sb-shape--${p.shape}`, inner: `${HEAD(ctx, v, center ? 'center' : 'left')}<ul class="sb-seals${center ? ' sb-seals--center' : ''}">${items}</ul>` }
       }
       case 'plates': {
         const items = v.badges.map(b => `<li class="sb-plate">${icon('shield', 26)}<span>${esc(b)}</span></li>`).join('')
-        return { cls: on ? 'sb-plates--stripe' : '', inner: `${HEAD(ctx, 'row')}<ul class="sb-plates">${items}</ul>` }
+        return { cls: on ? 'sb-plates--stripe' : '', inner: `${HEAD(ctx, v, 'row')}<ul class="sb-plates">${items}</ul>` }
       }
       case 'certificate': {
         const p = s.params
         const orn = on && p.motif === 'diamond' ? '<div class="sb-diamond" aria-hidden="true"><span></span></div>' : ''
         const items = v.badges.map(b => `<li>${esc(b)}</li>`).join('')
-        return { cls: on && p.motif === 'double' ? 'sb-cert-frame--double' : '', inner: `<div class="sb-cert-frame">${HEAD(ctx, 'center')}${orn}<ul class="sb-cert-list">${items}</ul></div>` }
+        return { cls: on && p.motif === 'double' ? 'sb-cert-frame--double' : '', inner: `<div class="sb-cert-frame">${HEAD(ctx, v, 'center')}${orn}<ul class="sb-cert-list">${items}</ul></div>` }
       }
       case 'badges': {
         const p = s.params
         // Over the page's sticker quota, the badges sit straight.
         const rot = ctx.motif ? p.rot : 0
         const items = v.badges.map((b, i) => `<li class="sb-rbadge${i % 3 === 1 ? ' sb-rbadge--ink' : ''}" data-over style="--sb-rot:${i % 2 === 0 ? rot : -rot}deg">${icon('badge', 26)}<span>${esc(b)}</span></li>`).join('')
-        return { inner: `${HEAD(ctx, p.align === 'center' ? 'center' : 'left')}<ul class="sb-rbadges${p.align === 'center' ? ' sb-rbadges--center' : ''}">${items}</ul>` }
+        return { inner: `${HEAD(ctx, v, p.align === 'center' ? 'center' : 'left')}<ul class="sb-rbadges${p.align === 'center' ? ' sb-rbadges--center' : ''}">${items}</ul>` }
       }
     }
   },
-  words: (s, v, style) => ({ title: THEMES[style.theme].voice.titles.certifications, texts: v.badges, col: s.archetype === 'checklist' && s.params.layout === 'beside' ? 440 : 760 }),
+  words: (s, v, style) => ({ title: THEMES[style.theme].voice.titles.certifications, texts: [...v.badges, ...(v.note ? [v.note] : [])], col: s.archetype === 'checklist' && s.params.layout === 'beside' ? 440 : 760 }),
 })
 
 export const CERTIFICATIONS_CSS = `

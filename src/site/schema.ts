@@ -1,11 +1,14 @@
 import { z } from 'zod'
 import { SECTION_TYPES, TRADE_IDS } from '../types'
 import { LEGACY_THEME_KEYS, siteStyleSchema, THEME_KEYS } from '../gen/schema'
-import { BANDS, SECTION_KEYS } from '../gen/core/types'
+import { BANDS, FACETS, SECTION_KEYS } from '../gen/core/types'
 import { generatedSectionsSchema } from '../gen/specs'
 import { LIMITS } from './limits'
 
 export const EXTRA_IDS = ['reviews'] as const
+
+/** Most services a site lists (the trades start with six). */
+export const MAX_SERVICES = 8
 export type ExtraId = typeof EXTRA_IDS[number]
 
 const text = (max: number) => z.string().trim().max(max)
@@ -64,6 +67,18 @@ const contentSchemaFor = (L: Limits) => z.object({
   jobsDone: text(L.jobsDone).min(1).nullable(),
   rating: z.object({ score: z.number().min(1).max(5), count: z.number().int().min(1) }).nullable(),
   reviews: z.array(reviewSchemaFor(L)).max(12).nullable(),
+  /**
+   * Why-us lines the customer ticked or wrote (suggestions are never published untouched).
+   * Optional so records from before suggestions existed still parse.
+   */
+  whyUs: z.array(z.object({ title: text(LIMITS.whyTitle).min(1), text: text(LIMITS.whyText) }).strict()).max(6).nullable().optional(),
+  /**
+   * The services the customer offers, in their order. Absent until they edit the list,
+   * meaning the trade's usual services; an empty list hides the services section.
+   */
+  services: z.array(text(LIMITS.service).min(1)).max(MAX_SERVICES).optional(),
+  /** A note under the credentials, e.g. "Certificates available on request", only when ticked or written. */
+  certsNote: text(LIMITS.certsNote).min(1).nullable().optional(),
   photos: z.object({
     hero: photoSchemaFor(L).nullable(),
     about: photoSchemaFor(L).nullable(),
@@ -125,7 +140,7 @@ export type SiteV3 = z.infer<typeof siteSchemaV3>
 
 const rhythmSchema = z.partialRecord(
   z.enum(SECTION_KEYS),
-  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean() }).strict(),
+  z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean(), omit: z.array(z.enum(FACETS)).optional() }).strict(),
 )
 
 /**

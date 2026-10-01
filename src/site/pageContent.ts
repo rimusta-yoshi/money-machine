@@ -18,7 +18,7 @@ export function pageContent(site: Record_, trade: TradeConfig, features: Feature
   const phone = b.phone.trim()
   const email = b.email.trim()
   return {
-    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, services: trade.services },
+    trade: { name: trade.name, tagline: trade.tagline, ctaText: trade.ctaText, ctaSubtext: trade.ctaSubtext, offer: trade.offer, services: c.services ?? trade.services },
     business: {
       name: b.name.trim(),
       phone,
@@ -29,6 +29,8 @@ export function pageContent(site: Record_, trade: TradeConfig, features: Feature
       years: b.yearsInBusiness.trim(),
     },
     badges: c.badges ?? [],
+    whyUs: (c.whyUs ?? []).map(w => [w.title, w.text] as const),
+    certsNote: c.certsNote?.trim() || null,
     areas: c.areas ?? [],
     hours: c.hours ?? [],
     emergency: c.emergency === true,

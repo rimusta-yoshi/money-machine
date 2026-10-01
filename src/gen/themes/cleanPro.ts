@@ -23,9 +23,9 @@ export const cleanPro: Biome = {
   caps: { upper: false, tracking: 0 },
   h3: 'display',
   scales: [
-    { label: 'Large', h1: [80, 72, 64], h1m: [46, 42, 34], h2: [56, 50, 44], h2m: [36, 33, 30], xl: [72, 62, 54], xlm: [44, 40, 36], h3: 22, lead: 20 },
-    { label: 'Standard', h1: [72, 64, 58], h1m: [42, 38, 32], h2: [48, 44, 40], h2m: [34, 31, 28], xl: [64, 56, 48], xlm: [40, 36, 32], h3: 22, lead: 20 },
-    { label: 'Compact', h1: [62, 56, 50], h1m: [38, 34, 30], h2: [42, 38, 34], h2m: [31, 28, 26], xl: [56, 48, 42], xlm: [36, 32, 30], h3: 21, lead: 19 },
+    { label: 'Large', h1: [80, 72, 64], h1m: [46, 42, 34], h2: [64, 56, 48], h2m: [38, 34, 30], xl: [88, 76, 64], xlm: [48, 42, 38], h3: 24, lead: 20 },
+    { label: 'Standard', h1: [72, 64, 58], h1m: [42, 38, 32], h2: [56, 50, 44], h2m: [36, 32, 29], xl: [80, 68, 58], xlm: [44, 40, 36], h3: 23, lead: 20 },
+    { label: 'Compact', h1: [64, 58, 52], h1m: [38, 34, 30], h2: [50, 44, 40], h2m: [33, 30, 27], xl: [68, 60, 52], xlm: [40, 36, 32], h3: 22, lead: 19 },
   ],
   scaleWeights: [1, 1.4, 0.8],
   grounds: [
@@ -103,7 +103,8 @@ ${S} .sb-rule-top{border-top:1px solid var(--sb-hair)}
 ${S} .sb-divider{width:56px;height:4px;border-radius:4px;background:var(--sb-accent)}
 ${S} .sb-field input,${S} .sb-field textarea{border-radius:12px}
 ${S}.sb-brk--panel>.sb-wrap{border-radius:28px}
-${S} .sb-stat-n{letter-spacing:-0.04em}
+${S} .sb-stat-n{letter-spacing:-0.04em;color:var(--sb-link)}
+${S} .sb-card .sb-h3{font-size:calc(var(--sb-h3) * 1.05)}
 
 ${H}{min-height:76px;background:var(--sb-ground);color:var(--sb-ink)}
 ${H} .sb-header-name{font-family:var(--sb-fd);font-weight:800;font-size:22px;letter-spacing:-0.02em}

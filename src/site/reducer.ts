@@ -27,7 +27,11 @@ export type SiteAction =
  */
 export function siteReducer(site: Site | null, action: SiteAction): Site | null {
   const next = edit(site, action)
-  return next && next !== site ? withRhythm(next, tradeById[next.tradeId]) : next
+  if (!next || next === site) return next
+  // A new look starts the rhythm afresh; any other edit keeps settled sections' loud bands.
+  const fresh = action.type === 'setTheme' || action.type === 'rerollStyle' || action.type === 'pickTrade'
+  const changed = action.type === 'pickSection' || action.type === 'repairSection' ? action.section : undefined
+  return withRhythm(next, tradeById[next.tradeId], fresh ? { prior: null } : { changed })
 }
 
 function edit(site: Site | null, action: SiteAction): Site | null {

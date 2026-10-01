@@ -36,8 +36,12 @@ export interface TradeConfig {
   tagline: string
   colorScheme: ColorScheme
   sections: SectionConfig[]
+  /** The main call to action, in sentence case (e.g. "Get a free quote"). */
   ctaText: string
+  /** A short reassurance after the offer (e.g. "No obligation"). */
   ctaSubtext: string
+  /** What's on offer, as a plural noun phrase (e.g. "Free quotes"); lines like "Free quotes across Leeds." are built from it. */
+  offer: string
   trustSignals: string[]
   services: string[]
   stickyCallBar: boolean

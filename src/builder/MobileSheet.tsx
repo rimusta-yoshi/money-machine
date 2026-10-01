@@ -32,7 +32,8 @@ export function MobileSheet(props: SectionNavProps) {
           <div className="mm-sheet-sub" aria-live="polite">
             {layout.count > 1
               ? `${layout.label} · ${layout.index + 1} of ${layout.count} · swipe to change`
-              : layout.loading ? 'Generating layouts…' : layout.count === 1 ? 'One layout' : layout.needs ?? 'No layouts fit this content yet'}
+              : layout.loading ? 'Generating layouts…' : layout.count === 1 ? 'One layout'
+                : layout.needs ? `Nothing to choose yet. ${layout.needs.replace(/ to show this\.$/, '')} and layouts appear.` : 'No layouts fit this content yet'}
           </div>
         </div>
         <button type="button" className="mm-ctrl-arr" onClick={() => props.onCycleLayout(1)} aria-label="Next layout" disabled={layout.count < 2}>›</button>

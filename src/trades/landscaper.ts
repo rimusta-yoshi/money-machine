@@ -4,7 +4,7 @@ export const landscaper: TradeConfig = {
   id: 'landscaper',
   name: 'Landscaper',
   emoji: '🌿',
-  tagline: 'Lawn care and landscaping — your neighbourhood specialists.',
+  tagline: 'Gardens and landscaping from your local team.',
   colorScheme: {
     navy: '#0A1F0E',
     navyHover: '#132B18',
@@ -20,9 +20,10 @@ export const landscaper: TradeConfig = {
     { type: 'testimonials' },
     { type: 'contact' },
   ],
-  ctaText: 'Request a Free Estimate',
-  ctaSubtext: 'Free, no-obligation consultations',
-  trustSignals: ['Licensed & Insured', 'Locally Owned', 'Satisfaction Guaranteed', 'Free Consultations', '15+ Years Experience', 'Eco-Friendly Practices'],
-  services: ['Lawn Maintenance', 'Landscape Design', 'Sod Installation', 'Garden Beds', 'Tree Trimming', 'Snow Removal'],
+  ctaText: 'Ask for a free estimate',
+  ctaSubtext: 'No obligation',
+  offer: 'Free estimates',
+  trustSignals: ['Fully insured', 'Locally owned', 'Free garden visits', 'Waste taken away'],
+  services: ['Lawn care', 'Garden design', 'Turfing', 'Planting and borders', 'Tree and hedge trimming', 'Patios and paths'],
   stickyCallBar: false,
 }

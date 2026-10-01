@@ -12,6 +12,7 @@ export interface PageContent {
     tagline: string
     ctaText: string
     ctaSubtext: string
+    offer: string
     services: readonly string[]
   }
   business: {
@@ -25,6 +26,10 @@ export interface PageContent {
     years: string
   }
   badges: readonly string[]
+  /** Why-us lines the customer chose (title, sentence). Empty until they tick or write one. */
+  whyUs: readonly (readonly [string, string])[]
+  /** A note under the credentials, only if the customer added it. */
+  certsNote: string | null
   areas: readonly string[]
   hours: readonly { day: string; time: string }[]
   emergency: boolean
@@ -43,6 +48,10 @@ export interface PageContent {
    */
   sample?: true
 }
+
+/** "Free quotes across Leeds. No obligation." The offer line under headings, in plain sentence case. */
+export const offerLine = (c: Pick<PageContent, 'trade' | 'business'>): string =>
+  `${c.trade.offer}${c.business.location ? ` across ${c.business.location}` : ''}. ${c.trade.ctaSubtext}.`
 
 /** Display name, never empty. */
 export const businessName = (c: PageContent): string => c.business.name || `${c.trade.name} Co.`

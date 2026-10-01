@@ -132,7 +132,7 @@ function floatCard(c: HeroContent, kind: P<'floatcard'>['card']): string {
       const x = c.reviews.find(v => v.text.length <= 140)
       return x ? `<p>“${esc(x.text)}”</p><p class="sb-float-l">${esc(x.author)}</p>` : ''
     }
-    default: return `<p class="sb-float-l">How it works</p><p>${esc(c.subtext)}.</p>`
+    default: return `<p class="sb-float-l">Good to know</p><p>${esc(c.subtext)}</p>`
   }
 }
 
@@ -156,7 +156,8 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       gate: hasPhoto,
       params: (r, { content: c, biome: t }: RollContext<HeroContent>) => {
         const s = pick(r, ['right', 'left'] as const)
-        const motif = rollMotif(r, t, 'hero', ['stripe', 'caption', 'blob', 'ticks'], 0.25)
+        // Friendly Local's photo heroes nearly always get their blob; other motifs appear three times in four.
+        const motif = rollMotif(r, t, 'hero', ['stripe', 'caption', 'blob', 'ticks'], t.key === 'friendly-local' ? 0.05 : 0.25)
         return {
           asym: rollAsym(r, t, ['7/5', '6/6', '5/7', '8/4']), side: s, valign: pick(r, ['center', 'end'] as const),
           proof: c.rating || c.badges.length ? pick(r, ['under', 'strip', 'none'] as const) : 'none',
@@ -164,6 +165,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
           at: outer(r), tone: rollTone(r), em: r() < 0.65, mphoto: pick(r, ['bottom', 'bottom', 'top'] as const),
         }
       },
+      shows: p => [...(p.proof === 'none' ? [] : [{ facet: 'badges' as const }, { facet: 'rating' as const }]), ...(p.motif === 'ticks' ? [{ facet: 'badges' as const }] : [])],
       features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), p.proof === 'strip' ? 1 : 0, toneF(p.tone), p.bleed === 'edge' ? 1 : 0],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
@@ -171,6 +173,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       label: 'Photo behind', why: 'needs a photo',
       gate: hasPhoto,
       params: r => ({ anchor: pick(r, ['bottom', 'middle', 'center'] as const), scrim: round2(inRange(r, [0.58, 0.78])), em: r() < 0.5 }),
+      shows: () => [{ facet: 'rating' }],
       features: p => [['bottom', 'middle', 'center'].indexOf(p.anchor) / 2, (p.scrim - 0.55) * 4, 1, 1],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
@@ -181,6 +184,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         align: pick(r, t.punch.align.filter(a => a !== 'split')),
         image: hasPhoto(c) ? pick(r, ['bleed', 'inset', 'none'] as const) : 'none', tone: rollTone(r), em: r() < 0.6,
       }),
+      shows: p => (p.image === 'none' ? [{ facet: 'rating' }] : []),
       features: p => [p.align === 'center' ? 1 : 0, ['bleed', 'inset', 'none'].indexOf(p.image) / 2, toneF(p.tone)],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
@@ -188,6 +192,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       label: 'Type-led', why: '',
       gate: () => true,
       params: (r, { content: c, biome: t }) => ({ trust: c.badges.length > 0 && r() < 0.7, tone: rollTone(r), em: r() < 0.75, motif: rollMotif(r, t, 'hero', ['stripe', 'dot'], 0.4) }),
+      shows: p => (p.trust ? [{ facet: 'badges' }] : []),
       features: p => [p.trust ? 1 : 0, toneF(p.tone), p.motif === 'none' ? 0 : 1],
       focal: (_p, z) => ({ focal: z.h1 * 1.05, second: z.lead }),
     },
@@ -197,6 +202,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       params: (r, { content: c }) => ({
         count: 1 + Math.floor(r() * Math.min(3, reviewCount(c))), summary: c.rating ? pick(r, ['top', 'bottom'] as const) : 'none', tone: rollTone(r), em: r() < 0.5,
       }),
+      shows: () => [{ facet: 'reviews', core: true }, { facet: 'rating' }],
       features: p => [p.count / 3, p.summary === 'top' ? 1 : p.summary === 'bottom' ? 0.5 : 0, toneF(p.tone)],
       focal: (_p, z) => ({ focal: z.h1, second: z.xl }),
     },
@@ -204,6 +210,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       label: 'Quote form', why: 'needs an email for enquiries',
       gate: c => c.quoteForm,
       params: r => ({ fields: 2 + Math.floor(r() * 3), side: pick(r, ['right', 'left'] as const), tone: rollTone(r), em: r() < 0.5 }),
+      shows: () => [{ facet: 'rating' }],
       features: p => [p.fields / 4, sideF(p.side), toneF(p.tone)],
       focal: (_p, z) => ({ focal: z.h1, second: 26 }),
     },
@@ -214,6 +221,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
         overlap: Math.min(0.25, round2(inRange(r, [0.08, 0.32]))), drop: Math.round(inRange(r, [0, 70])),
         motif: rollMotif(r, t, 'hero', ['stripe'], 0.3), at: pick(r, ['ob', 'ib'] as const),
       }),
+      shows: () => [{ facet: 'rating' }],
       features: p => [p.overlap * 4, p.drop / 70, p.motif === 'none' ? 0 : 1],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
@@ -241,6 +249,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
           motif: 'floatcard' as const, ticks: c.badges.length > 0 && r() < 0.7, dot: r() < 0.6, em: r() < 0.4,
         }
       },
+      shows: p => [...(p.ticks ? [{ facet: 'badges' as const }] : []), ...(p.card === 'rating' ? [{ facet: 'rating' as const }] : p.card === 'fact' ? [{ facet: 'badges' as const }] : p.card === 'review' ? [{ facet: 'reviews' as const }] : [])],
       features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), ['rating', 'fact', 'sub', 'review'].indexOf(p.card) / 3, p.ticks ? 1 : 0],
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
     },
@@ -259,8 +268,9 @@ export const hero = defineSection<HeroSpec, HeroContent>({
       params: (r, { content: c, biome: t }) => ({
         asym: rollAsym(r, t, ['6/6', '7/5']), side: pick(r, ['right', 'left'] as const), crop: rollCrop(r, t, ['4:5', '1:1']),
         rot: rollRot(r, t), count: c.facts.length >= 2 && r() < 0.7 ? 2 : 1, motif: rollMotif(r, t, 'hero', ['sticker'], 0),
-        blob: hasMotif(t, 'hero', ['blob']) && r() < 0.8, em: r() < 0.5,
+        blob: hasMotif(t, 'hero', ['blob']) && r() < 0.92, em: r() < 0.5,
       }),
+      shows: () => [{ facet: 'badges' }, { facet: 'rating' }],
       features: p => [textSpan(p.asym) / 8, sideF(p.side), cropF(p.crop), p.count / 2, p.blob ? 1 : 0],
       drawn: p => (p.blob ? ['blob'] : []),
       focal: (_p, z) => ({ focal: z.h1, second: z.lead }),
@@ -270,7 +280,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
     'workwear': { split: 3, overlay: 2, stacked: 1.2, typeled: 2.4, proof: 1, contact: 1, offset: 2, bigphone: 3.2 },
     'clean-pro': { split: 2.5, overlay: 1.2, stacked: 1.5, typeled: 1, proof: 1.5, contact: 2, floatcard: 3.6 },
     'craft-heritage': { split: 1.6, overlay: 1, stacked: 1.8, typeled: 1.4, proof: 1, contact: 0.8, editorial: 4 },
-    'friendly-local': { split: 2.4, stacked: 1.4, typeled: 1, proof: 2, contact: 1.5, sticker: 4 },
+    'friendly-local': { split: 2.6, stacked: 0.7, typeled: 0.6, proof: 1.2, contact: 1, sticker: 5.5 },
   },
   fallback: { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'ground', em: false } },
   fixedBand: spec => {
@@ -283,6 +293,12 @@ export const hero = defineSection<HeroSpec, HeroContent>({
     scrim: spec.archetype === 'overlay' ? spec.params.scrim : undefined,
   }),
   measured: (_spec, m) => heroMeasuredChecks(m),
+  trim: (c, omit) => ({
+    ...c,
+    badges: omit.has('badges') ? [] : c.badges,
+    rating: omit.has('rating') ? null : c.rating,
+    facts: c.facts.filter(f => !(omit.has('rating') && f.startsWith('★')) && !(omit.has('badges') && c.badges.includes(f))),
+  }),
   estimate: estimateHero,
   body: (spec, c, ctx) => {
     const t = ctx.biome

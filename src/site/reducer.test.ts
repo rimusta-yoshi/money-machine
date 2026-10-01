@@ -127,9 +127,9 @@ describe('siteReducer', () => {
   it('re-solves the rhythm after every edit without touching any pick', () => {
     let s = siteReducer(start(), { type: 'setBusiness', patch: { phone: '0113 496 0000' } })!
     s = siteReducer(s, { type: 'pickSection', section: 'hero', value: PICKED_HERO })!
-    s = siteReducer(s, { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
-    // A plain footer, so nothing strong sits beside the contact band.
+    // A plain footer first, so nothing strong sits beside the contact band when it's picked.
     s = siteReducer(s, { type: 'pickSection', section: 'footer', value: { seed: 1, spec: { v: 2, section: 'footer', archetype: 'simple', step: 0, params: { align: 'left', tone: 'plain' } } } })!
+    s = siteReducer(s, { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
     const picks = JSON.stringify(s.sections)
     const brandHero: Generated = { seed: 42, spec: { ...PICKED_HERO.spec, params: { ...PICKED_HERO.spec.params, tone: 'brand' } } as Generated['spec'] }
     const next = siteReducer(s, { type: 'pickSection', section: 'hero', value: brandHero })!

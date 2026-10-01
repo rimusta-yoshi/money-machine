@@ -6,7 +6,7 @@ import { sectionContrast } from './contrast'
 import type { ContrastOpts } from './contrast'
 import { estimateSection, sectionMeasuredChecks } from './fit'
 import { shell } from './markup'
-import type { AnySpec, Archetype, Band, Check, Measurement, SectionDef, SectionKey, SectionRhythm, Step } from './types'
+import type { AnySpec, Archetype, Band, Check, Facet, Measurement, SectionDef, SectionKey, SectionRhythm, Step } from './types'
 
 /** A stored spec schema for one section: a discriminated union over its archetypes. */
 export function specSchema<T extends SectionKey, A extends Record<string, z.ZodRawShape>>(section: T, archetypes: A) {
@@ -63,6 +63,8 @@ interface SectionOpts<S extends AnySpec, C> {
   contrast?: (spec: S, style: SiteStyle) => ContrastOpts
   measured?: (spec: S, m: Measurement) => Check[]
   estimate?: (spec: S, style: SiteStyle, c: C) => Measurement
+  /** Leaves out content a neighbour already shows (see the rhythm's `omit`). */
+  trim?: (c: C, omit: ReadonlySet<Facet>) => C
   body: (spec: S, c: C, ctx: BodyContext) => Body
   /** The heading, the longest texts and the heading's column width, for the estimator. */
   words: (spec: S, c: C, style: SiteStyle) => { title: string; texts: readonly string[]; col?: number; px?: { d: number; m: number } }
@@ -84,7 +86,8 @@ export function defineSection<S extends AnySpec, C>(o: SectionOpts<S, C>): Secti
     render: (spec, style, c, rhythm) => {
       const biome = THEMES[style.theme]
       const motif = rhythm.motif && ((spec.params as { motif?: string }).motif ?? 'none') !== 'none'
-      const b = o.body(spec, c, { style, biome, rhythm, motif })
+      const shown = o.trim && rhythm.omit?.length ? o.trim(c, new Set(rhythm.omit)) : c
+      const b = o.body(spec, shown, { style, biome, rhythm, motif })
       return shell(o.type, style, rhythm, { archetype: spec.archetype, step: spec.step, cls: b.cls, vars: b.vars, anchor: o.anchor, tag: o.tag, brk: b.brk ?? (spec.params as { brk?: Break }).brk }, b.inner)
     },
     staticChecks: (spec, style, band) => sectionContrast(style, band, { cards: true, button: style.button, ...o.contrast?.(spec, style) }),
