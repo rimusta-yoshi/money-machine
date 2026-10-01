@@ -42,7 +42,7 @@ export function SiteStyleCard({ theme, onTheme, onReroll, sample, tuned }: SiteS
       {import.meta.env.DEV && sample && (
         <label className="mm-style-sample">
           <input type="checkbox" checked={sample.on} onChange={e => sample.set(e.target.checked)} />
-          Fill with sample content <span>(dev only; nothing is saved while it’s on)</span>
+          Fill with sample content <span>(dev only; your picks still save, the sample text never does)</span>
         </label>
       )}
     </fieldset>

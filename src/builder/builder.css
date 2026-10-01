@@ -1561,3 +1561,5 @@
 .mm-verify-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff; }
 @media (prefers-reduced-motion: no-preference) { .mm-verify-spin { animation: mm-spin 0.8s linear infinite; } }
 @keyframes mm-spin { to { transform: rotate(360deg); } }
+/* A section waiting for content: say plainly why there's no carousel yet */
+.sc-waiting { margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent, #1E88E5) 10%, #fff); color: var(--ink); font-size: 13px; line-height: 1.45; }

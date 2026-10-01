@@ -50,9 +50,13 @@ export function ControlRail(props: Props) {
             </div>
             <button type="button" className="mm-arrow" onClick={() => props.onCycleLayout(1)} aria-label={`Next ${noun.toLowerCase()}`}>›</button>
           </div>
+        ) : layout.needs ? (
+          <div className="sc-waiting" aria-live="polite">
+            <b>Nothing to choose yet.</b> {layout.needs.replace(/ to show this\.$/, '')} below, and layouts for this section appear here.
+          </div>
         ) : (
           <div className="sc-tip" aria-live="polite">
-            {layout.loading ? 'Generating layouts…' : layout.count === 1 ? `One ${noun.toLowerCase()} for this section` : layout.needs ?? 'No layouts fit this content yet'}
+            {layout.loading ? 'Generating layouts…' : layout.count === 1 ? `One ${noun.toLowerCase()} for this section` : 'No layouts fit this content yet'}
           </div>
         )}
         {props.onNewOptions && layout.count > 0 && (

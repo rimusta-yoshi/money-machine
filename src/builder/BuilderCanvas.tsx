@@ -118,8 +118,6 @@ export function BuilderCanvas({ trade, site, mobile, initialSection, onPick, onC
    * remembered pick from a fit repair).
    */
   const confirmActive = () => {
-    // Layouts browsed against sample content aren't saved: they were fitted to content the site doesn't have.
-    if (sampleOn) return
     const pick = present(activeType) ? picker.pick() : null
     const saved = site.sections[activeType] as Generated | undefined
     const unchanged = saved && pick && saved.seed === pick.seed && specKey(saved.spec) === specKey(pick.spec)
