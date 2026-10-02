@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
 import type { SectionType, TradeConfig } from '../types'
-import { specKey } from '../gen'
+import { sectionPresent, specKey, THEMES } from '../gen'
 import type { Generated, PageContent, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
 import { siteSections } from '../site/sections'
@@ -9,6 +9,7 @@ import { SECTION_LABELS } from '../site/labels'
 import { SECTION_NEEDS } from '../site/needs'
 import { sitePage } from '../site/page'
 import { pageContent } from '../site/pageContent'
+import { withSample } from '../sample/content'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
@@ -58,11 +59,21 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
   const activeType = sections[activeIdx]?.type ?? 'hero'
   // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
   const content = useMemo(() => preview ?? pageContent(site, trade), [preview, site, trade])
-  const picker = useSectionPicker(site, content, activeType)
+  // Sections still waiting for the customer's content are laid out on sample content, so
+  // their layouts can be browsed and picked in advance. The pick goes live with real content.
+  const sampled = useMemo(() => withSample(content, [], THEMES[site.style.theme].voice.why), [content, site.style.theme])
+  const typesKey = sections.map(s => s.type).join(',')
+  const waitingTypes = useMemo(
+    () => (typesKey.split(',') as SectionKey[]).filter(t => !sectionPresent(t, content)),
+    [typesKey, content],
+  )
+  const isWaiting = (type: SectionKey) => waitingTypes.includes(type)
+  const contentFor = (type: SectionKey) => (isWaiting(type) ? sampled : content)
+  const picker = useSectionPicker(site, contentFor(activeType), activeType)
   // The whole page with the option being browsed swapped in: the rhythm re-solves around it.
   const page = useMemo(
-    () => sitePage(site, trade, { overrides: picker.shown ? { [activeType]: picker.shown } : {}, content }),
-    [site, trade, activeType, picker.shown, content],
+    () => sitePage(site, trade, { overrides: picker.shown ? { [activeType]: picker.shown } : {}, content, samples: { content: sampled, types: waitingTypes } }),
+    [site, trade, activeType, picker.shown, content, sampled, waitingTypes],
   )
   const byType = useMemo(() => new Map<SectionKey, ResolvedSection>(page.map(s => [s.type, s])), [page])
 
@@ -140,13 +151,14 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     if (loading) return { key: `${section.type}-loading`, node: <div className="mm-band-blank"><span className="mm-band-blank-hint">Generating layouts…</span></div> }
     return {
       key: `${section.type}-${section.spec.archetype}-${JSON.stringify(section.spec.params)}`,
-      node: <GeneratedSection section={section} style={site.style.resolved} content={content} />,
+      node: <GeneratedSection section={section} style={site.style.resolved} content={contentFor(section.type)} />,
     }
   }
 
+  const needs = isWaiting(activeType) ? SECTION_NEEDS[activeType] ?? 'Add content to show this.' : undefined
   const layout: LayoutState = present(activeType)
-    ? { index: picker.index, count: picker.count, label: picker.label, loading: picker.loading }
-    : { index: 0, count: 0, label: '', loading: false, needs: SECTION_NEEDS[activeType] }
+    ? { index: picker.index, count: picker.count, label: picker.label, loading: picker.loading, needs }
+    : { index: 0, count: 0, label: '', loading: false, needs }
   const navProps: SectionNavProps = {
     site,
     trade,
@@ -154,7 +166,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     activeIdx,
     layout,
     doneCount: sections.filter(s => isConfirmed(s.type)).length,
-    allDone: sections.every((s, i) => i === activeIdx || isConfirmed(s.type) || !present(s.type)),
+    // Sections waiting for content don't go live yet, so they never hold up finishing.
+    allDone: sections.every((s, i) => i === activeIdx || isConfirmed(s.type) || isWaiting(s.type) || !present(s.type)),
     onCycleLayout: picker.cycle,
     onNewOptions: present(activeType) ? picker.reroll : undefined,
     onNext: () => navigateTo(Math.min(activeIdx + 1, sections.length - 1)),
@@ -188,7 +201,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                 const isActive = i === activeIdx
                 const state = isActive ? 'active' : isConfirmed(sec.type) ? 'done' : 'todo'
                 const label = SECTION_LABELS[sec.type]
-                const waiting = !present(sec.type)
+                const waiting = isWaiting(sec.type)
+                const needsLine = SECTION_NEEDS[sec.type] ?? 'Add content to show this.'
                 return (
                   <div
                     key={sec.type}
@@ -206,8 +220,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                       {state === 'done' && <><Icon.Check size={10} /> </>}
                       {isActive ? `Editing · ${label}` : label}
                     </div>
-                    {waiting ? (
-                      <ExampleSection type={sec.type} site={site} content={content} needs={SECTION_NEEDS[sec.type] ?? 'Add content to show this.'} />
+                    {waiting && (!present(sec.type) || showPlaceholder(i)) ? (
+                      <ExampleSection type={sec.type} site={site} content={content} needs={needsLine} />
                     ) : showPlaceholder(i) ? (
                       <div className="mm-band-blank">
                         <span className="mm-band-blank-name">{label}</span>
@@ -219,6 +233,11 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                       const { key, node } = renderBand(i)
                       return (
                         <div className="mm-vanim" key={key}>
+                          {waiting && (
+                            <p className="mm-example-label mm-example-label--picked">
+                              <b>Example content</b> · {needsLine.replace(/ to show this\.$/, '')} to put this on your site. Your layout is kept for it.
+                            </p>
+                          )}
                           <div style={{ pointerEvents: 'none' }}>{node}</div>
                         </div>
                       )

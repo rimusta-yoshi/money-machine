@@ -27,3 +27,19 @@ Four shortlisted photos were dropped for showing a face or a brand.
 | garden-patio.jpg | Patio with garden furniture and hedging | Sergej (strannik-sk) | https://www.pexels.com/photo/modern-outdoor-patio-with-wooden-furniture-38188641/ | 2026-10-01 |
 | garden-path.jpg | Paved side path by a fence | Daniel Agundiz | https://www.pexels.com/photo/backyard-stone-path-with-wooden-fence-36866669/ | 2026-10-01 |
 | workshop-tools.jpg | Workbench with hand tools | Ahimsa - OM | https://www.pexels.com/photo/organized-workshop-with-hand-tools-and-clamps-34471533/ | 2026-10-01 |
+
+## Hosting for production builds
+
+The builder shows these in empty photo slots (PM decision, 2026-10-02): yes in the builder
+preview, never on published sites. Production loads them from our own storage:
+
+1. Upload the eight files above, unchanged names, to a public path on our R2 bucket.
+2. Allow `GET` from the builder's origin in the bucket's CORS rules (the builder fetches them
+   and reads them into data URLs).
+3. Build with `VITE_SAMPLE_PHOTOS_URL` set to that path (see `.env.example`).
+
+Without it, a production build draws placeholder photos instead. Licence re-checked on
+2026-10-02 against https://www.pexels.com/license/: showing them in our own app and hosting
+copies ourselves are fine; the limits that matter are no redistribution as stock (they are
+never offered for download or as a library), no implied endorsement by people or brands shown,
+and no use as a trademark or business name. Never publish them as a customer's own work.

@@ -19,6 +19,8 @@ interface PageOpts {
   prior?: Rhythm | null
   /** The section this change picked, so it doesn't count as settled. */
   changed?: SectionKey
+  /** Builder only: waiting sections laid out on sample content (see resolvePage). */
+  samples?: { content: PageContent; types: readonly SectionKey[] }
 }
 
 type PageSite = Pick<Site, 'business' | 'content' | 'extras' | 'style' | 'sections'> & Partial<Pick<Site, 'rhythm'>>
@@ -36,6 +38,7 @@ export function sitePage(site: PageSite, trade: TradeConfig, opts: PageOpts = {}
     measurer: opts.measurer,
     prior: opts.prior === null ? undefined : opts.prior ?? site.rhythm,
     changed: opts.changed,
+    samples: opts.samples,
   })
 }
 

@@ -1566,3 +1566,9 @@
 @keyframes mm-spin { to { transform: rotate(360deg); } }
 /* A section waiting for content: say plainly why there's no carousel yet */
 .sc-waiting { margin-top: 4px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--accent, #1E88E5) 10%, #fff); color: var(--ink); font-size: 13px; line-height: 1.45; }
+
+/* A waiting section being browsed or picked on sample content: shown in full, still labelled. */
+.mm-example-label.mm-example-label--picked {
+  position: static; transform: none; max-width: none; border-radius: 0; box-shadow: none;
+  padding: 34px 24px 12px; font-size: 18px;
+}

@@ -34,3 +34,17 @@
   .mm-finish-preview-wrap { position: static; }
   .mm-finish-preview { height: 60vh; }
 }
+
+/* Picked layouts that are waiting for a photo: recommended, never blocking */
+.mm-photo-needs { margin: 0 0 20px; padding: 16px; border-radius: 16px; background: #FFF7E8; border: 1px solid #F0D9A8; }
+.mm-photo-needs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.mm-photo-needs-title { margin: 0 0 12px; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mm-photo-needs-tag { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #7A4B00; color: #fff; }
+.mm-photo-need { display: flex; gap: 14px; align-items: flex-start; }
+.mm-photo-need-text { flex: 1; min-width: 0; }
+.mm-photo-need-text p { margin: 0 0 8px; font-size: 14px; line-height: 1.45; }
+.mm-photo-need-thumb { flex: none; width: 168px; height: 112px; overflow: hidden; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+.mm-photo-need-scale { width: 1200px; transform: scale(0.14); transform-origin: top left; pointer-events: none; }
+@media (max-width: 520px) {
+  .mm-photo-need { flex-direction: column; }
+}

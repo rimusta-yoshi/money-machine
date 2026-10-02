@@ -4,6 +4,9 @@ import type { BusinessInfo, SectionType, TradeConfig } from '../../types'
 import type { Site } from '../../site/schema'
 import { buildChecklist, isReadyToPublish, sectionForItem } from '../../site/checklist'
 import { SitePage } from '../../components/site/SitePage'
+import { photoNeeds } from '../../site/photoNeeds'
+import { pageContent } from '../../site/pageContent'
+import { PhotoNeeds } from './PhotoNeeds'
 import { Icon } from '../../components/ui/Icon'
 import './finish.css'
 
@@ -24,6 +27,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPub
   const emailId = useId()
   const [emailTouched, setEmailTouched] = useState(false)
   const items = buildChecklist(site, trade)
+  const needs = photoNeeds(site, trade)
   const ready = isReadyToPublish(site)
   const email = site.business.email
   const showEmailError = emailTouched && email.trim() !== '' && !emailSchema.safeParse(email).success
@@ -41,6 +45,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPub
 
       <div className="mm-finish">
         <div className="mm-finish-main">
+          <PhotoNeeds needs={needs} style={site.style.resolved} content={pageContent(site, trade)} onAdd={onEditSection} />
           <ul className="mm-golive-list" aria-label="What goes on your site">
             {items.map(item => {
               const section = sectionForItem(site, trade, item.id)
