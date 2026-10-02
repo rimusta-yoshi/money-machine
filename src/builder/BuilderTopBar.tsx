@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Icon } from '../components/ui/Icon'
 import type { TradeConfig } from '../types'
 
@@ -8,6 +8,8 @@ interface Props {
   trade: TradeConfig | null
   mobile: boolean
   setMobile: (v: boolean) => void
+  /** Draft save status, when the builder saves to the server. */
+  status?: ReactNode
 }
 
 const STEPS = [
@@ -17,7 +19,7 @@ const STEPS = [
   { n: '04', t: 'Go live' },
 ]
 
-export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Props) {
+export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile, status }: Props) {
   const accent = trade?.colorScheme.accent
 
   return (
@@ -57,6 +59,7 @@ export function BuilderTopBar({ step, onGoStep, trade, mobile, setMobile }: Prop
       </div>
 
       <div className="mm-bar-right">
+        {status}
         {step === 3 && (
           <div className="mm-preview-toggle">
             <span className="mm-preview-label">Preview</span>

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import type { ReactNode } from 'react'
 import { z } from 'zod'
 import type { BusinessInfo, SectionType, TradeConfig } from '../../types'
 import type { Site } from '../../site/schema'
@@ -18,12 +19,14 @@ interface Props {
   onEditSection: (section: SectionType) => void
   onPublish: () => void
   onBack: () => void
+  /** Preview and resume links, when the builder saves to the server. */
+  share?: ReactNode
 }
 
 const emailSchema = z.string().trim().email()
 
 /** Final step: a quick check of what's live and what's hidden, the email, and publish. */
-export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPublish, onBack }: Props) {
+export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPublish, onBack, share }: Props) {
   const emailId = useId()
   const [emailTouched, setEmailTouched] = useState(false)
   const items = buildChecklist(site, trade)
@@ -87,6 +90,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onPub
               </div>
             </div>
           </div>
+          {share}
         </div>
 
         <aside className="mm-finish-preview-wrap" aria-label="Live preview">

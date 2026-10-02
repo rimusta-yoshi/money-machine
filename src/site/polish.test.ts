@@ -217,7 +217,9 @@ describe('sample stock photos', () => {
     const loader = readFileSync(join(__dirname, '..', 'sample', 'stockPhotos.ts'), 'utf8')
     expect(loader).not.toMatch(/import [^\n]*\.jpg/)
     expect(loader).toContain('VITE_SAMPLE_PHOTOS_URL')
-    expect(loader.match(/'Sample photo: /g)?.length).toBe(readdirSync(dir).filter(f => f.endsWith('.jpg')).length)
+    const list = readFileSync(join(__dirname, '..', 'sample', 'stockPhotoFiles.ts'), 'utf8')
+    expect(list).not.toMatch(/import [^\n]*\.jpg/)
+    expect(list.match(/'Sample photo: /g)?.length).toBe(readdirSync(dir).filter(f => f.endsWith('.jpg')).length)
   })
 
   it('are never used for the examples customers see', () => {

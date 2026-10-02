@@ -33,10 +33,12 @@ Four shortlisted photos were dropped for showing a face or a brand.
 The builder shows these in empty photo slots (PM decision, 2026-10-02): yes in the builder
 preview, never on published sites. Production loads them from our own storage:
 
-1. Upload the eight files above, unchanged names, to a public path on our R2 bucket.
-2. Allow `GET` from the builder's origin in the bucket's CORS rules (the builder fetches them
-   and reads them into data URLs).
-3. Build with `VITE_SAMPLE_PHOTOS_URL` set to that path (see `.env.example`).
+1. Upload the eight files above, unchanged names, to the R2 bucket under `samples/`
+   (`npm run cf:samples`; see server/README.md). The API worker serves them at
+   `https://api.siteblocks.co.uk/samples/<file>`. The bucket itself stays private.
+2. The API only lets the builder's origins (its `BUILDER_ORIGINS` setting) fetch them; the builder
+   reads them into data URLs.
+3. Build with `VITE_SAMPLE_PHOTOS_URL=https://api.siteblocks.co.uk/samples` (see `.env.example`).
 
 Without it, a production build draws placeholder photos instead. Licence re-checked on
 2026-10-02 against https://www.pexels.com/license/: showing them in our own app and hosting

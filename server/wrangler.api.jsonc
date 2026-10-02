@@ -1,0 +1,32 @@
+// The API worker: api.<base> (the builder's API) and preview.<base> (preview links).
+// Deploy: npm run cf:deploy (see server/README.md). Values marked REPLACE come from your Cloudflare account.
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "siteblocks-api",
+  "main": "cloudflare/api-worker.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  // More specific than the site worker's *.siteblocks.co.uk/*, so these hosts come here.
+  "routes": [
+    { "pattern": "api.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" },
+    { "pattern": "preview.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" }
+  ],
+  "vars": {
+    "BASE_DOMAIN": "siteblocks.co.uk",
+    // Where the builder runs. Comma-separated origins, no trailing slash.
+    "BUILDER_ORIGINS": "http://localhost:5173",
+    // Staging: noindex on everything until launch.
+    "NOINDEX": "true",
+    "PREVIEW_DAYS": "30"
+    // ADMIN_TOKEN is a secret: npx wrangler secret put ADMIN_TOKEN -c server/wrangler.api.jsonc
+  },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "siteblocks", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }
+  ],
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],
+  // Self-hosted fonts, deployed with the code. The worker decides what to serve.
+  "assets": { "directory": "../public/fonts", "binding": "ASSETS", "run_worker_first": true },
+  "triggers": { "crons": ["17 3 * * *"] },
+  "observability": { "enabled": true }
+}

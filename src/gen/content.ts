@@ -42,6 +42,8 @@ export interface PageContent {
   quoteForm: boolean
   /** For the footer's copyright line. Passed in so rendering stays a pure function. */
   year: number
+  /** Where the site's privacy notice lives (linked from the footer). Set when publishing and in the go-live preview. */
+  privacy?: string
   /**
    * Builder-only sample content for previewing layouts. Never part of a site record, and
    * the publishing renderer refuses it (see renderPage).

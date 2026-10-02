@@ -20,8 +20,20 @@ import { FitNotice } from './builder/FitNotice'
 import { verifySite } from './builder/verifySite'
 import { randomSeed } from './gen'
 import type { Generated, SectionKey } from './gen'
+import { apiBase, createApi, siteDomain } from './api/client'
+import { useDraft } from './api/useDraft'
+import type { Draft } from './api/useDraft'
+import { SaveStatusChip } from './builder/save/SaveStatusChip'
+import { ShareCard } from './builder/save/ShareCard'
+import { PublishPanel } from './builder/save/PublishPanel'
 
 type Step = 'pick-trade' | 'setup' | 'build' | 'finish'
+
+/** The server, when this build has one (VITE_API_URL). Without it nothing is saved, as before. */
+const API_BASE = apiBase()
+const api = API_BASE ? createApi(API_BASE) : null
+/** Publishing needs the admin key until payment exists (Phase 2): shown on dev builds, or with VITE_ADMIN_PUBLISH. */
+const ADMIN_PUBLISH = !!api && (import.meta.env.DEV || import.meta.env.VITE_ADMIN_PUBLISH === 'true')
 
 function stepNumber(step: Step): 1 | 2 | 3 | 4 {
   if (step === 'pick-trade') return 1
@@ -45,6 +57,9 @@ export default function App() {
   const preview = usePreviewContent(step === 'build' ? site : null, trade, import.meta.env.DEV && sample)
   const fit = useFitRepair(editing ? site : null, trade, repair, step === 'build' ? preview : null)
   const dismissFit = fit.dismiss
+  const onLoaded = useCallback((saved: Site) => { dispatch({ type: 'load', site: saved }); setStep('build') }, [])
+  const onUploaded = useCallback((urls: Record<string, string>) => dispatch({ type: 'replacePhotoUrls', urls }), [])
+  const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded })
   // Before the finish step and before publishing, every section is measured on real screens.
   const [verifying, setVerifying] = useState(false)
   const verifyThen = async (next: () => void) => {
@@ -74,6 +89,7 @@ export default function App() {
     if (n === 3 && site) setStep('build')
   }
   const reset = () => {
+    draft.forget()
     dispatch({ type: 'reset' })
     setFocusSection(undefined)
     setStep('pick-trade')
@@ -94,6 +110,7 @@ export default function App() {
         trade={trade}
         mobile={mobile}
         setMobile={setMobile}
+        status={draft.enabled && (site || draft.status.state === 'error') ? <SaveStatusChip status={draft.status} onRetry={draft.retry} /> : null}
       />
 
       <div ref={stageRef} className={`mm-stage${mobile && step === 'build' ? ' prev-mobile' : ''}`}>
@@ -213,6 +230,7 @@ export default function App() {
               onEditSection={section => { setFocusSection(section); setStep('build') }}
               onPublish={() => verifyThen(() => setDone(true))}
               onBack={() => setStep('build')}
+              share={draft.enabled ? <ShareCard draft={draft} /> : null}
             />
           )}
 
@@ -231,6 +249,7 @@ export default function App() {
         <DoneOverlay
           trade={trade}
           site={site}
+          draft={ADMIN_PUBLISH ? draft : null}
           onBack={() => setDone(false)}
           onReset={reset}
         />
@@ -242,20 +261,25 @@ export default function App() {
 function DoneOverlay({
   trade,
   site,
+  draft,
   onBack,
   onReset,
 }: {
   trade: TradeConfig
   site: Site
+  /** Set when this build can publish (admin key, Phase 1). */
+  draft: Draft | null
   onBack: () => void
   onReset: () => void
 }) {
   const displayName = site.business.name.trim() || `${trade.name} Co.`
   const sections = siteSections(trade, site)
   const firstBtnRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    firstBtnRef.current?.focus()
+    const first = dialogRef.current?.querySelector<HTMLElement>('.mm-publish input') ?? firstBtnRef.current
+    first?.focus()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onBack() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -263,6 +287,7 @@ function DoneOverlay({
 
   return (
     <div
+      ref={dialogRef}
       className="mm-done show"
       role="dialog"
       aria-modal="true"
@@ -288,15 +313,18 @@ function DoneOverlay({
             </div>
           ))}
         </div>
+        {draft && API_BASE && <PublishPanel draft={draft} site={site} trade={trade} domain={siteDomain(API_BASE)} />}
         <div className="mm-done-actions">
-          <button
-            ref={firstBtnRef}
-            type="button"
-            className="mm-done-go"
-            onClick={() => alert('Publishing coming soon!')}
-          >
-            <Icon.Arrow size={18} /> Publish my site
-          </button>
+          {!draft && (
+            <button
+              ref={firstBtnRef}
+              type="button"
+              className="mm-done-go"
+              onClick={() => alert('Publishing coming soon!')}
+            >
+              <Icon.Arrow size={18} /> Publish my site
+            </button>
+          )}
           <button type="button" className="mm-done-back" onClick={onBack}>Keep editing</button>
           <button type="button" className="mm-done-back" onClick={onReset}>Start over</button>
         </div>

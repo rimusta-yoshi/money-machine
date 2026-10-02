@@ -16,6 +16,7 @@ export interface FooterView {
   services: readonly string[]
   areas: readonly string[]
   year: number
+  privacy: string | null
 }
 
 export const footerView = (c: PageContent): FooterView => ({
@@ -27,6 +28,7 @@ export const footerView = (c: PageContent): FooterView => ({
   services: c.trade.services.slice(0, 6),
   areas: c.areas.slice(0, 6),
   year: c.year,
+  privacy: c.privacy ?? null,
 })
 
 const tone = z.enum(['plain', 'inverse'])
@@ -47,7 +49,8 @@ const lines = (v: FooterView) => [
   v.phone ? `<li>${icon('phone', 16)}${link(v.phone.number, v.phone.href)}</li>` : '',
   v.email ? `<li>${icon('mail', 16)}${link(v.email, `mailto:${v.email}`)}</li>` : '',
 ].join('')
-const copy = (v: FooterView) => `<p class="sb-copy">© ${v.year} ${esc(v.name)}</p>`
+const copy = (v: FooterView) =>
+  `<p class="sb-copy">© ${v.year} ${esc(v.name)}${v.privacy ? `<span aria-hidden="true"> · </span>${link('Privacy notice', v.privacy, 'sb-copy-link')}` : ''}</p>`
 const brand = (v: FooterView) => `<div class="sb-ft-brand"><p class="sb-ft-name">${esc(v.name)}</p><p class="sb-mu">${esc(v.tagline)}</p></div>`
 const navList = (label: string, items: readonly string[]) =>
   items.length ? `<div class="sb-ft-col"><p class="sb-ft-label">${label}</p><ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>` : ''
@@ -143,6 +146,8 @@ export const FOOTER_CSS = `
 .sb-ft-small{font-family:var(--sb-fl);font-weight:var(--sb-lw);font-size:13px;letter-spacing:var(--sb-ltr);text-transform:var(--sb-lup)}
 .sb-ft-ruled .sb-ft-colophon{padding-top:18px;border-top:1px solid var(--sb-fg);box-shadow:0 -5px 0 -4px var(--sb-fg);width:100%}
 .sb-copy{font-size:14px;color:var(--sb-mu);border-top:1px solid var(--sb-hair);padding-top:var(--sb-gap)}
+.sb-copy .sb-copy-link{color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px}
+.sb-copy .sb-copy-link:focus-visible{outline:3px solid currentColor;outline-offset:2px}
 @container (max-width: 719px){
   .sb-ft-cols{grid-template-columns:1fr}
   .sb-ft-lines{flex-direction:column}
