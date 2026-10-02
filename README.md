@@ -1,3 +1,26 @@
+# Site Blocks (working title)
+
+A pay-once website builder for tradespeople. Vite + React + TypeScript.
+
+- `src/gen/`: the procedural section generator (framework-free: spec in, HTML out).
+- `src/site/`: the site record (`schema.ts`, `parseSite`) and how the builder edits it.
+- `src/publish/`: whole static pages from a saved record (meta tags, privacy notice, sitemap, address rules).
+- `server/`: publishing on Cloudflare: drafts, preview links, published sites. See [server/README.md](server/README.md).
+
+```bash
+npm run dev
+```
+
+```bash
+npm test
+```
+
+```bash
+npm run e2e
+```
+
+---
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

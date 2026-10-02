@@ -25,3 +25,9 @@ dist-ssr
 
 # Generated contact sheet (npm run sheet)
 reference/contact-sheet/
+
+# Local Cloudflare state (wrangler, npm run dev:stack)
+.wrangler/
+
+# Browser end-to-end screenshots (npm run e2e)
+e2e/screens/

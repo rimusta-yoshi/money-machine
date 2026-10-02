@@ -19,6 +19,10 @@ export type SiteAction =
   /** Fit repair swapped (or restored) a layout; `value.preferred` keeps the customer's own pick. */
   | { type: 'repairSection'; section: SectionKey; value: Generated }
   | { type: 'setContent'; patch: Partial<SiteContent> }
+  /** Photos went up to storage on save: swap each uploaded data URL for its stored URL (later edits are kept). */
+  | { type: 'replacePhotoUrls'; urls: Readonly<Record<string, string>> }
+  /** A saved draft was opened (resume link or this browser's last draft). Taken as saved. */
+  | { type: 'load'; site: Site }
   | { type: 'reset' }
 
 /**
@@ -26,6 +30,7 @@ export type SiteAction =
  * page rhythm is re-solved from the whole page; picks are never changed by it.
  */
 export function siteReducer(site: Site | null, action: SiteAction): Site | null {
+  if (action.type === 'load') return action.site
   const next = edit(site, action)
   if (!next || next === site) return next
   // A new look starts the rhythm afresh; any other edit keeps settled sections' loud bands.
@@ -34,7 +39,10 @@ export function siteReducer(site: Site | null, action: SiteAction): Site | null 
   return withRhythm(next, tradeById[next.tradeId], fresh ? { prior: null } : { changed })
 }
 
-function edit(site: Site | null, action: SiteAction): Site | null {
+const swapUrl = (urls: Readonly<Record<string, string>>) => <P extends { url: string } | null>(p: P): P =>
+  p && urls[p.url] ? { ...p, url: urls[p.url] } : p
+
+function edit(site: Site | null, action: Exclude<SiteAction, { type: 'load' }>): Site | null {
   if (action.type === 'reset') return null
   if (action.type === 'pickTrade') {
     if (site?.tradeId === action.trade.id) return site
@@ -68,5 +76,10 @@ function edit(site: Site | null, action: SiteAction): Site | null {
       return { ...site, sections: { ...site.sections, [action.section]: action.value } }
     case 'setContent':
       return { ...site, content: { ...site.content, ...action.patch } }
+    case 'replacePhotoUrls': {
+      const swap = swapUrl(action.urls)
+      const p = site.content.photos
+      return { ...site, content: { ...site.content, photos: { hero: swap(p.hero), about: swap(p.about), gallery: p.gallery.map(swap) } } }
+    }
   }
 }

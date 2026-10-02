@@ -53,7 +53,7 @@ export function hashString(s: string): number {
 /** A fresh random seed. Works in browsers, Node and Workers. */
 export function randomSeed(): number {
   const buf = new Uint32Array(1)
-  globalThis.crypto.getRandomValues(buf)
+  crypto.getRandomValues(buf)
   return buf[0]
 }
 

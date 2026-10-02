@@ -1,0 +1,18 @@
+// The site worker: <slug>.<base>, published customer sites served from R2. No database.
+// Deploy: npm run cf:deploy (see server/README.md).
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "siteblocks-sites",
+  "main": "cloudflare/site-worker.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "*.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" }],
+  "vars": {
+    "BASE_DOMAIN": "siteblocks.co.uk",
+    "NOINDEX": "true"
+  },
+  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],
+  "assets": { "directory": "../public/fonts", "binding": "ASSETS", "run_worker_first": true },
+  "observability": { "enabled": true }
+}
