@@ -8,7 +8,12 @@ export interface PageEntry { type: SectionKey; spec: AnySpec }
 export type Rhythm = Partial<Record<SectionKey, SectionRhythm>>
 
 /** The rhythm the page had before this change, and the sections whose picks it didn't touch. */
-export interface Settle { prior: Rhythm; settled: ReadonlySet<SectionKey> }
+export interface Settle {
+  prior: Rhythm
+  settled: ReadonlySet<SectionKey>
+  /** Sections shown on sample content (the builder's examples): they never take a loud band. */
+  quiet?: ReadonlySet<SectionKey>
+}
 
 const flip = (s: Side): Side => (s === 'left' ? 'right' : 'left')
 
@@ -128,8 +133,9 @@ function loudSections(page: readonly PageEntry[], defs: Record<SectionKey, Secti
     }
   }
   const settled = (type: SectionKey) => settle?.settled.has(type) ?? false
-  for (const type of theme.loud.priority) if (settled(type) && wasLoud(type)) tryLoud(type, true)
-  for (const type of theme.loud.priority) if (!settled(type)) tryLoud(type, false)
+  const candidates = theme.loud.priority.filter(type => !settle?.quiet?.has(type))
+  for (const type of candidates) if (settled(type) && wasLoud(type)) tryLoud(type, true)
+  for (const type of candidates) if (!settled(type)) tryLoud(type, false)
   return loud
 }
 

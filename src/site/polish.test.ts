@@ -211,11 +211,12 @@ describe('sample stock photos', () => {
     expect(licence).toMatch(/Pexels License/)
   })
 
-  it('never ship with the app: they live outside public/ and the loader is dev-only', () => {
+  it('never ship inside the app: they live outside public/, and production loads them only from our storage', () => {
     const publicDir = join(__dirname, '..', '..', 'public')
     expect(existsSync(join(publicDir, 'sample-photos'))).toBe(false)
     const loader = readFileSync(join(__dirname, '..', 'sample', 'stockPhotos.ts'), 'utf8')
-    expect(loader).toContain('if (!import.meta.env.DEV) return Promise.resolve(null)')
+    expect(loader).not.toMatch(/import [^\n]*\.jpg/)
+    expect(loader).toContain('VITE_SAMPLE_PHOTOS_URL')
     expect(loader.match(/'Sample photo: /g)?.length).toBe(readdirSync(dir).filter(f => f.endsWith('.jpg')).length)
   })
 

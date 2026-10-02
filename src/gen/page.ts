@@ -90,6 +90,12 @@ export interface ResolveOptions {
    */
   prior?: Rhythm
   changed?: SectionKey
+  /**
+   * Builder only: sections still waiting for the customer's content, laid out on sample
+   * content so they can be browsed and picked in advance. They never take a loud band, so
+   * picking one can't change the colours of the real page.
+   */
+  samples?: { content: PageContent; types: readonly SectionKey[] }
 }
 
 /**
@@ -98,19 +104,23 @@ export interface ResolveOptions {
  */
 export function resolvePage(o: ResolveOptions): ResolvedSection[] {
   const measurer = o.measurer ?? estimateMeasurer
-  const entries = presentSections(o.order, o.content).map(type => {
+  const sampled = new Set(o.samples?.types.filter(t => !sectionPresent(t, o.content) && sectionPresent(t, o.samples!.content)) ?? [])
+  const contentOf = (type: SectionKey) => (sampled.has(type) ? o.samples!.content : o.content)
+  const entries = o.order.filter(t => sampled.has(t) || sectionPresent(t, o.content)).map(type => {
     const def = SECTIONS[type]
     const saved = o.saved[type]
     const seed = saved?.seed ?? sectionBatch(o.styleSeed, type)
-    const chosen = o.overrides?.[type] ?? saved?.spec ?? defaultSpec(def, seed, viewOf(type, o.content), o.style, measurer)
-    return { type, seed, spec: renderableSpec(type, chosen, o.content), picked: !!saved }
+    const chosen = o.overrides?.[type] ?? saved?.spec ?? defaultSpec(def, seed, viewOf(type, contentOf(type)), o.style, measurer)
+    return { type, seed, spec: renderableSpec(type, chosen, contentOf(type)), picked: !!saved }
   })
   const settled = (type: SectionKey) => {
     const saved = o.saved[type]
     const override = o.overrides?.[type]
     return !!saved && type !== o.changed && (!override || specKey(override) === specKey(saved.spec))
   }
-  const settle = o.prior ? { prior: o.prior, settled: new Set(entries.map(e => e.type).filter(settled)) } : undefined
+  const settle = o.prior || sampled.size
+    ? { prior: o.prior ?? {}, settled: new Set(o.prior ? entries.map(e => e.type).filter(settled) : []), quiet: sampled }
+    : undefined
   const rhythm = solveRhythm(entries, SECTIONS, o.style, settle)
   return entries.map(e => ({ ...e, rhythm: rhythm[e.type]! }))
 }

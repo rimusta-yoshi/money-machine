@@ -63,3 +63,31 @@ describe('browsing one section never flips an earlier pick’s band', () => {
     expect(next.rhythm).toEqual(rhythmOf(fresh))
   })
 })
+
+describe('sections waiting for content, browsed on sample content', () => {
+  it('appear on the builder page but never take a loud band', () => {
+    for (const theme of Object.keys(THEMES) as ThemeKey[]) for (let seed = 1; seed <= 4; seed++) {
+      const site = createSite(electrician, seed)
+      const content = pageContent({ ...site, business: { ...site.business, phone: '01632 960 555' } }, electrician)
+      const style = resolveSiteStyle(theme, '#D97706', seed)
+      const sampled = withSample(content, [], THEMES[theme].voice.why)
+      const order = pageOrder(electrician, site)
+      const waiting = order.filter(t => !sectionPresent(t, content))
+      const page = resolvePage({ order, saved: {}, content, style, styleSeed: seed, samples: { content: sampled, types: waiting } })
+      expect(waiting.length).toBeGreaterThan(0)
+      for (const t of waiting) {
+        const s = page.find(p => p.type === t)
+        expect(s, `${theme}/${seed}: ${t}`).toBeDefined()
+        expect(isLoud(t, s!.rhythm.band), `${theme}/${seed}: ${t} went loud`).toBe(false)
+      }
+    }
+  })
+
+  it('leave the published page as it was', () => {
+    const site = createSite(electrician, 2)
+    const content = pageContent({ ...site, business: { ...site.business, phone: '01632 960 555' } }, electrician)
+    const order = pageOrder(electrician, site)
+    const real = resolvePage({ order, saved: {}, content, style: site.style.resolved, styleSeed: site.style.seed })
+    expect(real.map(s => s.type).every(t => sectionPresent(t, content))).toBe(true)
+  })
+})

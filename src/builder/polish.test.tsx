@@ -10,6 +10,7 @@ import { SECTION_NEEDS } from '../site/needs'
 import { ExampleSection } from './ExampleSection'
 import { SuggestedLinesEditor, SuggestedNoteEditor } from './content/SuggestedLinesEditor'
 import { SectionContentEditor } from './content/SectionContentEditor'
+import { PhotoNeeds } from './finish/PhotoNeeds'
 
 afterEach(cleanup)
 
@@ -114,5 +115,32 @@ describe('services editor', () => {
     render(<SectionContentEditor site={one} trade={plumber} section="services" onContentChange={onContentChange} />)
     fireEvent.click(screen.getByRole('button', { name: 'Remove Rewiring' }))
     expect(onContentChange).toHaveBeenCalledWith({ services: [] })
+  })
+})
+
+describe('photo needs on the go-live step', () => {
+  const site = { ...createSite(plumber, 3), business: { name: 'Joe Pipes', phone: '0113 496 0000', location: 'Leeds', about: '', yearsInBusiness: '', email: '' } }
+  const content = pageContent(site, plumber)
+  const live = publishedPage(site, plumber).find(s => s.type === 'hero')!
+  const needs = [{ section: 'hero' as const, slot: 'hero' as const, live, swapped: true }]
+
+  it('says what goes live instead, and the button goes to add the photo', () => {
+    const onAdd = vi.fn()
+    render(<PhotoNeeds needs={needs} style={site.style.resolved} content={content} onAdd={onAdd} />)
+    expect(screen.getByText(/Your hero layout needs a photo\. Add one, or we’ll use this layout instead/)).toBeTruthy()
+    expect(screen.getByText('Strongly recommended')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /Add a photo for the hero section/ }))
+    expect(onAdd).toHaveBeenCalledWith('hero')
+  })
+
+  it('shows nothing when every photo layout has its photo', () => {
+    const { container } = render(<PhotoNeeds needs={[]} style={site.style.resolved} content={content} onAdd={() => {}} />)
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('has no axe violations', async () => {
+    const { container } = render(<PhotoNeeds needs={needs} style={site.style.resolved} content={content} onAdd={() => {}} />)
+    const result = await axe.run(container, { rules: { 'color-contrast': { enabled: false }, region: { enabled: false } } })
+    expect(result.violations.map(v => v.id)).toEqual([])
   })
 })
