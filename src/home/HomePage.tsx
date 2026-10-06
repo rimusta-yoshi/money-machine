@@ -2,7 +2,7 @@ import { BRAND } from '../brand/config'
 import { Logo } from '../brand/Logo'
 import { BUILDER_URL } from './content'
 import { HomeHero } from './HomeHero'
-import { Examples, Faq, FinalCall, HowItWorks, Pricing, WhatYouGet } from './HomeSections'
+import { Faq, FinalCall, HowItWorks, Pricing, WhatYouGet } from './HomeSections'
 
 /** The landing page at the site root: loud bento tiles, every button leads to the builder. */
 export function HomePage() {
@@ -12,7 +12,6 @@ export function HomePage() {
         <header className="hp-top">
           <Logo href="/" size="lg" animate />
           <nav aria-label="Main" className="hp-nav">
-            <a href="#examples">Examples</a>
             <a href="#how">How it works</a>
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
@@ -22,7 +21,6 @@ export function HomePage() {
 
         <main className="hp-main">
           <HomeHero />
-          <Examples />
           <HowItWorks />
           <Pricing />
           <WhatYouGet />

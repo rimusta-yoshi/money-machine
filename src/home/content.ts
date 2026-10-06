@@ -1,6 +1,5 @@
 import { BRAND } from '../brand/config'
 import type { TradeId } from '../types'
-import type { SampleLook } from './SampleHero'
 
 /** The builder, and the builder with a trade already picked. */
 export const BUILDER_URL = '/build/'
@@ -12,24 +11,6 @@ export const TRADE_LINKS: { id: TradeId; label: string }[] = [
   { id: 'roofer', label: 'Roofer' },
   { id: 'painter', label: 'Painter' },
   { id: 'landscaper', label: 'Landscaper' },
-]
-
-/** The hero phone: the same plumber in three looks, one after another. */
-export const HERO_LOOKS: SampleLook[] = [
-  { trade: 'plumber', theme: 'workwear', brand: '#FFD400', seed: 11, name: 'Hartley Plumbing', location: 'Harrogate' },
-  { trade: 'plumber', theme: 'clean-pro', brand: '#1F4FD8', seed: 4, name: 'Hartley Plumbing', location: 'Harrogate' },
-  { trade: 'plumber', theme: 'friendly-local', brand: '#0B6E6D', seed: 7, name: 'Hartley Plumbing', location: 'Harrogate' },
-]
-
-/**
- * "Every site looks different": one example per style, each a different trade. `width` is
- * the width each hero is laid out at: over 720 gives the desktop layout, 390 the phone one.
- */
-export const EXAMPLES: { label: string; look: SampleLook; span: 'wide' | 'tall' | 'mid' | 'small'; width: number }[] = [
-  { label: 'Roofer · Workwear', span: 'tall', width: 760, look: { trade: 'roofer', theme: 'workwear', brand: '#FFD400', seed: 21, name: 'Ridgeline Roofing', location: 'Leeds' } },
-  { label: 'Plumber · Clean Pro', span: 'wide', width: 1200, look: { trade: 'plumber', theme: 'clean-pro', brand: '#1F4FD8', seed: 4, name: 'Hartley Plumbing', location: 'Harrogate' } },
-  { label: 'Landscaper · Friendly Local', span: 'mid', width: 760, look: { trade: 'landscaper', theme: 'friendly-local', brand: '#0B6E6D', seed: 9, name: 'Greenleaf Gardens', location: 'York' } },
-  { label: 'Decorator · Craft Heritage', span: 'small', width: 390, look: { trade: 'painter', theme: 'craft-heritage', brand: '#1E4D3A', seed: 5, name: 'Ashby & Daughter', location: 'Ilkley' } },
 ]
 
 export const HOW_STEPS = [
@@ -51,6 +32,6 @@ export const FAQS = [
   { q: 'Do I need to be good with computers?', a: 'No. If you can pick from a few options on your phone, you can build your site.' },
   { q: 'Are there really no monthly fees?', a: `Really. You pay ${BRAND.price} once and your site stays online.` },
   { q: 'Can I use my own domain?', a: 'Yes. Buy it wherever you like and follow our short guide to connect it.' },
-  { q: 'What if I’m not happy?', a: `Building is free, so you only pay once you’re happy. After that: ${BRAND.refundPolicy}.` },
+  { q: 'What if I’m not happy?', a: `Building is free, so you only pay once you’re happy. And if you change your mind within ${BRAND.guarantee.days} days of paying, we’ll give you your money back. No questions asked.` },
   { q: 'Can I change my site later?', a: 'Yes. We email you a link to update your text and photos whenever you need.' },
 ]
