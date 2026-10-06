@@ -98,35 +98,42 @@ body { background: var(--sb-white); }
 .hp-how-step--lawn { background: var(--sb-lawn); }
 .hp-how-n { font-family: var(--sb-font-display); font-weight: 900; font-size: 56px; line-height: 1; }
 
-/* ---- Pricing ---- */
-.hp-price-pitch {
-  grid-column: span 6; background: var(--sb-night); color: var(--sb-white); padding: clamp(28px, 4vw, 48px);
-  display: flex; flex-direction: column; gap: 18px;
+/* ---- Pricing: one joined row, the pitch then "a monthly plan vs us" ---- */
+.hp-pricing { display: grid; grid-template-columns: 5fr 3.5fr 3.5fr; border-radius: 32px; overflow: hidden; }
+.hp-pricing-pitch { background: var(--sb-night); color: var(--sb-white); padding: clamp(28px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px; }
+.hp-pricing-pitch p { margin: 0; font-size: 18px; line-height: 1.6; color: #E4E0EC; }
+.hp .hp-pricing-pitch .hp-btn--start { margin-top: auto; }
+.hp-vs { grid-column: span 2; position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hp-vs-them, .hp-vs-us { display: flex; flex-direction: column; justify-content: space-between; gap: 14px; padding: clamp(28px, 3vw, 40px); }
+.hp-vs-them { background: var(--sb-mist); color: var(--sb-muted-mist); padding-right: 52px; }
+.hp-vs-us { background: var(--sb-hard-hat); padding-left: 52px; }
+.hp-vs-label { font-weight: 700; font-size: 16px; }
+.hp-vs-big { font-family: var(--sb-font-display); font-weight: 900; font-size: clamp(48px, 5vw, 68px); line-height: 1; letter-spacing: -0.04em; text-decoration: none; }
+.hp-vs-them .hp-vs-big { color: var(--sb-muted); text-decoration: line-through; text-decoration-thickness: 6px; text-decoration-color: var(--sb-brick); }
+.hp-vs-note { font-size: 16px; line-height: 1.45; }
+.hp-vs-us .hp-vs-note { font-weight: 500; }
+.hp-vs-badge {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; border-radius: 18px;
+  background: var(--sb-night); color: var(--sb-white); display: flex; align-items: center; justify-content: center;
+  font-family: var(--sb-font-display); font-weight: 900; font-size: 20px;
 }
-.hp-price-pitch p { margin: 0; font-size: 18px; line-height: 1.6; color: #E4E0EC; }
-.hp-compare { grid-column: span 3; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
-.hp-compare--them { background: var(--sb-mist); color: var(--sb-muted-mist); }
-.hp-compare--us { background: var(--sb-hard-hat); }
-.hp-compare-label { font-weight: 700; font-size: 15px; }
-.hp-compare-big { font-family: var(--sb-font-display); font-weight: 900; font-size: clamp(34px, 4vw, 52px); letter-spacing: -0.03em; color: var(--sb-night); }
-.hp-compare-note { font-size: 15px; }
 
-/* ---- What you get ---- */
+/* ---- What you get: the title tile runs the full height, six cards in a 3x2 grid beside it ---- */
 .hp-get-title {
-  grid-column: span 4; grid-row: span 2; background: var(--sb-pipe); color: var(--sb-white); padding: clamp(26px, 3.4vw, 40px);
+  grid-column: span 3; background: var(--sb-pipe); color: var(--sb-white); padding: clamp(26px, 3vw, 36px);
   display: flex; flex-direction: column; justify-content: space-between; gap: 20px;
 }
 .hp-get-title p { margin: 0; font-size: 17px; line-height: 1.55; }
-.hp-get { grid-column: span 4; border-radius: 28px; background: var(--sb-mist); padding: 24px; display: flex; flex-direction: column; gap: 8px; }
-.hp-get:nth-child(n + 5) { grid-column: span 6; }
-.hp-get b { font-size: 18px; }
-.hp-get > span:last-child { font-size: 16px; line-height: 1.5; color: var(--sb-muted-mist); }
-.hp-get-block { width: 36px; height: 36px; border-radius: 10px; }
+.hp-bento > .hp-gets { grid-column: span 9; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sb-gap); margin: 0; padding: 0; list-style: none; }
+.hp-get { border-radius: 28px; background: var(--sb-mist); padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+.hp-get-name { margin: 0; font-family: var(--sb-font-display); font-weight: 800; font-size: 20px; line-height: 1.15; letter-spacing: -0.02em; }
+.hp-get p { margin: 0; font-size: 16px; line-height: 1.5; color: var(--sb-muted-mist); }
+.hp-get-block { width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: var(--sb-night); }
 .hp-get-block--brick { background: var(--sb-brick); }
 .hp-get-block--yellow { background: var(--sb-hard-hat); }
 .hp-get-block--lawn { background: var(--sb-lawn); }
-.hp-get-block--night { background: var(--sb-night); }
-.hp-get-block--blue { background: var(--sb-pipe); }
+.hp-get-block--night { background: var(--sb-night); color: var(--sb-white); }
+.hp-get-block--blue { background: var(--sb-pipe); color: var(--sb-white); }
 
 /* ---- FAQ ---- */
 .hp-faq-title { grid-column: span 4; background: var(--sb-hard-hat); padding: clamp(26px, 3.4vw, 40px); }
@@ -159,6 +166,11 @@ body { background: var(--sb-white); }
   .hp-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hp-bento > *, .hp-bento > ul > *, .hp-bento > ol > * { grid-column: 1 / -1 !important; grid-row: auto !important; }
   .hp-bento > .half, .hp-bento .half { grid-column: span 1 !important; }
+  .hp-pricing { grid-template-columns: 1fr; }
+  .hp-vs { grid-column: auto; grid-template-columns: 1fr; }
+  .hp-vs-them { padding-right: 28px; padding-bottom: 48px; }
+  .hp-vs-us { padding-left: 28px; padding-top: 48px; }
+  .hp-bento > .hp-gets { grid-template-columns: 1fr; }
   .hp-nav { gap: 2px 18px; }
 }
 
