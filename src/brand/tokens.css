@@ -1,0 +1,95 @@
+/* ============================================================
+   siteblocks brand tokens ("Block Party", see reference/design-handoff/BRAND.md).
+   Used by the homepage and the builder's own UI, never by generated customer sites.
+   ============================================================ */
+:root {
+  /* Colour */
+  --sb-night: #1C1A24;
+  --sb-white: #FFFFFF;
+  --sb-mist: #F2F2F4;
+  --sb-line: #D6D6DC;        /* input borders */
+  --sb-line-soft: #E2E2E7;   /* unselected borders, empty blocks */
+  --sb-rule: #ECECF0;        /* hairlines and placeholders */
+  --sb-muted: #57526A;       /* secondary text on white */
+  --sb-muted-mist: #4E4A59;  /* secondary text on mist */
+  --sb-brick: #FF5A36;       /* THE main action, one per screen; night text */
+  --sb-hard-hat: #FFCE3A;    /* highlights, price; night text */
+  --sb-pipe: #2F64E0;        /* links, focus ring, info; white text */
+  --sb-pipe-hover: #1F48B0;
+  --sb-lawn: #2DBE8A;        /* success, done; night text */
+  --sb-lawn-ink: #1E7A58;    /* success text on white or mist */
+  --sb-lawn-tint: #D3F3E6;
+  --sb-error: #B42318;
+  --sb-dot: #CFCFD6;         /* inactive dots and switches */
+
+  /* Type */
+  --sb-font-display: 'Unbounded', system-ui, sans-serif;
+  --sb-font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+
+  /* Shape */
+  --sb-r-tile: 28px;
+  --sb-r-btn: 20px;
+  --sb-r-input: 14px;
+  --sb-r-block: 10px;
+  --sb-gap: 12px;
+  --sb-press: 0 7px 0 var(--sb-night);
+}
+
+/* ---- Shared pieces: the logo, the main button, links and focus ---- */
+.sb-ui { font-family: var(--sb-font-body); color: var(--sb-night); }
+.sb-ui :focus-visible { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+/* Our own links only: generated site previews inside the builder keep their own styles. */
+:where(.sb-ui) :where(a):not(:where(.sb-generated *)) { color: var(--sb-pipe); text-decoration: underline; text-underline-offset: 3px; }
+:where(.sb-ui) :where(a):not(:where(.sb-generated *)):hover { color: var(--sb-pipe-hover); }
+
+.sb-logo { flex: none; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; color: var(--sb-night); text-decoration: none; }
+.sb-ui a.sb-logo, .sb-ui a.sb-logo:hover { color: var(--sb-night); text-decoration: none; }
+.sb-logo-mark {
+  --cell: 11px;
+  display: grid; grid-template-columns: repeat(2, var(--cell)); grid-template-rows: repeat(2, var(--cell)); gap: 2px; flex: none;
+}
+.sb-logo-mark > span { border-radius: calc(var(--cell) * 0.28); }
+.sb-logo-mark > span:nth-child(1) { background: var(--sb-brick); }
+.sb-logo-mark > span:nth-child(2) { background: var(--sb-hard-hat); }
+.sb-logo-mark > span:nth-child(3) { background: var(--sb-pipe); }
+.sb-logo-mark > span:nth-child(4) { background: var(--sb-night); }
+.sb-logo-word { font-family: var(--sb-font-display); font-weight: 900; font-size: 17px; letter-spacing: -0.03em; line-height: 1; }
+.sb-logo--lg .sb-logo-mark { --cell: 14px; }
+.sb-logo--lg .sb-logo-word { font-size: 20px; }
+
+/* The one brick button per screen: hard shadow, presses down. */
+.sb-main-btn {
+  appearance: none; border: 0; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 58px; padding: 18px 28px; border-radius: 18px; background: var(--sb-brick); color: var(--sb-night);
+  font-family: var(--sb-font-display); font-weight: 800; font-size: 17px; letter-spacing: -0.01em; line-height: 1.2;
+  box-shadow: var(--sb-press); transition: transform .12s ease, box-shadow .12s ease;
+}
+.sb-ui a.sb-main-btn, .sb-ui a.sb-main-btn:hover { color: var(--sb-night); text-decoration: none; }
+.sb-main-btn:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 2px 0 var(--sb-night); }
+.sb-main-btn:disabled { cursor: progress; opacity: 0.7; }
+
+/* Quiet secondary actions: outlined, or a plain text button that reads as a link. */
+.sb-line-btn {
+  appearance: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 16px; border: 2px solid var(--sb-night); border-radius: 12px; background: var(--sb-white);
+  color: var(--sb-night); font: inherit; font-weight: 700; font-size: 15px; text-decoration: none;
+}
+.sb-line-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.sb-text-btn {
+  appearance: none; cursor: pointer; border: 0; background: transparent; min-height: 44px; padding: 10px 4px;
+  font: inherit; font-weight: 700; font-size: 15px; color: var(--sb-night);
+}
+.sb-link-btn {
+  appearance: none; cursor: pointer; border: 0; background: transparent; padding: 0; min-height: 44px;
+  font: inherit; font-weight: 700; color: var(--sb-pipe); text-decoration: underline; text-underline-offset: 3px;
+}
+.sb-link-btn:hover { color: var(--sb-pipe-hover); }
+
+.sb-sr-only {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-main-btn, .sb-main-btn:active:not(:disabled) { transition: none; transform: none; }
+}

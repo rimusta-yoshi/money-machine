@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import type { CSSProperties } from 'react'
-import type { SectionType, TradeConfig } from '../types'
+import type { BusinessInfo, SectionType, TradeConfig } from '../types'
 import { sectionPresent, specKey, THEMES } from '../gen'
 import type { Generated, PageContent, ResolvedSection, SectionKey } from '../gen'
 import type { Site, SiteContent } from '../site/schema'
@@ -16,8 +16,8 @@ import { ControlRail } from './ControlRail'
 import { ExampleSection } from './ExampleSection'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
-import type { SiteStyleControls } from './SiteStyleCard'
 import { useSectionPicker } from './useSectionPicker'
+import { useNarrow } from './useNarrow'
 
 interface Props {
   trade: TradeConfig
@@ -29,30 +29,24 @@ interface Props {
   initialSection?: SectionType
   onPick: (section: SectionKey, value: Generated) => void
   onContentChange: (patch: Partial<SiteContent>) => void
+  onBusinessChange: (patch: Partial<BusinessInfo>) => void
   onDone: () => void
-  siteStyle: SiteStyleControls
+  /** Back to step 2. */
+  onChangeLook: () => void
+  /** Phones: the sheet is folded away to see the preview (the top bar's Preview button). */
+  sheetFolded: boolean
 }
 
 const DESK_W = 1200
 
-function useNarrowDevice() {
-  const [narrow, setNarrow] = useState(() => window.innerWidth < 768)
-  useEffect(() => {
-    const onResize = () => setNarrow(window.innerWidth < 768)
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
-  return narrow
-}
-
-export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onDone, siteStyle }: Props) {
+export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onBusinessChange, onDone, onChangeLook, sheetFolded }: Props) {
   const sections = siteSections(trade, site)
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
   const [innerH, setInnerH] = useState(0)
-  const isNarrowDevice = useNarrowDevice()
+  const isNarrowDevice = useNarrow()
   const bandRefs = useRef<(HTMLDivElement | null)[]>([])
-  const stackScrollRef = useRef<HTMLDivElement | null>(null)
+  const stackScrollRef = useRef<HTMLElement | null>(null)
   const zoomInnerRef = useRef<HTMLDivElement | null>(null)
   const touchStartX = useRef<number | null>(null)
 
@@ -155,6 +149,9 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     }
   }
 
+  // Sections waiting for content don't go live yet, so they never hold up finishing.
+  const settled = (i: number) => isConfirmed(sections[i].type) || isWaiting(sections[i].type) || !present(sections[i].type)
+  const nextIdx = activeIdx < sections.length - 1 ? activeIdx + 1 : Math.max(0, sections.findIndex((_, i) => i !== activeIdx && !settled(i)))
   const needs = isWaiting(activeType) ? SECTION_NEEDS[activeType] ?? 'Add content to show this.' : undefined
   const layout: LayoutState = present(activeType)
     ? { index: picker.index, count: picker.count, label: picker.label, loading: picker.loading, needs }
@@ -165,15 +162,15 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     sections,
     activeIdx,
     layout,
-    doneCount: sections.filter(s => isConfirmed(s.type)).length,
-    // Sections waiting for content don't go live yet, so they never hold up finishing.
-    allDone: sections.every((s, i) => i === activeIdx || isConfirmed(s.type) || isWaiting(s.type) || !present(s.type)),
+    allDone: sections.every((_, i) => i === activeIdx || settled(i)),
+    nextIdx,
     onCycleLayout: picker.cycle,
     onNewOptions: present(activeType) ? picker.reroll : undefined,
-    onNext: () => navigateTo(Math.min(activeIdx + 1, sections.length - 1)),
+    onNext: () => navigateTo(nextIdx),
     onFinish: finish,
     onContentChange,
-    siteStyle,
+    onBusinessChange,
+    onChangeLook,
   }
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
@@ -186,7 +183,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
 
   return (
     <div className={`mm-stack-layout${isNarrowDevice ? ' narrow-device' : ''}`}>
-      <div className="mm-stack-view" ref={stackScrollRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <section aria-label="Preview of your site" className="mm-stack-view" ref={stackScrollRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <div
           className="mm-zoom-outer"
           style={!effectiveMobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
@@ -194,7 +191,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
           <div
             className="mm-zoom-inner"
             ref={zoomInnerRef}
-            style={!effectiveMobile ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left' } as CSSProperties : undefined}
+            style={!effectiveMobile ? { width: DESK_W, transform: `scale(${zoom})`, transformOrigin: 'top left', '--zoom': zoom } as CSSProperties : undefined}
           >
             <div className="mm-stack-site">
               {sections.map((sec, i) => {
@@ -218,7 +215,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                   >
                     <div className="mm-band-tag">
                       {state === 'done' && <><Icon.Check size={10} /> </>}
-                      {isActive ? `Editing · ${label}` : label}
+                      {isActive ? `${label} · editing` : label}
                     </div>
                     {waiting && (!present(sec.type) || showPlaceholder(i)) ? (
                       <ExampleSection type={sec.type} site={site} content={content} needs={needsLine} />
@@ -248,10 +245,9 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <ControlRail {...navProps} deviceLabel={effectiveMobile ? 'Mobile' : 'Desktop'} />
-      {isNarrowDevice && <MobileSheet {...navProps} />}
+      {isNarrowDevice ? <MobileSheet {...navProps} folded={sheetFolded} /> : <ControlRail {...navProps} />}
     </div>
   )
 }

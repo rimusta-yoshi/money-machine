@@ -63,9 +63,9 @@ function assets(req: Request): Response {
 
 export const MIGRATIONS = readdirSync(join(root, 'server', 'migrations')).sort().map(f => readFileSync(join(root, 'server', 'migrations', f), 'utf8'))
 
-/** SQL statements of a migration file, comments dropped. */
+/** SQL statements of a migration file, comments dropped. Lines may end in CRLF (a Windows checkout). */
 export const statements = (sql: string): string[] =>
-  sql.split('\n').map(l => l.replace(/--.*$/, '')).join('\n').split(';').map(s => s.trim()).filter(Boolean)
+  sql.split(/\r?\n/).map(l => l.replace(/--.*$/, '')).join('\n').split(';').map(s => s.trim()).filter(Boolean)
 
 export async function startStack(o: StackOptions): Promise<Stack> {
   bundles ??= Promise.all([bundle('api-worker.ts'), bundle('site-worker.ts')])

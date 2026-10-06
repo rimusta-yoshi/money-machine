@@ -1,6 +1,7 @@
 Fonts from Fontsource (https://fontsource.org), latin subset.
 Inter: OFL-1.1
-JetBrains Mono: OFL-1.1
+Unbounded: OFL-1.1
+DM Sans: OFL-1.1
 Anton: OFL-1.1
 Barlow: OFL-1.1
 Barlow Condensed: OFL-1.1

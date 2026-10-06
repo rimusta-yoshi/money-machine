@@ -1,0 +1,73 @@
+/* ============================================================
+   Step 1 · Basics (mockups 03 desktop, 04 phone)
+   ============================================================ */
+.bb { min-height: 100vh; background: var(--sb-white); padding: 24px 16px 40px; }
+.bb-top, .bb-main { max-width: 1040px; margin: 0 auto; }
+.bb-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 40px; }
+.bb-top .sb-logo-mark { --cell: 12px; }
+.bb-top .sb-logo-word { font-size: 18px; }
+.bb-free { font-size: 15px; color: var(--sb-muted); }
+.bb-main { display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+.bb-form { flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.bb-intro { display: flex; flex-direction: column; gap: 10px; }
+.bb-h1 { margin: 0; font-family: var(--sb-font-display); font-weight: 900; font-size: clamp(32px, 4vw, 44px); line-height: 1.05; letter-spacing: -0.03em; }
+.bb-h1--sm { font-size: 28px; line-height: 1.08; }
+.bb-lead { margin: 0; font-size: 18px; line-height: 1.5; color: var(--sb-muted); }
+.bb-submit { align-self: flex-start; margin-top: 6px; }
+.bb-message { margin: 0; font-weight: 700; font-size: 16px; color: var(--sb-night); }
+.bb-message:empty { display: none; }
+
+/* Trades: real radios styled as tiles */
+.bb-trades { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.bb-trades legend.bf-label { margin-bottom: 8px; }
+.bb-trades-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.bb-trade {
+  position: relative; display: inline-flex; align-items: center; min-height: 48px; padding: 0 18px; border-radius: 14px;
+  border: 2px solid var(--sb-line); background: var(--sb-white); color: var(--sb-night); font-weight: 700; font-size: 16px; cursor: pointer;
+}
+.bb-trade:hover { border-color: var(--sb-night); }
+.bb-trade.on { border-color: var(--sb-night); background: var(--sb-night); color: var(--sb-white); }
+.bb-trade:has(input:focus-visible) { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+.bb-trades--rows .bb-trades-list { flex-direction: column; flex-wrap: nowrap; }
+.bb-trades--rows .bb-trade {
+  display: flex; justify-content: space-between; min-height: 58px; border-radius: 16px; border-color: var(--sb-line-soft); font-size: 17px;
+}
+.bb-trades--rows .bb-trade.on { background: var(--sb-mist); color: var(--sb-night); border-color: var(--sb-night); }
+.bb-trade-dot { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--sb-night); }
+.bb-trade.on .bb-trade-dot { background: var(--sb-brick); }
+
+/* "Your site, so far" */
+.bb-preview { flex: 1 1 380px; min-width: 0; border-radius: var(--sb-r-tile); background: var(--sb-mist); padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.bb-preview p { margin: 0; }
+.bb-preview-label, .bb-preview-next { font-weight: 700; font-size: 15px; color: var(--sb-muted-mist); }
+.bb-preview-next { font-weight: 400; }
+.bb-preview-site { border-radius: 20px; background: var(--sb-white); padding: 26px; display: flex; flex-direction: column; gap: 14px; min-height: 300px; }
+.bb-preview-trade { font-size: 15px; font-weight: 700; color: var(--sb-muted); }
+.bb-preview-name { font-family: var(--sb-font-display); font-weight: 900; font-size: 30px; line-height: 1.05; letter-spacing: -0.03em; overflow-wrap: anywhere; }
+.bb-preview-blurb { font-size: 16px; line-height: 1.5; color: var(--sb-muted); }
+.bb-preview-photo { flex-grow: 1; min-height: 80px; border-radius: 14px; background: var(--sb-rule); }
+.bb-preview-call { padding: 13px; border-radius: 12px; background: var(--sb-night); color: var(--sb-white); text-align: center; font-weight: 700; font-size: 15px; }
+
+/* ---- Phone: two short steps ---- */
+.bb--phone { min-height: 100dvh; padding: 18px 16px 20px; display: flex; flex-direction: column; gap: 22px; }
+.bb--phone > main { flex: 1; display: flex; flex-direction: column; }
+.bb-phone-top { display: flex; justify-content: space-between; align-items: center; min-height: 44px; }
+.bb-back { width: 44px; height: 44px; border: 0; border-radius: 12px; background: var(--sb-mist); font-size: 20px; font-weight: 700; color: var(--sb-night); }
+.bb-progress { display: flex; gap: 4px; align-items: center; font-size: 15px; font-weight: 700; color: var(--sb-muted); }
+.bb-progress > span:first-child { margin-right: 6px; }
+.bb-seg { display: block; width: 26px; height: 10px; border-radius: 4px; background: var(--sb-line-soft); }
+.bb-seg--1.on { background: var(--sb-brick); }
+.bb-seg--2.on { background: var(--sb-hard-hat); }
+.bb-stage { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.bb--phone .bb-h1 { font-size: 32px; }
+.bb--phone .bb-h1--sm { font-size: 28px; }
+.bb-wide-btn { margin-top: auto; width: 100%; min-height: 60px; box-shadow: 0 6px 0 var(--sb-night); }
+.bb-card { border-radius: 18px; background: var(--sb-mist); padding: 14px; display: flex; align-items: center; gap: 12px; }
+.bb-card-mark { width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; background: var(--sb-night); }
+.bb-card-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bb-card-text b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bb-card-text span { font-size: 15px; color: var(--sb-muted-mist); }
+
+.sb-in { animation: sbIn .35s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes sbIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sb-in { animation: none; } }

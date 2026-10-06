@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Builder: your look</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=Anton&amp;family=Schibsted+Grotesk:wght@700&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;family=Fraunces:opsz,wght@9..144,400&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #2F64E0;outline-offset:2px}
+.sb-swap{animation:sbSwap .35s ease both}
+@keyframes sbSwap{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.sb-swap{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; color: #1C1A24; font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 24px; border-bottom: 1px solid #ECECF0">
+<a href="#" aria-label="siteblocks home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1C1A24"><span style="display: grid; grid-template-columns: repeat(2, 11px); grid-template-rows: repeat(2, 11px); gap: 2px" aria-hidden="true"><span style="border-radius: 3px; background: #FF5A36"></span><span style="border-radius: 3px; background: #FFCE3A"></span><span style="border-radius: 3px; background: #2F64E0"></span><span style="border-radius: 3px; background: #1C1A24"></span></span><span style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 17px; letter-spacing: -0.03em">siteblocks</span></a>
+<ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; font-weight: 700; font-size: 14px">
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #2DBE8A"></span>Basics</li>
+<li aria-current="step" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #1C1A24; color: #FFFFFF"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #FFCE3A"></span>Your look</li>
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #E2E2E7"></span>Build</li>
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #E2E2E7"></span>Go live</li>
+</ol>
+<span style="font-size: 14px; color: #57526A">Saved</span>
+</header>
+
+<main style="flex-grow: 1; display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; box-sizing: border-box">
+<section aria-label="Preview" style="flex: 3 1 560px; min-width: 0; border-radius: 28px; background: #F2F2F4; padding: clamp(16px, 3vw, 36px); display: flex; align-items: center; justify-content: center">
+<div class="sb-swap" style="{{frame}}">
+<div style="{{eyebrow}}">Plumber · Harrogate</div>
+<div style="{{head}}">{{headline}}</div>
+<div style="{{sub}}">Boilers, leaks and bathrooms. A fixed price before we start.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><span style="{{btn}}">Call 01632 960 123</span><span style="{{btn2}}">Get a free quote</span></div>
+<div style="{{photo}}"></div>
+<sc-if value="{{reviews}}" hint-placeholder-val="{{true}}"><div style="{{review}}">“Turned up on time and left it spotless.” · Sarah, Knaresborough</div></sc-if>
+</div>
+</section>
+
+<aside aria-label="Your look" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 30px; line-height: 1.05; letter-spacing: -0.03em">Your look</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #57526A">Pick a colour and a style. You'll choose layouts for each section next.</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div id="col-l" style="font-weight: 700; font-size: 15px">Your colour <span style="font-weight: 400; color: #57526A">· your van, your logo</span></div>
+<div role="radiogroup" aria-labelledby="col-l" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{colours}}" as="c" hint-placeholder-count="6"><button type="button" role="radio" aria-checked="{{c.checked}}" aria-label="{{c.name}}" onClick="{{c.pick}}" style="{{c.style}}"></button></sc-for>
+<button type="button" style="height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid #D6D6DC; background: #FFFFFF; font-weight: 700; font-size: 14px">Custom</button>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div id="sty-l" style="font-weight: 700; font-size: 15px">Your style</div>
+<div role="radiogroup" aria-labelledby="sty-l" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{themes}}" as="t" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="{{t.style}}"><span style="{{t.spec}}">Aa</span><span style="font-weight: 700; font-size: 15px">{{t.name}}</span><span style="font-size: 13px; line-height: 1.35; opacity: 0.8">{{t.hint}}</span></button></sc-for>
+</div>
+</div>
+
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-radius: 18px; background: #F2F2F4">
+<span style="display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px">Show customer reviews</b><span style="font-size: 13px; color: #57526A">You'll add real ones later. We never make them up.</span></span>
+<button type="button" role="switch" aria-checked="{{reviewsStr}}" aria-label="Show customer reviews" onClick="{{toggle}}" style="{{switchStyle}}"><span style="{{knob}}"></span></button>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto">
+<button type="button" style="padding: 14px 4px; border: 0; background: transparent; font-weight: 700; font-size: 15px; color: #1C1A24">← Basics</button>
+<button type="button" style="padding: 18px 26px; border: 0; border-radius: 16px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 16px; box-shadow: 0 6px 0 #1C1A24">Start building</button>
+</div>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { theme: 'clean', colour: '#1F4FD8', reviews: true }; }
+renderVals() {
+const s = this.state;
+const lum = (h) => { const v = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((x) => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+const on = (h) => lum(h) > 0.22 ? '#141414' : '#FFFFFF';
+const a = s.colour, aText = on(a);
+const palette = [['Blue', '#1F4FD8'], ['Teal', '#0F766E'], ['Red', '#D93A1F'], ['Yellow', '#FFD400'], ['Purple', '#6D28D9'], ['Black', '#1C1A24']];
+const colours = palette.map(([n, h]) => ({ name: n, checked: h === a ? 'true' : 'false', pick: () => this.setState({ colour: h }), style: 'width: 44px; height: 44px; border-radius: 12px; background: ' + h + '; border: 3px solid ' + (h === a ? '#1C1A24' : '#FFFFFF') + '; box-shadow: 0 0 0 1px #D6D6DC' }));
+const T = {
+workwear: { name: 'Workwear', hint: 'Bold and loud', font: "'Anton', sans-serif", bg: '#121212', ink: '#F3F0E8', r: '0', up: true },
+clean: { name: 'Clean Pro', hint: 'Calm and crisp', font: "'Schibsted Grotesk', sans-serif", bg: '#FFFFFF', ink: '#0F1720', r: '999px', up: false },
+friendly: { name: 'Friendly Local', hint: 'Warm and chatty', font: "'Bricolage Grotesque', sans-serif", bg: '#FFF7EF', ink: '#2B2233', r: '999px', up: false },
+craft: { name: 'Craft Heritage', hint: 'Quiet and careful', font: "'Fraunces', serif", bg: '#F4EEE1', ink: '#1F2A22', r: '0', up: false }
+};
+const t = T[s.theme];
+const themes = Object.keys(T).map((k) => { const x = T[k]; const sel = k === s.theme; return { name: x.name, hint: x.hint, checked: sel ? 'true' : 'false', pick: () => this.setState({ theme: k }), style: 'text-align: left; display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; border: 2px solid ' + (sel ? '#1C1A24' : '#E2E2E7') + '; background: ' + (sel ? '#F2F2F4' : '#FFFFFF') + '; color: #1C1A24', spec: 'width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: ' + x.font + '; font-size: 20px; background: ' + x.bg + '; color: ' + x.ink + '; border: 1px solid #E2E2E7' }; });
+const headSize = s.theme === 'workwear' ? '64px' : s.theme === 'craft' ? '50px' : '52px';
+return {
+colours, themes, reviews: s.reviews, reviewsStr: s.reviews ? 'true' : 'false',
+toggle: () => this.setState({ reviews: !s.reviews }),
+switchStyle: 'flex-shrink: 0; width: 56px; height: 32px; border: 0; border-radius: 999px; padding: 4px; display: flex; justify-content: ' + (s.reviews ? 'flex-end' : 'flex-start') + '; background: ' + (s.reviews ? '#1C1A24' : '#CFCFD6'),
+knob: 'width: 24px; height: 24px; border-radius: 999px; background: #FFFFFF',
+headline: t.up ? 'Leaks fixed. Boilers sorted.' : s.theme === 'friendly' ? "Hi, we're Dave and Tom." : s.theme === 'craft' ? 'Careful plumbing for well-kept homes' : 'Plumbing, done properly.',
+frame: 'width: 100%; max-width: 680px; border-radius: 18px; background: ' + t.bg + '; color: ' + t.ink + '; padding: clamp(22px, 3vw, 40px); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 0 #E2E2E7, 0 20px 50px rgba(28,26,36,0.12); box-sizing: border-box',
+eyebrow: 'font-size: 13px; font-weight: 700; letter-spacing: ' + (t.up ? '0.14em' : '0') + '; text-transform: ' + (t.up ? 'uppercase' : 'none') + '; color: ' + (s.theme === 'workwear' ? a : t.ink) + '; opacity: ' + (s.theme === 'workwear' ? '1' : '0.75'),
+head: 'font-family: ' + t.font + '; font-weight: ' + (s.theme === 'craft' ? '400' : '800') + '; font-size: ' + headSize + '; line-height: 1; letter-spacing: ' + (t.up ? '0' : '-0.03em') + '; text-transform: ' + (t.up ? 'uppercase' : 'none'),
+sub: 'font-size: 17px; line-height: 1.5; opacity: 0.85; max-width: 460px',
+btn: 'padding: 14px 22px; border-radius: ' + t.r + '; background: ' + a + '; color: ' + aText + '; font-weight: 700; font-size: 15px',
+btn2: 'padding: 12px 20px; border-radius: ' + t.r + '; border: 2px solid ' + t.ink + '; font-weight: 700; font-size: 15px',
+photo: 'height: 150px; border-radius: ' + (s.theme === 'friendly' ? '28px' : s.theme === 'clean' ? '16px' : '0') + '; background: ' + (s.theme === 'workwear' ? '#2A2A27' : '#E6E2DA'),
+review: 'padding: 14px 16px; border-radius: ' + (s.theme === 'friendly' ? '20px' : '8px') + '; border-left: 0; background: ' + (s.theme === 'workwear' ? '#1E1E1C' : 'rgba(0,0,0,0.04)') + '; font-size: 14px; line-height: 1.5'
+};
+}
+}
+</script>
+</body>
+</html>

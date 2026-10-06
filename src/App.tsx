@@ -1,241 +1,183 @@
-import { useState, useEffect, useRef, useMemo, useReducer, useCallback } from 'react'
-import type { CSSProperties } from 'react'
+import { useState, useEffect, useRef, useReducer, useCallback } from 'react'
+import './brand/tokens.css'
+import './builder/ui/fields.css'
 import './builder/builder.css'
-import type { SectionType, TradeConfig } from './types'
-import { trades, tradeById } from './trades'
+import type { BusinessInfo, SectionType, TradeConfig } from './types'
+import { tradeById } from './trades'
 import { siteReducer } from './site/reducer'
-import { siteSections } from './site/sections'
-import { SECTION_LABELS } from './site/labels'
+import type { SiteAction } from './site/reducer'
 import type { Site } from './site/schema'
-import { siteTheme } from './site/theme'
-import { TradeCard } from './builder/TradeCard'
-import { SetupForm } from './builder/SetupForm'
+import { BasicsStep } from './builder/basics/BasicsStep'
+import { LookStep } from './builder/look/LookStep'
 import { BuilderCanvas } from './builder/BuilderCanvas'
-import { BuilderTopBar } from './builder/BuilderTopBar'
+import { TopBar } from './builder/shell/TopBar'
 import { FinishStep } from './builder/finish/FinishStep'
-import { Icon } from './components/ui/Icon'
 import { useFitRepair } from './builder/useFitRepair'
 import { usePreviewContent } from './builder/usePreviewContent'
 import { FitNotice } from './builder/FitNotice'
 import { verifySite } from './builder/verifySite'
+import { tradeFromSearch } from './builder/steps'
+import type { Step } from './builder/steps'
+import { useNarrow } from './builder/useNarrow'
 import { randomSeed } from './gen'
 import type { Generated, SectionKey } from './gen'
 import { apiBase, createApi, siteDomain } from './api/client'
 import { useDraft } from './api/useDraft'
-import type { Draft } from './api/useDraft'
+import { BRAND } from './brand/config'
 import { SaveStatusChip } from './builder/save/SaveStatusChip'
 import { ShareCard } from './builder/save/ShareCard'
-import { PublishPanel } from './builder/save/PublishPanel'
-
-type Step = 'pick-trade' | 'setup' | 'build' | 'finish'
 
 /** The server, when this build has one (VITE_API_URL). Without it nothing is saved, as before. */
 const API_BASE = apiBase()
 const api = API_BASE ? createApi(API_BASE) : null
 /** Publishing needs the admin key until payment exists (Phase 2): shown on dev builds, or with VITE_ADMIN_PUBLISH. */
 const ADMIN_PUBLISH = !!api && (import.meta.env.DEV || import.meta.env.VITE_ADMIN_PUBLISH === 'true')
-
-function stepNumber(step: Step): 1 | 2 | 3 | 4 {
-  if (step === 'pick-trade') return 1
-  if (step === 'setup') return 2
-  if (step === 'build') return 3
-  return 4
-}
+const DOMAIN = API_BASE ? siteDomain(API_BASE) : BRAND.domain
 
 export default function App() {
-  const [step, setStep] = useState<Step>('pick-trade')
-  const [site, dispatch] = useReducer(siteReducer, null)
+  const [step, setStep] = useState<Step>('basics')
+  const [site, dispatch] = useReducer(siteReducer, null, () => {
+    // A trade picked on the homepage (/build/?trade=plumber) starts the site with it.
+    const id = typeof window !== 'undefined' ? tradeFromSearch(window.location.search) : null
+    return id ? siteReducer(null, { type: 'pickTrade', trade: tradeById[id] }) : null
+  })
   const [mobile, setMobile] = useState(false)
-  const [done, setDone] = useState(false)
+  const [sheetFolded, setSheetFolded] = useState(false)
   const [focusSection, setFocusSection] = useState<SectionType | undefined>(undefined)
+  const narrow = useNarrow()
   const trade = site ? tradeById[site.tradeId] : null
-  const stageRef = useRef<HTMLDivElement>(null)
   const repair = useCallback((section: SectionKey, value: Generated) => dispatch({ type: 'repairSection', section, value }), [])
   const editing = step === 'build' || step === 'finish'
   // Dev-only preview switch: sample content for seeing a theme's full range. Stripped from production builds.
   const [sample, setSample] = useState(false)
-  const preview = usePreviewContent(step === 'build' ? site : null, trade, import.meta.env.DEV && sample)
+  const preview = usePreviewContent(step === 'build' || step === 'look' ? site : null, trade, import.meta.env.DEV && sample)
   const fit = useFitRepair(editing ? site : null, trade, repair, step === 'build' ? preview : null)
   const dismissFit = fit.dismiss
   const onLoaded = useCallback((saved: Site) => { dispatch({ type: 'load', site: saved }); setStep('build') }, [])
   const onUploaded = useCallback((urls: Record<string, string>) => dispatch({ type: 'replacePhotoUrls', urls }), [])
   const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded })
-  // Before the finish step and before publishing, every section is measured on real screens.
+
+  // Before the go-live step and before publishing, every section is measured on real screens.
   const [verifying, setVerifying] = useState(false)
-  const verifyThen = async (next: () => void) => {
-    if (!site || !trade) return
+  const siteRef = useRef(site)
+  useEffect(() => { siteRef.current = site }, [site])
+  /** Resolves to the checked record (before React has re-rendered with it), or null if checking failed. */
+  const verify = useCallback(async (): Promise<Site | null> => {
+    const current = siteRef.current
+    if (!current) return null
     setVerifying(true)
     try {
-      for (const v of await verifySite(site, trade)) {
-        dispatch(v.status === 'chosen' ? { type: 'pickSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry })
+      let checked: Site = current
+      for (const v of await verifySite(current, tradeById[current.tradeId])) {
+        const action: SiteAction = v.status === 'chosen' ? { type: 'pickSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry }
+        dispatch(action)
+        checked = siteReducer(checked, action) ?? checked
       }
-      next()
+      return checked
     } catch (err) {
       console.error('Checking the site failed', err)
+      return null
     } finally {
       setVerifying(false)
     }
-  }
+  }, [])
 
-  // Each step starts at the top (the stage is the scroll container, not the window).
-  useEffect(() => {
-    stageRef.current?.scrollTo({ top: 0 })
-    window.scrollTo({ top: 0 })
-  }, [step])
+  // Each step starts at the top.
+  useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
 
-  const handleGoStep = (n: 1 | 2 | 3) => {
-    if (n === 1) setStep('pick-trade')
-    if (n === 2 && site) setStep('setup')
-    if (n === 3 && site) setStep('build')
+  const go = (next: Step) => {
+    setSheetFolded(false)
+    setStep(next)
   }
   const reset = () => {
     draft.forget()
     dispatch({ type: 'reset' })
     setFocusSection(undefined)
-    setStep('pick-trade')
-    setDone(false)
+    go('basics')
+  }
+  const onBusinessChange = (patch: Partial<BusinessInfo>) => dispatch({ type: 'setBusiness', patch })
+  const pickTrade = (t: TradeConfig, business: Partial<BusinessInfo>) => {
+    dispatch({ type: 'pickTrade', trade: t })
+    if (Object.values(business).some(v => v)) dispatch({ type: 'setBusiness', patch: business })
   }
 
-  const brandColor = site?.brandColor
-  const cssVars = useMemo<CSSProperties | undefined>(() => {
-    if (!trade || !brandColor) return undefined
-    return siteTheme(brandColor, trade.colorScheme.navy)
-  }, [trade, brandColor])
+  const status = draft.enabled ? <SaveStatusChip status={draft.status} onRetry={draft.retry} /> : null
+  if (step === 'basics' || !site || !trade) {
+    return (
+      <BasicsStep
+        // A saved draft that failed to reopen is said here, with Retry, before anything new is typed.
+        status={draft.status.state === 'error' ? status : null}
+        trade={trade}
+        site={site}
+        onPickTrade={pickTrade}
+        onBusinessChange={onBusinessChange}
+        onNext={() => go('look')}
+      />
+    )
+  }
+
+  const buildRight = narrow
+    ? <button type="button" className="bt-fold" aria-pressed={sheetFolded} onClick={() => setSheetFolded(f => !f)}>Preview</button>
+    : (
+      <div role="group" aria-label="Preview size" className="bt-size">
+        <button type="button" aria-pressed={!mobile} onClick={() => setMobile(false)}>Desktop</button>
+        <button type="button" aria-pressed={mobile} onClick={() => setMobile(true)}>Phone</button>
+      </div>
+    )
 
   return (
-    <div className="mm-root" style={cssVars}>
-      <BuilderTopBar
-        step={stepNumber(step)}
-        onGoStep={handleGoStep}
-        trade={trade}
-        mobile={mobile}
-        setMobile={setMobile}
-        status={draft.enabled && (site || draft.status.state === 'error') ? <SaveStatusChip status={draft.status} onRetry={draft.retry} /> : null}
-      />
+    <div className={`bt-root sb-ui bt-root--${step}`}>
+      <TopBar step={step} onGoStep={go} right={<>{status}{step === 'build' && buildRight}</>} />
 
-      <div ref={stageRef} className={`mm-stage${mobile && step === 'build' ? ' prev-mobile' : ''}`}>
-        <div className={`mm-wrap${step === 'build' ? ' wide' : ''}`}>
+      {step === 'look' && preview && (
+        <LookStep
+          site={site}
+          trade={trade}
+          content={preview}
+          onBrandColor={color => dispatch({ type: 'setBrandColor', color })}
+          onTheme={theme => dispatch({ type: 'setTheme', theme })}
+          onShuffle={() => dispatch({ type: 'rerollStyle', seed: randomSeed() })}
+          onToggleReviews={() => dispatch({ type: 'toggleExtra', extra: 'reviews' })}
+          onBack={() => go('basics')}
+          onNext={() => go('build')}
+          sample={import.meta.env.DEV ? { on: sample, set: setSample } : undefined}
+        />
+      )}
 
-          {/* ---- STEP 1: Pick trade ---- */}
-          {step === 'pick-trade' && (
-            <>
-              <div>
-                <div className="mm-eyebrow">STEP <b>01</b> / 04 · PICK YOUR TRADE</div>
-                <h1 className="mm-title">What do you do?</h1>
-                <p className="mm-sub">
-                  Pick your trade and we'll load a site built for it — the right services, the right words, the right look.
-                </p>
-              </div>
+      {step === 'build' && (
+        <main className={`bt-build${mobile && !narrow ? ' prev-mobile' : ''}${sheetFolded ? ' sheet-folded' : ''}`}>
+          <BuilderCanvas
+            key={focusSection ?? 'start'}
+            trade={trade}
+            site={site}
+            content={preview ?? undefined}
+            mobile={mobile}
+            initialSection={focusSection}
+            onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}
+            onContentChange={patch => dispatch({ type: 'setContent', patch })}
+            onBusinessChange={onBusinessChange}
+            onDone={() => { void verify().then(checked => checked && go('finish')) }}
+            onChangeLook={() => go('look')}
+            sheetFolded={sheetFolded}
+          />
+        </main>
+      )}
 
-              <div className={`mm-trades${trade ? ' has-sel' : ''}`}>
-                {trades.map(t => (
-                  <TradeCard
-                    key={t.id}
-                    trade={t}
-                    selected={trade?.id === t.id}
-                    onClick={() => dispatch({ type: 'pickTrade', trade: t })}
-                  />
-                ))}
-              </div>
-
-              <div className="mm-dock">
-                <span className="mm-dock-hint">
-                  {trade
-                    ? <>Loaded: <b style={{ color: 'var(--ink)' }}>{trade.name}</b> content &amp; theme</>
-                    : 'Tap a trade to continue'}
-                </span>
-                <button
-                  type="button"
-                  className="mm-cta"
-                  disabled={!trade}
-                  onClick={() => setStep('setup')}
-                >
-                  {trade ? `Continue as ${trade.emoji} ${trade.name}` : 'Pick a trade'}
-                  <Icon.Arrow size={18} />
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ---- STEP 2: Setup form ---- */}
-          {step === 'setup' && trade && site && (
-            <SetupForm
-              trade={trade}
-              site={site}
-              onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
-              onBrandColorChange={color => dispatch({ type: 'setBrandColor', color })}
-              onToggleExtra={extra => dispatch({ type: 'toggleExtra', extra })}
-              onSubmit={() => setStep('build')}
-              onBack={() => setStep('pick-trade')}
-            />
-          )}
-
-          {/* ---- STEP 3: Builder ---- */}
-          {step === 'build' && trade && site && (
-            <>
-              <div className="mm-build-top">
-                <div>
-                  <div className="mm-eyebrow">STEP <b>03</b> / 04 · BUILD</div>
-                  <h1 className="mm-title">Build it, section by section.</h1>
-                  <p className="mm-sub" style={{ maxWidth: '46ch' }}>
-                    Pick a layout and add your details as you go. Anything you skip stays hidden.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={reset}
-                  style={{
-                    background: 'none',
-                    border: '1.5px solid var(--line)',
-                    borderRadius: '10px',
-                    padding: '8px 14px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: 'var(--muted)',
-                    cursor: 'pointer',
-                    alignSelf: 'flex-end',
-                  }}
-                >
-                  ← Start over
-                </button>
-              </div>
-
-              <BuilderCanvas
-                key={focusSection ?? 'start'}
-                trade={trade}
-                site={site}
-                content={preview ?? undefined}
-                mobile={mobile}
-                initialSection={focusSection}
-                onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}
-                onContentChange={patch => dispatch({ type: 'setContent', patch })}
-                onDone={() => verifyThen(() => setStep('finish'))}
-                siteStyle={{
-                  theme: site.style.theme,
-                  tuned: site.style.resolved.palette.tuned,
-                  onTheme: theme => dispatch({ type: 'setTheme', theme }),
-                  onReroll: () => dispatch({ type: 'rerollStyle', seed: randomSeed() }),
-                  sample: import.meta.env.DEV ? { on: sample, set: setSample } : undefined,
-                }}
-              />
-            </>
-          )}
-
-          {/* ---- STEP 4: Finish ---- */}
-          {step === 'finish' && trade && site && (
-            <FinishStep
-              trade={trade}
-              site={site}
-              onBusinessChange={patch => dispatch({ type: 'setBusiness', patch })}
-              onEditSection={section => { setFocusSection(section); setStep('build') }}
-              onPublish={() => verifyThen(() => setDone(true))}
-              onBack={() => setStep('build')}
-              share={draft.enabled ? <ShareCard draft={draft} /> : null}
-            />
-          )}
-
-        </div>
-      </div>
+      {step === 'finish' && (
+        <FinishStep
+          trade={trade}
+          site={site}
+          onBusinessChange={onBusinessChange}
+          onEditSection={section => { setFocusSection(section); go('build') }}
+          onEditStep={go}
+          draft={draft.enabled ? draft : null}
+          adminPublish={ADMIN_PUBLISH}
+          domain={DOMAIN}
+          verify={verify}
+          onReset={reset}
+          share={draft.enabled ? <ShareCard draft={draft} /> : null}
+        />
+      )}
 
       <FitNotice notice={editing ? fit.notice : null} onDismiss={dismissFit} />
       {verifying && (
@@ -243,92 +185,6 @@ export default function App() {
           <span className="mm-verify-spin" aria-hidden="true" /> Checking every section on a phone and a desktop screen…
         </div>
       )}
-
-      {/* Done overlay — only shown after all sections chosen; no StickyCallBar overlap risk */}
-      {done && trade && site && (
-        <DoneOverlay
-          trade={trade}
-          site={site}
-          draft={ADMIN_PUBLISH ? draft : null}
-          onBack={() => setDone(false)}
-          onReset={reset}
-        />
-      )}
-    </div>
-  )
-}
-
-function DoneOverlay({
-  trade,
-  site,
-  draft,
-  onBack,
-  onReset,
-}: {
-  trade: TradeConfig
-  site: Site
-  /** Set when this build can publish (admin key, Phase 1). */
-  draft: Draft | null
-  onBack: () => void
-  onReset: () => void
-}) {
-  const displayName = site.business.name.trim() || `${trade.name} Co.`
-  const sections = siteSections(trade, site)
-  const firstBtnRef = useRef<HTMLButtonElement>(null)
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const first = dialogRef.current?.querySelector<HTMLElement>('.mm-publish input') ?? firstBtnRef.current
-    first?.focus()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onBack() }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onBack])
-
-  return (
-    <div
-      ref={dialogRef}
-      className="mm-done show"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="done-heading"
-      style={{ '--accent': site.brandColor } as CSSProperties}
-    >
-      <div className="mm-done-inner">
-        <div className="mm-done-badge">
-          <Icon.Check size={14} /> Site assembled
-        </div>
-        <h1 id="done-heading">
-          {displayName} is <em>ready to go live.</em>
-        </h1>
-        <p>
-          {sections.length} sections, picked by you, themed and filled with real{' '}
-          {trade.name.toLowerCase()} content. Publish now and share the link — or keep tweaking.
-        </p>
-        <div className="mm-done-recap">
-          {sections.map(s => (
-            <div key={s.type} className="mm-done-recap-item">
-              <span className="chk"><Icon.Check size={13} /></span>
-              {SECTION_LABELS[s.type]}
-            </div>
-          ))}
-        </div>
-        {draft && API_BASE && <PublishPanel draft={draft} site={site} trade={trade} domain={siteDomain(API_BASE)} />}
-        <div className="mm-done-actions">
-          {!draft && (
-            <button
-              ref={firstBtnRef}
-              type="button"
-              className="mm-done-go"
-              onClick={() => alert('Publishing coming soon!')}
-            >
-              <Icon.Arrow size={18} /> Publish my site
-            </button>
-          )}
-          <button type="button" className="mm-done-back" onClick={onBack}>Keep editing</button>
-          <button type="button" className="mm-done-back" onClick={onReset}>Start over</button>
-        </div>
-      </div>
     </div>
   )
 }

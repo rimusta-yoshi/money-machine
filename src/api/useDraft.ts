@@ -89,10 +89,13 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded }: Options)
     if (k) void reopen(k, !!fromLink)
   }, [reopen])
 
-  /** Saves now (waiting for any save already running). Resolves to the saved record, or null if there's nothing to save. */
-  const saveNow = useCallback((): Promise<Site | null> => {
+  /**
+   * Saves now (waiting for any save already running). Resolves to the saved record, or null if
+   * there's nothing to save. `latest` is a record newer than the last render (just checked before publishing).
+   */
+  const saveNow = useCallback((latest?: Site): Promise<Site | null> => {
     const run = async (): Promise<Site | null> => {
-      const current = siteRef.current
+      const current = latest ?? siteRef.current
       if (!api || !current || reopening.current) return null
       try {
         let k = keyRef.current
@@ -138,8 +141,8 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded }: Options)
     return api.createPreview(keyRef.current)
   }, [api, saveNow])
 
-  const publish = useCallback(async (slug: string, admin: string) => {
-    await saveNow()
+  const publish = useCallback(async (slug: string, admin: string, latest?: Site) => {
+    await saveNow(latest)
     if (!api || !keyRef.current) throw new ApiError(0, 'not_saved', 'Save your site first.')
     const res = await api.publish(keyRef.current, slug, admin)
     setPublished(res)

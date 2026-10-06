@@ -3,8 +3,11 @@
 @font-face{font-family:'Inter';font-style:normal;font-weight:500;font-display:swap;src:url('./inter-500.woff2') format('woff2')}
 @font-face{font-family:'Inter';font-style:normal;font-weight:600;font-display:swap;src:url('./inter-600.woff2') format('woff2')}
 @font-face{font-family:'Inter';font-style:normal;font-weight:700;font-display:swap;src:url('./inter-700.woff2') format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url('./jetbrains-mono-400.woff2') format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url('./jetbrains-mono-500.woff2') format('woff2')}
+@font-face{font-family:'Unbounded';font-style:normal;font-weight:800;font-display:swap;src:url('./unbounded-800.woff2') format('woff2')}
+@font-face{font-family:'Unbounded';font-style:normal;font-weight:900;font-display:swap;src:url('./unbounded-900.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url('./dm-sans-400.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:500;font-display:swap;src:url('./dm-sans-500.woff2') format('woff2')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:700;font-display:swap;src:url('./dm-sans-700.woff2') format('woff2')}
 @font-face{font-family:'Anton';font-style:normal;font-weight:400;font-display:swap;src:url('./anton-400.woff2') format('woff2')}
 @font-face{font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;src:url('./barlow-400.woff2') format('woff2')}
 @font-face{font-family:'Barlow';font-style:normal;font-weight:500;font-display:swap;src:url('./barlow-500.woff2') format('woff2')}

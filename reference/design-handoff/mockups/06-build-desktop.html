@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Builder: build</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=Schibsted+Grotesk:wght@700&amp;family=Instrument+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid #2F64E0;outline-offset:2px}
+.sb-swap{animation:sbSwap .3s ease both}
+@keyframes sbSwap{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.sb-swap{animation:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; color: #1C1A24; font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 24px; border-bottom: 1px solid #ECECF0">
+<a href="#" aria-label="siteblocks home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1C1A24"><span style="display: grid; grid-template-columns: repeat(2, 11px); grid-template-rows: repeat(2, 11px); gap: 2px" aria-hidden="true"><span style="border-radius: 3px; background: #FF5A36"></span><span style="border-radius: 3px; background: #FFCE3A"></span><span style="border-radius: 3px; background: #2F64E0"></span><span style="border-radius: 3px; background: #1C1A24"></span></span><span style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 17px; letter-spacing: -0.03em">siteblocks</span></a>
+<ol aria-label="Steps" style="margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; font-weight: 700; font-size: 14px">
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #2DBE8A"></span>Basics</li>
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #2DBE8A"></span>Your look</li>
+<li aria-current="step" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #1C1A24; color: #FFFFFF"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #2F64E0"></span>Build</li>
+<li style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; color: #57526A"><span aria-hidden="true" style="width: 18px; height: 18px; border-radius: 5px; background: #E2E2E7"></span>Go live</li>
+</ol>
+<div role="group" aria-label="Preview size" style="display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #F2F2F4"><button type="button" aria-pressed="true" style="padding: 8px 14px; border: 0; border-radius: 9px; background: #FFFFFF; font-weight: 700; font-size: 14px">Desktop</button><button type="button" aria-pressed="false" style="padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; font-weight: 700; font-size: 14px; color: #57526A">Phone</button></div>
+</header>
+
+<main style="flex-grow: 1; display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; max-width: 1440px; width: 100%; margin: 0 auto; box-sizing: border-box">
+<section aria-label="Preview of your site" style="flex: 3 1 560px; min-width: 0; border-radius: 28px; background: #F2F2F4; padding: clamp(14px, 2.4vw, 28px); display: flex; flex-direction: column">
+<div style="border-radius: 14px; overflow: hidden; background: #FFFFFF; box-shadow: 0 20px 50px rgba(28,26,36,0.10); display: flex; flex-direction: column">
+<div style="position: relative; outline: 3px solid #1C1A24; outline-offset: -3px; border-radius: 14px 14px 0 0">
+<span style="position: absolute; left: 12px; top: 12px; z-index: 1; padding: 5px 10px; border-radius: 8px; background: #1C1A24; color: #FFFFFF; font-weight: 700; font-size: 12px">Hero · editing</span>
+<div class="sb-swap" style="{{heroWrap}}">
+<div style="{{heroText}}">
+<div style="font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 13px; color: #1F4FD8">Plumber · Harrogate</div>
+<div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: {{h1Size}}; line-height: 1.02; letter-spacing: -0.035em; color: #0F1720">Plumbing and heating, done properly.</div>
+<div style="font-family: 'Instrument Sans', sans-serif; font-size: 15px; line-height: 1.5; color: #3D4652">A fixed quote before we start, and we tidy up after.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><span style="padding: 11px 18px; border-radius: 999px; background: #1F4FD8; color: #FFFFFF; font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 14px">Call 01632 960 123</span><span style="padding: 10px 16px; border-radius: 999px; border: 1.5px solid #D5DAE1; font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 14px; color: #0F1720">Get a free quote</span></div>
+</div>
+<div style="{{heroPhoto}}"></div>
+</div>
+</div>
+<div style="padding: 18px 24px; display: flex; justify-content: space-around; gap: 12px; border-top: 1px solid #EEF0F3; font-family: 'Instrument Sans', sans-serif; font-size: 13px; color: #3D4652"><span>Gas Safe registered</span><span>Fixed-price quotes</span><span>12-month guarantee</span></div>
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 14px; opacity: 0.45">
+<div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: 22px; color: #0F1720">What we can help with</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px"><div style="height: 70px; border-radius: 12px; border: 1px solid #E3E7EC"></div><div style="height: 70px; border-radius: 12px; border: 1px solid #E3E7EC"></div><div style="height: 70px; border-radius: 12px; border: 1px solid #E3E7EC"></div><div style="height: 70px; border-radius: 12px; border: 1px solid #E3E7EC"></div></div>
+</div>
+</div>
+</section>
+
+<aside aria-label="Build controls" style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; color: #57526A"><span>Section 1 of 8</span><a href="#" style="font-weight: 700">Change look</a></div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px"><span style="height: 10px; border-radius: 3px; background: #2F64E0"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 10px; border-radius: 3px; background: #E2E2E7"></span></div>
+</div>
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 34px; letter-spacing: -0.03em">Hero</h1>
+
+<div style="border-radius: 22px; background: #F2F2F4; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+<button type="button" aria-label="Previous layout" onClick="{{prev}}" style="width: 52px; height: 52px; border: 2px solid #1C1A24; border-radius: 14px; background: #FFFFFF; font-size: 20px; font-weight: 700">‹</button>
+<div aria-live="polite" style="display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center"><b style="font-size: 17px">{{layoutName}}</b><span style="font-size: 14px; color: #57526A">Layout {{num}} of 6</span></div>
+<button type="button" aria-label="Next layout" onClick="{{next}}" style="width: 52px; height: 52px; border: 2px solid #1C1A24; border-radius: 14px; background: #FFFFFF; font-size: 20px; font-weight: 700">›</button>
+</div>
+<div aria-hidden="true" style="display: flex; justify-content: center; gap: 5px"><sc-for list="{{dots}}" as="d" hint-placeholder-count="6"><span style="{{d}}"></span></sc-for></div>
+<button type="button" style="padding: 12px; border: 0; border-radius: 12px; background: #FFFFFF; font-weight: 700; font-size: 15px">Show me different ones</button>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-weight: 700; font-size: 15px">Your content</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 14px">Headline<input type="text" value="Plumbing and heating, done properly." style="height: 50px; border-radius: 12px; border: 2px solid #D6D6DC; padding: 0 14px; font-size: 16px; font-weight: 500; color: #1C1A24"></label>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; border: 2px dashed #D6D6DC">
+<div aria-hidden="true" style="width: 52px; height: 52px; border-radius: 12px; background: #ECECF0"></div>
+<div style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><b style="font-size: 15px">Main photo</b><span style="font-size: 13px; color: #57526A">Showing an example until you add yours</span></div>
+<button type="button" style="padding: 10px 14px; border: 2px solid #1C1A24; border-radius: 12px; background: #FFFFFF; font-weight: 700; font-size: 14px">Add photo</button>
+</div>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: auto">
+<button type="button" style="padding: 14px 4px; border: 0; background: transparent; font-weight: 700; font-size: 15px">← Your look</button>
+<button type="button" style="padding: 18px 24px; border: 0; border-radius: 16px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 15px; box-shadow: 0 6px 0 #1C1A24">Next: trust bar</button>
+</div>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0 }; }
+renderVals() {
+const i = this.state.i;
+const names = ['Split with photo', 'Floating card', 'Big headline', 'Photo on the left', 'Centred', 'Photo behind'];
+const v = i % 3;
+const wraps = [
+'display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; padding: 40px 28px 28px; align-items: center',
+'display: flex; flex-direction: column; gap: 20px; padding: 44px 28px 28px',
+'display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 24px; padding: 40px 28px 28px; align-items: center'
+];
+const photos = [
+'height: 230px; border-radius: 16px; background: #E8EDF3',
+'height: 160px; border-radius: 16px; background: #E8EDF3',
+'height: 230px; border-radius: 16px; background: #E8EDF3; order: -1'
+];
+const dots = [0, 1, 2, 3, 4, 5].map((k) => 'display: block; height: 8px; border-radius: 999px; width: ' + (k === i ? '22px' : '8px') + '; background: ' + (k === i ? '#1C1A24' : '#CFCFD6'));
+return {
+layoutName: names[i], num: i + 1, dots,
+heroWrap: wraps[v],
+heroText: 'display: flex; flex-direction: column; gap: 14px' + (v === 1 ? '; max-width: 620px' : ''),
+heroPhoto: photos[v],
+h1Size: v === 1 ? '46px' : '36px',
+prev: () => this.setState({ i: (i + 5) % 6 }),
+next: () => this.setState({ i: (i + 1) % 6 })
+};
+}
+}
+</script>
+</body>
+</html>
