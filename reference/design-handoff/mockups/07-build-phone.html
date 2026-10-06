@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Builder on a phone: build</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=Schibsted+Grotesk:wght@700&amp;family=Instrument+Sans:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+button{font:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid #2F64E0;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F2F2F4; color: #1C1A24; font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; overflow: hidden">
+<header style="display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: #FFFFFF">
+<span style="display: grid; grid-template-columns: repeat(2, 10px); grid-template-rows: repeat(2, 10px); gap: 2px" aria-hidden="true"><span style="border-radius: 3px; background: #FF5A36"></span><span style="border-radius: 3px; background: #FFCE3A"></span><span style="border-radius: 3px; background: #2F64E0"></span><span style="border-radius: 3px; background: #1C1A24"></span></span>
+<span style="font-weight: 700; font-size: 14px">Build · section 1 of 8</span>
+<button type="button" style="padding: 8px 12px; border: 0; border-radius: 10px; background: #F2F2F4; font-weight: 700; font-size: 13px">Preview</button>
+</header>
+
+<div aria-label="Preview of your site" style="flex: 1 1 auto; padding: 12px; min-height: 0">
+<div style="height: 100%; border-radius: 16px; background: #FFFFFF; overflow: hidden; outline: 3px solid #1C1A24; outline-offset: -3px; display: flex; flex-direction: column; gap: 10px; padding: 18px 16px; box-sizing: border-box">
+<div style="font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 11px; color: #1F4FD8">Plumber · Harrogate</div>
+<div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: {{h1}}; line-height: 1.02; letter-spacing: -0.035em; color: #0F1720">Plumbing and heating, done properly.</div>
+<div style="{{photo}}"></div>
+<div style="display: flex; gap: 6px"><span style="padding: 9px 14px; border-radius: 999px; background: #1F4FD8; color: #FFFFFF; font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 12px">Call 01632 960 123</span><span style="padding: 8px 12px; border-radius: 999px; border: 1.5px solid #D5DAE1; font-family: 'Instrument Sans', sans-serif; font-weight: 600; font-size: 12px; color: #0F1720">Free quote</span></div>
+</div>
+</div>
+
+<section aria-label="Build controls" style="background: #FFFFFF; border-radius: 26px 26px 0 0; padding: 16px 16px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 -8px 30px rgba(28,26,36,0.08)">
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px"><span style="height: 8px; border-radius: 3px; background: #2F64E0"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span><span style="height: 8px; border-radius: 3px; background: #E2E2E7"></span></div>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<button type="button" aria-label="Previous layout" onClick="{{prev}}" style="width: 50px; height: 50px; border: 2px solid #1C1A24; border-radius: 14px; background: #FFFFFF; font-size: 20px; font-weight: 700">‹</button>
+<div aria-live="polite" style="display: flex; flex-direction: column; align-items: center; text-align: center"><b style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: -0.02em">Hero</b><span style="font-size: 13px; color: #57526A">{{layoutName}} · {{num}} of 6 · swipe to change</span></div>
+<button type="button" aria-label="Next layout" onClick="{{next}}" style="width: 50px; height: 50px; border: 2px solid #1C1A24; border-radius: 14px; background: #FFFFFF; font-size: 20px; font-weight: 700">›</button>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" style="flex: 1 1 0; min-height: 48px; border: 0; border-radius: 12px; background: #F2F2F4; font-weight: 700; font-size: 14px">Different ones</button>
+<button type="button" style="flex: 1 1 0; min-height: 48px; border: 2px solid #1C1A24; border-radius: 12px; background: #FFFFFF; font-weight: 700; font-size: 14px">Add photo</button>
+</div>
+<button type="button" style="min-height: 58px; border: 0; border-radius: 16px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 16px; box-shadow: 0 6px 0 #1C1A24">Next: trust bar</button>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0 }; }
+renderVals() {
+const i = this.state.i;
+const names = ['Split with photo', 'Floating card', 'Big headline', 'Photo on the left', 'Centred', 'Photo behind'];
+const v = i % 3;
+return {
+layoutName: names[i], num: i + 1,
+h1: v === 2 ? '40px' : '30px',
+photo: v === 2 ? 'height: 60px; border-radius: 12px; background: #E8EDF3' : 'flex-grow: 1; min-height: 80px; border-radius: 12px; background: #E8EDF3' + (v === 1 ? '; order: -1' : ''),
+prev: () => this.setState({ i: (i + 5) % 6 }),
+next: () => this.setState({ i: (i + 1) % 6 })
+};
+}
+}
+</script>
+</body>
+</html>

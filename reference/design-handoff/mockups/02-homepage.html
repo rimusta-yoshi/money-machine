@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>siteblocks homepage</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;family=Anton&amp;family=Bricolage+Grotesque:opsz,wght@12..96,800&amp;family=Fraunces:opsz,wght@9..144,400&amp;family=Schibsted+Grotesk:wght@700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+a:focus-visible,summary:focus-visible{outline:3px solid #2F64E0;outline-offset:3px}
+summary{cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+.bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.bento{grid-template-columns:repeat(2,minmax(0,1fr))}.bento>*{grid-column:1/-1 !important;grid-row:auto !important}.bento>.half{grid-column:span 1 !important}}
+.sb-tile{transition:transform .25s ease}
+.sb-tile:hover{transform:translateY(-4px)}
+.sb-btn{transition:transform .12s ease,box-shadow .12s ease}
+.sb-btn:hover{transform:translateY(-2px);box-shadow:0 9px 0 #000}
+.sb-btn:active{transform:translateY(5px);box-shadow:0 2px 0 #000}
+.sb-chip{transition:background .15s ease,color .15s ease}
+.sb-chip:hover{background:#1C1A24;color:#FFFFFF}
+.sb-rise{animation:sbRise .7s cubic-bezier(.2,.8,.2,1) both}
+.d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.25s}.d4{animation-delay:.35s}.d5{animation-delay:.45s}
+.sb-drop{animation:sbDrop .55s cubic-bezier(.3,1.5,.5,1) both}
+.b1{animation-delay:.1s}.b2{animation-delay:.25s}.b3{animation-delay:.4s}.b4{animation-delay:.55s}
+.sb-cycle{position:relative}
+.sb-cycle>div{position:absolute;inset:0;opacity:0;animation:sbCycle 9s infinite}
+.sb-cycle>div:nth-child(2){animation-delay:3s}.sb-cycle>div:nth-child(3){animation-delay:6s}
+.sb-dots>span{animation:sbDot 9s infinite}
+.sb-dots>span:nth-child(2){animation-delay:3s}.sb-dots>span:nth-child(3){animation-delay:6s}
+.sb-plus{transition:transform .2s ease}
+details[open] .sb-plus{transform:rotate(45deg)}
+@keyframes sbRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+@keyframes sbDrop{from{opacity:0;transform:translateY(-28px)}to{opacity:1;transform:none}}
+@keyframes sbCycle{0%{opacity:0;transform:translateX(24px)}5%,30%{opacity:1;transform:none}36%,100%{opacity:0;transform:translateX(-24px)}}
+@keyframes sbDot{0%,33%{background:#1C1A24;width:22px}34%,100%{background:#CFCFD6;width:8px}}
+@media (prefers-reduced-motion: reduce){.sb-rise,.sb-drop{animation:none}.sb-cycle>div{animation:none}.sb-cycle>div:first-child{opacity:1}.sb-dots>span{animation:none}.sb-tile:hover,.sb-btn:hover,.sb-btn:active{transform:none}}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; color: #1C1A24; font-family: 'DM Sans', sans-serif; padding: 16px 0 24px">
+<div style="max-width: 1280px; margin: 0 auto; padding: 0 16px; display: flex; flex-direction: column; gap: 12px">
+
+<header style="border-radius: 20px; background: #F2F2F4; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px">
+<a href="#" aria-label="siteblocks home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1C1A24"><span style="display: grid; grid-template-columns: repeat(2, 14px); grid-template-rows: repeat(2, 14px); gap: 2px" aria-hidden="true"><span class="sb-drop b1" style="border-radius: 4px; background: #FF5A36"></span><span class="sb-drop b2" style="border-radius: 4px; background: #FFCE3A"></span><span class="sb-drop b3" style="border-radius: 4px; background: #2F64E0"></span><span class="sb-drop b4" style="border-radius: 4px; background: #1C1A24"></span></span><span style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: -0.03em">siteblocks</span></a>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; font-weight: 700; font-size: 16px">
+<a href="#examples" style="color: #1C1A24; text-decoration: none">Examples</a>
+<a href="#how" style="color: #1C1A24; text-decoration: none">How it works</a>
+<a href="#pricing" style="color: #1C1A24; text-decoration: none">Pricing</a>
+<a href="#faq" style="color: #1C1A24; text-decoration: none">FAQ</a>
+<a href="Start.dc.html" style="padding: 12px 18px; border-radius: 14px; background: #1C1A24; color: #FFFFFF; text-decoration: none">Start building</a>
+</nav>
+</header>
+
+<main style="display: flex; flex-direction: column; gap: 12px">
+
+<section aria-labelledby="hero-h" class="bento" style="grid-auto-rows: minmax(150px, auto)">
+<div class="sb-rise d1" style="grid-column: span 7; grid-row: span 2; border-radius: 32px; background: #1C1A24; color: #FFFFFF; padding: clamp(28px, 4.5vw, 52px); display: flex; flex-direction: column; gap: 22px; justify-content: space-between; box-sizing: border-box">
+<div style="font-weight: 700; font-size: 16px; color: #FFCE3A">Websites for plumbers, sparkies, roofers, gardeners and more</div>
+<h1 id="hero-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(42px, 5.6vw, 78px); line-height: 1; letter-spacing: -0.035em">Stack a few blocks. Get a website.</h1>
+<p style="margin: 0; font-size: clamp(18px, 1.5vw, 20px); line-height: 1.55; max-width: 520px; color: #E4E0EC">Pick your trade, pick a look for each section, and you're live in about 15 minutes. £99 once. No monthly fees, ever.</p>
+<div style="display: flex; flex-wrap: wrap; gap: 14px 18px; align-items: center">
+<a href="Start.dc.html" class="sb-btn" style="padding: 22px 32px; border-radius: 20px; background: #FF5A36; color: #1C1A24; text-decoration: none; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 18px; box-shadow: 0 7px 0 #000000">Build my site free</a>
+<span style="font-size: 16px; color: #E4E0EC">Free to build. Only pay when you're happy.</span>
+</div>
+</div>
+<div class="sb-rise d2" style="grid-column: span 5; grid-row: span 2; border-radius: 32px; background: #F2F2F4; padding: 26px; display: flex; flex-direction: column; gap: 16px; align-items: center; box-sizing: border-box">
+<div style="align-self: stretch; display: flex; justify-content: space-between; align-items: center; gap: 10px"><span style="font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 17px">Flick through designs</span><span class="sb-dots" aria-hidden="true" style="display: flex; gap: 5px; align-items: center"><span style="display: block; height: 8px; width: 8px; border-radius: 999px; background: #CFCFD6"></span><span style="display: block; height: 8px; width: 8px; border-radius: 999px; background: #CFCFD6"></span><span style="display: block; height: 8px; width: 8px; border-radius: 999px; background: #CFCFD6"></span></span></div>
+<div aria-hidden="true" style="width: 100%; max-width: 300px; flex-grow: 1; min-height: 300px; border: 8px solid #1C1A24; border-radius: 34px; overflow: hidden; background: #FFFFFF; box-sizing: border-box">
+<div class="sb-cycle" style="height: 100%; min-height: 284px">
+<div style="background: #121212; color: #F3F0E8; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #FFD400">Plumber · Harrogate</div><div style="font-family: 'Anton', sans-serif; font-size: 34px; line-height: 0.95; text-transform: uppercase">Leaks fixed. <span style="color: #FFD400">No mess.</span></div><div style="flex-grow: 1; min-height: 90px; background: #2A2A27"></div><div style="padding: 10px; background: #FFD400; color: #121212; text-align: center; font-weight: 800; font-size: 13px">Call 01632 960 123</div></div>
+<div style="background: #FFFFFF; color: #0F1720; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 11px; font-weight: 700; color: #1F4FD8">Hartley Plumbing</div><div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: 28px; line-height: 1.05; letter-spacing: -0.03em">Plumbing, done properly.</div><div style="flex-grow: 1; min-height: 90px; border-radius: 14px; background: #E8EDF3"></div><div style="padding: 10px; border-radius: 999px; background: #1F4FD8; color: #FFFFFF; text-align: center; font-weight: 600; font-size: 13px">Get a free quote</div></div>
+<div style="background: #FFF7EF; color: #2B2233; padding: 20px 16px; display: flex; flex-direction: column; gap: 10px"><div style="align-self: flex-start; padding: 4px 9px; border-radius: 999px; background: #FFE1D2; font-size: 10px; font-weight: 700; color: #7A2E14">Your local plumbers</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 28px; line-height: 1">Hi, we're Dave and Tom.</div><div style="flex-grow: 1; min-height: 90px; border-radius: 26px; background: #FFD9C7"></div><div style="padding: 10px; border-radius: 999px; background: #0B6E6D; color: #FFFFFF; text-align: center; font-weight: 700; font-size: 13px">Give us a shout</div></div>
+</div>
+</div>
+<div style="font-size: 15px; color: #4E4A59; text-align: center">Same plumber, three looks. You keep the one you like.</div>
+</div>
+<div class="sb-rise d3 sb-tile half" style="grid-column: span 3; border-radius: 32px; background: #FFCE3A; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px"><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(34px, 3.4vw, 48px); letter-spacing: -0.03em">15 min</div><div style="font-weight: 700; font-size: 16px">from nothing to live</div></div>
+<div class="sb-rise d4 sb-tile half" style="grid-column: span 3; border-radius: 32px; background: #2F64E0; color: #FFFFFF; padding: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px"><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(34px, 3.4vw, 48px); letter-spacing: -0.03em">£0/mo</div><div style="font-weight: 700; font-size: 16px">£99 once and it's yours</div></div>
+<div class="sb-rise d5" style="grid-column: span 6; border-radius: 32px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 14px; justify-content: center">
+<div style="font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 18px">What's your trade?</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<a href="Start.dc.html" class="sb-chip" style="padding: 11px 15px; border-radius: 12px; border: 2px solid #1C1A24; color: #1C1A24; text-decoration: none; font-weight: 700; font-size: 15px">Plumber</a>
+<a href="Start.dc.html" class="sb-chip" style="padding: 11px 15px; border-radius: 12px; border: 2px solid #1C1A24; color: #1C1A24; text-decoration: none; font-weight: 700; font-size: 15px">Electrician</a>
+<a href="Start.dc.html" class="sb-chip" style="padding: 11px 15px; border-radius: 12px; border: 2px solid #1C1A24; color: #1C1A24; text-decoration: none; font-weight: 700; font-size: 15px">Roofer</a>
+<a href="Start.dc.html" class="sb-chip" style="padding: 11px 15px; border-radius: 12px; border: 2px solid #1C1A24; color: #1C1A24; text-decoration: none; font-weight: 700; font-size: 15px">Painter</a>
+<a href="Start.dc.html" class="sb-chip" style="padding: 11px 15px; border-radius: 12px; border: 2px solid #1C1A24; color: #1C1A24; text-decoration: none; font-weight: 700; font-size: 15px">Landscaper</a>
+</div>
+</div>
+</section>
+
+<section id="examples" aria-labelledby="ex-h" class="bento" style="grid-auto-rows: minmax(140px, auto)">
+<div style="grid-column: span 12; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 28px 8px 8px">
+<h2 id="ex-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(30px, 3.6vw, 48px); letter-spacing: -0.03em">Every site looks different</h2>
+<p style="margin: 0; max-width: 420px; font-size: 17px; line-height: 1.55; color: #4E4A59">Four styles, thousands of layouts. These example sites were all made with the builder.</p>
+</div>
+<div class="sb-tile" style="grid-column: span 5; grid-row: span 2; border-radius: 28px; background: #121212; color: #F3F0E8; padding: 26px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box"><div style="font-size: 12px; font-weight: 700; color: #FFD400; text-transform: uppercase; letter-spacing: 0.1em">Roofer · Workwear</div><div style="font-family: 'Anton', sans-serif; font-size: clamp(40px, 4vw, 56px); line-height: 0.95; text-transform: uppercase">Roofs fixed. <span style="color: #FFD400">Fast.</span></div><div style="flex-grow: 1; min-height: 110px; background: #2A2A27"></div><div style="padding: 12px; background: #FFD400; color: #121212; font-weight: 700; font-size: 15px; text-align: center">Call now</div></div>
+<div class="sb-tile" style="grid-column: span 7; border-radius: 28px; background: #FFFFFF; border: 2px solid #E3E7EC; padding: 26px; display: flex; gap: 20px; align-items: center; box-sizing: border-box"><div style="flex: 1 1 50%; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 12px; font-weight: 700; color: #1F4FD8">Plumber · Clean Pro</div><div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: 30px; line-height: 1.05; letter-spacing: -0.03em; color: #0F1720">Plumbing, done properly.</div><div style="align-self: flex-start; padding: 10px 16px; border-radius: 999px; background: #1F4FD8; color: #FFFFFF; font-weight: 600; font-size: 14px">Get a free quote</div></div><div style="flex: 1 1 50%; align-self: stretch; min-height: 120px; border-radius: 16px; background: #E8EDF3"></div></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 28px; background: #FFF7EF; padding: 24px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box"><div style="align-self: flex-start; padding: 4px 10px; border-radius: 999px; background: #FFE1D2; font-size: 12px; font-weight: 700; color: #7A2E14">Landscaper · Friendly</div><div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 26px; line-height: 1; color: #2B2233">Hi, we're Greenleaf. Lovely lawns.</div><div style="align-self: flex-start; padding: 9px 14px; border-radius: 999px; background: #0B6E6D; color: #FFFFFF; font-weight: 700; font-size: 13px">Say hello</div></div>
+<div class="sb-tile" style="grid-column: span 3; border-radius: 28px; background: #F4EEE1; padding: 24px; display: flex; flex-direction: column; gap: 10px; justify-content: center; text-align: center; box-sizing: border-box"><div style="font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #1E4D3A">Decorator · Craft</div><div style="font-family: 'Fraunces', serif; font-size: 24px; line-height: 1.1; color: #1F2A22">Careful decorating for old homes</div></div>
+</section>
+
+<section id="how" aria-labelledby="how-h" class="bento">
+<h2 id="how-h" style="grid-column: span 12; margin: 28px 8px 4px; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(30px, 3.6vw, 48px); letter-spacing: -0.03em">Three picks and you're live</h2>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 32px; background: #FF5A36; padding: 30px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; box-sizing: border-box"><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 56px; line-height: 1">1</div><h3 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 24px">Pick your trade</h3><p style="margin: 0; font-size: 17px; line-height: 1.5">We fill in the basics: your services, the right wording, the sections customers look for.</p></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 32px; background: #FFCE3A; padding: 30px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; box-sizing: border-box"><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 56px; line-height: 1">2</div><h3 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 24px">Stack your blocks</h3><p style="margin: 0; font-size: 17px; line-height: 1.5">Flick through designs for each section and keep the ones you like. Add your photos and details.</p></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 32px; background: #2DBE8A; padding: 30px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; box-sizing: border-box"><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 56px; line-height: 1">3</div><h3 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 24px">Go live</h3><p style="margin: 0; font-size: 17px; line-height: 1.5">Pay £99 once and your site's online, ready for your van, your cards and Google.</p></div>
+</section>
+
+<section id="pricing" aria-labelledby="price-h" class="bento" style="margin-top: 16px">
+<div style="grid-column: span 6; border-radius: 32px; background: #1C1A24; color: #FFFFFF; padding: clamp(28px, 4vw, 48px); display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+<h2 id="price-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(30px, 3.6vw, 48px); letter-spacing: -0.03em">Pay once. Own it.</h2>
+<p style="margin: 0; font-size: 18px; line-height: 1.6; color: #E4E0EC">Most website builders charge you every month, forever. We charge you once, when you're happy with your site.</p>
+<a href="Start.dc.html" class="sb-btn" style="align-self: flex-start; padding: 20px 30px; border-radius: 20px; background: #FF5A36; color: #1C1A24; text-decoration: none; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 17px; box-shadow: 0 7px 0 #000000">Build my site free</a>
+</div>
+<div class="sb-tile half" style="grid-column: span 3; border-radius: 32px; background: #F2F2F4; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px"><div style="font-weight: 700; font-size: 15px; color: #4E4A59">A £15-a-month plan</div><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(34px, 4vw, 52px); letter-spacing: -0.03em">£540</div><div style="font-size: 15px; color: #4E4A59">over three years, and still counting</div></div>
+<div class="sb-tile half" style="grid-column: span 3; border-radius: 32px; background: #FFCE3A; padding: 26px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px"><div style="font-weight: 700; font-size: 15px">siteblocks</div><div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(34px, 4vw, 52px); letter-spacing: -0.03em">£99</div><div style="font-size: 15px">once. That's it.</div></div>
+</section>
+
+<section aria-labelledby="get-h" class="bento" style="margin-top: 16px">
+<div style="grid-column: span 4; grid-row: span 2; border-radius: 32px; background: #2F64E0; color: #FFFFFF; padding: clamp(26px, 3.4vw, 40px); display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-sizing: border-box">
+<h2 id="get-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.05; letter-spacing: -0.03em">What you get for £99</h2>
+<p style="margin: 0; font-size: 17px; line-height: 1.55">Everything a tradesperson needs from a website. Nothing you'll never use.</p>
+</div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #FF5A36"></span><b style="font-size: 18px">Your own web address</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">yourname.siteblocks.co.uk, free. Or connect a domain you own.</span></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #FFCE3A"></span><b style="font-size: 18px">Works on every phone</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">Your number is one tap away for every customer.</span></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #2DBE8A"></span><b style="font-size: 18px">Change it whenever</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">Update your text and photos with a link we email you.</span></div>
+<div class="sb-tile" style="grid-column: span 4; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #1C1A24"></span><b style="font-size: 18px">Your colours, your photos</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">Use your van colour. We keep the text easy to read.</span></div>
+<div class="sb-tile" style="grid-column: span 6; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #2F64E0"></span><b style="font-size: 18px">Easy for everyone to use</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">Clear, readable and checked for accessibility, automatically.</span></div>
+<div class="sb-tile" style="grid-column: span 6; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 8px"><span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 10px; background: #FF5A36"></span><b style="font-size: 18px">No ads, no catches</b><span style="font-size: 16px; line-height: 1.5; color: #4E4A59">No monthly fees, no upsell emails, no small print.</span></div>
+</section>
+
+<section id="faq" aria-labelledby="faq-h" class="bento" style="margin-top: 16px">
+<div style="grid-column: span 4; border-radius: 32px; background: #FFCE3A; padding: clamp(26px, 3.4vw, 40px); box-sizing: border-box"><h2 id="faq-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(30px, 3.4vw, 44px); letter-spacing: -0.03em">Fair questions</h2></div>
+<div style="grid-column: span 8; display: flex; flex-direction: column; gap: 10px">
+<details style="border-radius: 22px; background: #F2F2F4; padding: 20px 24px"><summary style="display: flex; justify-content: space-between; gap: 16px; font-weight: 700; font-size: 18px">Do I need to be good with computers?<span class="sb-plus" aria-hidden="true" style="font-family: 'Unbounded', sans-serif; font-size: 22px">+</span></summary><p style="margin: 12px 0 0; font-size: 17px; line-height: 1.6; color: #4E4A59">No. If you can pick from a few options on your phone, you can build your site.</p></details>
+<details style="border-radius: 22px; background: #F2F2F4; padding: 20px 24px"><summary style="display: flex; justify-content: space-between; gap: 16px; font-weight: 700; font-size: 18px">Are there really no monthly fees?<span class="sb-plus" aria-hidden="true" style="font-family: 'Unbounded', sans-serif; font-size: 22px">+</span></summary><p style="margin: 12px 0 0; font-size: 17px; line-height: 1.6; color: #4E4A59">Really. You pay £99 once and your site stays online.</p></details>
+<details style="border-radius: 22px; background: #F2F2F4; padding: 20px 24px"><summary style="display: flex; justify-content: space-between; gap: 16px; font-weight: 700; font-size: 18px">Can I use my own domain?<span class="sb-plus" aria-hidden="true" style="font-family: 'Unbounded', sans-serif; font-size: 22px">+</span></summary><p style="margin: 12px 0 0; font-size: 17px; line-height: 1.6; color: #4E4A59">Yes. Buy it wherever you like and follow our short guide to connect it.</p></details>
+<details style="border-radius: 22px; background: #F2F2F4; padding: 20px 24px"><summary style="display: flex; justify-content: space-between; gap: 16px; font-weight: 700; font-size: 18px">What if I'm not happy?<span class="sb-plus" aria-hidden="true" style="font-family: 'Unbounded', sans-serif; font-size: 22px">+</span></summary><p style="margin: 12px 0 0; font-size: 17px; line-height: 1.6; color: #4E4A59">Building is free, so you only pay once you're happy. After that: [REFUND POLICY].</p></details>
+<details style="border-radius: 22px; background: #F2F2F4; padding: 20px 24px"><summary style="display: flex; justify-content: space-between; gap: 16px; font-weight: 700; font-size: 18px">Can I change my site later?<span class="sb-plus" aria-hidden="true" style="font-family: 'Unbounded', sans-serif; font-size: 22px">+</span></summary><p style="margin: 12px 0 0; font-size: 17px; line-height: 1.6; color: #4E4A59">Yes. We email you a link to update your text and photos whenever you need.</p></details>
+</div>
+</section>
+
+<section aria-labelledby="cta-h" class="bento" style="margin-top: 16px">
+<div style="grid-column: span 9; border-radius: 32px; background: #FF5A36; padding: clamp(32px, 5vw, 60px); display: flex; flex-direction: column; gap: 24px; align-items: flex-start; box-sizing: border-box">
+<h2 id="cta-h" style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(32px, 4.2vw, 58px); line-height: 1.02; letter-spacing: -0.035em; max-width: 720px">Your website is three picks away.</h2>
+<a href="Start.dc.html" class="sb-btn" style="padding: 22px 34px; border-radius: 20px; background: #1C1A24; color: #FFFFFF; text-decoration: none; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 18px; box-shadow: 0 7px 0 #000000">Build my site free</a>
+</div>
+<div aria-hidden="true" style="grid-column: span 3; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(90px, 1fr)); gap: 12px"><div class="sb-tile" style="border-radius: 24px; background: #FFCE3A"></div><div class="sb-tile" style="border-radius: 24px; background: #2F64E0"></div><div class="sb-tile" style="border-radius: 24px; background: #2DBE8A"></div><div class="sb-tile" style="border-radius: 24px; background: #1C1A24"></div></div>
+</section>
+</main>
+
+<footer style="border-radius: 20px; background: #F2F2F4; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 22px; font-size: 15px; color: #4E4A59">
+<span style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 16px; color: #1C1A24">siteblocks</span>
+<nav aria-label="Footer" style="display: flex; flex-wrap: wrap; gap: 18px"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></nav>
+<span>Made in the UK</span>
+</footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":4600}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

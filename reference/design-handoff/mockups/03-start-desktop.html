@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Builder start: plain form</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+input,select,button{font:inherit}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #2F64E0;outline-offset:2px}
+.sb-btn{transition:transform .12s ease,box-shadow .12s ease}
+.sb-btn:active{transform:translateY(5px);box-shadow:0 2px 0 #1C1A24 !important}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #FFFFFF; color: #1C1A24; font-family: 'DM Sans', sans-serif; padding: 24px 16px 40px; box-sizing: border-box">
+<div style="max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px">
+<header style="display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<a href="#" aria-label="siteblocks home" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1C1A24"><span style="display: grid; grid-template-columns: repeat(2, 12px); grid-template-rows: repeat(2, 12px); gap: 2px" aria-hidden="true"><span style="border-radius: 3px; background: #FF5A36"></span><span style="border-radius: 3px; background: #FFCE3A"></span><span style="border-radius: 3px; background: #2F64E0"></span><span style="border-radius: 3px; background: #1C1A24"></span></span><span style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 18px; letter-spacing: -0.03em">siteblocks</span></a>
+<span style="font-size: 15px; color: #57526A">Free until you go live</span>
+</header>
+
+<main style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+<form style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 22px" onSubmit="{{noop}}">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: clamp(32px, 4vw, 44px); line-height: 1.05; letter-spacing: -0.03em">Let's start with the basics</h1>
+<p style="margin: 0; font-size: 18px; line-height: 1.5; color: #57526A">Four quick things. You can change them all later.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div id="trade-l" style="font-weight: 700; font-size: 16px">Your trade</div>
+<div role="radiogroup" aria-labelledby="trade-l" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{trades}}" as="t" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+</div>
+<label style="display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: 16px">Business name
+<input type="text" value="{{name}}" onChange="{{onName}}" placeholder="e.g. Hartley &amp; Sons" style="height: 56px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 16px; font-size: 17px; font-weight: 500; color: #1C1A24"></label>
+<label style="display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: 16px">Where do you work?
+<input type="text" value="{{town}}" onChange="{{onTown}}" placeholder="Town or area" style="height: 56px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 16px; font-size: 17px; font-weight: 500; color: #1C1A24"></label>
+<label style="display: flex; flex-direction: column; gap: 8px; font-weight: 700; font-size: 16px">Phone number
+<input type="tel" value="{{phone}}" onChange="{{onPhone}}" placeholder="The number customers should ring" style="height: 56px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 16px; font-size: 17px; font-weight: 500; color: #1C1A24">
+<span style="font-weight: 400; font-size: 14px; color: #57526A">Shown on your site so customers can call you in one tap.</span></label>
+<button type="button" class="sb-btn" style="align-self: flex-start; margin-top: 6px; padding: 20px 30px; border: 0; border-radius: 18px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 17px; box-shadow: 0 7px 0 #1C1A24; cursor: pointer">Start building</button>
+</form>
+
+<aside aria-label="Live preview" style="flex: 1 1 380px; min-width: 0; border-radius: 28px; background: #F2F2F4; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+<div style="font-weight: 700; font-size: 14px; color: #57526A">Your site, so far</div>
+<div style="border-radius: 20px; background: #FFFFFF; padding: 26px; display: flex; flex-direction: column; gap: 14px; min-height: 300px; box-sizing: border-box">
+<div style="font-size: 13px; font-weight: 700; color: #57526A">{{tradeLine}}</div>
+<div style="font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 30px; line-height: 1.05; letter-spacing: -0.03em">{{nameShow}}</div>
+<div style="font-size: 16px; line-height: 1.5; color: #57526A">{{blurb}}</div>
+<div style="flex-grow: 1; min-height: 80px; border-radius: 14px; background: #ECECF0"></div>
+<div style="padding: 13px; border-radius: 12px; background: #1C1A24; color: #FFFFFF; text-align: center; font-weight: 700; font-size: 15px">{{callLine}}</div>
+</div>
+<div style="font-size: 14px; color: #57526A">Next you'll pick a look for each section.</div>
+</aside>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { trade: 'Plumber', name: '', town: '', phone: '' }; }
+renderVals() {
+const s = this.state;
+const t = s.trade.toLowerCase();
+const trades = ['Plumber', 'Electrician', 'Roofer', 'Painter & decorator', 'Landscaper'].map((x) => {
+const on = x === s.trade;
+return {
+label: x,
+checked: on ? 'true' : 'false',
+pick: () => this.setState({ trade: x }),
+style: 'min-height: 48px; padding: 0 18px; border-radius: 14px; border: 2px solid ' + (on ? '#1C1A24' : '#D6D6DC') + '; background: ' + (on ? '#1C1A24' : '#FFFFFF') + '; color: ' + (on ? '#FFFFFF' : '#1C1A24') + '; font-weight: 700; font-size: 16px; cursor: pointer'
+};
+});
+return {
+trades, name: s.name, town: s.town, phone: s.phone,
+onName: (e) => this.setState({ name: e.target.value }),
+onTown: (e) => this.setState({ town: e.target.value }),
+onPhone: (e) => this.setState({ phone: e.target.value }),
+noop: (e) => e.preventDefault(),
+tradeLine: s.trade + (s.town ? ' · ' + s.town : ''),
+nameShow: s.name || 'Your business name',
+blurb: 'Your local ' + t + (s.town ? ' in ' + s.town : '') + '. Free quotes, fair prices.',
+callLine: s.phone ? 'Call ' + s.phone : 'Call now'
+};
+}
+}
+</script>
+</body>
+</html>

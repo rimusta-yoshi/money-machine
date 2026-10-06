@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Builder start on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@800;900&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FFFFFF;font-family:'DM Sans',sans-serif;color:#1C1A24}
+a{color:#2F64E0}a:hover{color:#1F48B0}
+input,button{font:inherit}
+input:focus-visible,button:focus-visible{outline:3px solid #2F64E0;outline-offset:2px}
+.sb-in{animation:sbIn .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes sbIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.sb-in{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #FFFFFF; color: #1C1A24; font-family: 'DM Sans', sans-serif; padding: 18px 16px 20px; display: flex; flex-direction: column; gap: 22px; overflow: hidden">
+<header style="display: flex; justify-content: space-between; align-items: center">
+<sc-if value="{{s1}}" hint-placeholder-val="{{false}}"><button type="button" onClick="{{back}}" aria-label="Back to trade" style="width: 44px; height: 44px; border: 0; border-radius: 12px; background: #F2F2F4; font-size: 20px; font-weight: 700; cursor: pointer">←</button></sc-if>
+<sc-if value="{{s0}}" hint-placeholder-val="{{true}}"><span style="display: grid; grid-template-columns: repeat(2, 11px); grid-template-rows: repeat(2, 11px); gap: 2px" aria-hidden="true"><span style="border-radius: 3px; background: #FF5A36"></span><span style="border-radius: 3px; background: #FFCE3A"></span><span style="border-radius: 3px; background: #2F64E0"></span><span style="border-radius: 3px; background: #1C1A24"></span></span></sc-if>
+<div role="progressbar" aria-label="Setup progress" aria-valuemin="1" aria-valuemax="2" aria-valuenow="{{stepNum}}" style="display: flex; gap: 4px; align-items: center"><span style="font-size: 14px; font-weight: 700; color: #57526A; margin-right: 6px">Step {{stepNum}} of 2</span><span style="{{seg1}}"></span><span style="{{seg2}}"></span></div>
+</header>
+
+<sc-if value="{{s0}}" hint-placeholder-val="{{true}}">
+<div class="sb-in" style="display: flex; flex-direction: column; gap: 18px; flex-grow: 1">
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 32px; line-height: 1.05; letter-spacing: -0.03em">What's your trade?</h1>
+<div role="radiogroup" aria-label="Your trade" style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{trades}}" as="t" hint-placeholder-count="5">
+<button type="button" role="radio" aria-checked="{{t.checked}}" onClick="{{t.pick}}" style="{{t.style}}"><span>{{t.label}}</span><span aria-hidden="true" style="{{t.dot}}"></span></button>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 15px; color: #57526A">Not listed? <a href="#">Tell us what you do</a>.</p>
+<span style="flex-grow: 1"></span>
+<button type="button" onClick="{{next}}" style="min-height: 60px; border: 0; border-radius: 18px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 17px; box-shadow: 0 6px 0 #1C1A24; cursor: pointer">Continue</button>
+</div>
+</sc-if>
+
+<sc-if value="{{s1}}" hint-placeholder-val="{{false}}">
+<div class="sb-in" style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1">
+<h1 style="margin: 0; font-family: 'Unbounded', sans-serif; font-weight: 900; font-size: 28px; line-height: 1.08; letter-spacing: -0.03em">Nice. A few details for your {{tradeLower}} site.</h1>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 15px">Business name<input type="text" autocomplete="organization" value="{{name}}" onChange="{{onName}}" placeholder="e.g. Hartley &amp; Sons" style="height: 54px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 14px; font-size: 17px; font-weight: 500; color: #1C1A24"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 15px">Where do you work?<input type="text" autocomplete="address-level2" value="{{town}}" onChange="{{onTown}}" placeholder="Town or area" style="height: 54px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 14px; font-size: 17px; font-weight: 500; color: #1C1A24"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 15px">Phone number<input type="tel" autocomplete="tel" inputmode="tel" value="{{phone}}" onChange="{{onPhone}}" placeholder="The number customers ring" style="height: 54px; border-radius: 14px; border: 2px solid #D6D6DC; padding: 0 14px; font-size: 17px; font-weight: 500; color: #1C1A24"></label>
+<div aria-label="Live preview" style="border-radius: 18px; background: #F2F2F4; padding: 14px; display: flex; align-items: center; gap: 12px">
+<div style="width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px; background: #1C1A24"></div>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><b style="font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{nameShow}}</b><span style="font-size: 14px; color: #57526A">{{subLine}}</span></div>
+</div>
+<span style="flex-grow: 1"></span>
+<button type="button" style="min-height: 60px; border: 0; border-radius: 18px; background: #FF5A36; color: #1C1A24; font-family: 'Unbounded', sans-serif; font-weight: 800; font-size: 17px; box-shadow: 0 6px 0 #1C1A24; cursor: pointer">Start building</button>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 0, trade: 'Plumber', name: '', town: '', phone: '' }; }
+renderVals() {
+const s = this.state;
+const trades = ['Plumber', 'Electrician', 'Roofer', 'Painter & decorator', 'Landscaper'].map((x) => {
+const on = x === s.trade;
+return {
+label: x,
+checked: on ? 'true' : 'false',
+pick: () => this.setState({ trade: x }),
+style: 'display: flex; justify-content: space-between; align-items: center; min-height: 58px; padding: 0 18px; border-radius: 16px; border: 2px solid ' + (on ? '#1C1A24' : '#E2E2E7') + '; background: ' + (on ? '#F2F2F4' : '#FFFFFF') + '; color: #1C1A24; font-weight: 700; font-size: 17px; text-align: left; cursor: pointer',
+dot: 'width: 22px; height: 22px; border-radius: 6px; box-sizing: border-box; border: 2px solid #1C1A24; background: ' + (on ? '#FF5A36' : 'transparent')
+};
+});
+const seg = (on, c) => 'display: block; width: 26px; height: 10px; border-radius: 4px; background: ' + (on ? c : '#E2E2E7');
+return {
+s0: s.step === 0, s1: s.step === 1, stepNum: s.step + 1,
+seg1: seg(true, '#FF5A36'), seg2: seg(s.step === 1, '#FFCE3A'),
+trades, name: s.name, town: s.town, phone: s.phone,
+tradeLower: s.trade.toLowerCase(),
+nameShow: s.name || 'Your business name',
+subLine: s.trade + (s.town ? ' in ' + s.town : '') + (s.phone ? ' · ' + s.phone : ''),
+onName: (e) => this.setState({ name: e.target.value }),
+onTown: (e) => this.setState({ town: e.target.value }),
+onPhone: (e) => this.setState({ phone: e.target.value }),
+next: () => this.setState({ step: 1 }),
+back: () => this.setState({ step: 0 })
+};
+}
+}
+</script>
+</body>
+</html>
