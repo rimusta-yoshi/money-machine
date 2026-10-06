@@ -1,0 +1,7 @@
+# Headers for the homepage and builder (Workers static assets). Kept out of search until launch.
+/*
+  X-Robots-Tag: noindex, nofollow
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000

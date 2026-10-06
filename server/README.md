@@ -7,7 +7,8 @@ admin key until Phase 2.
 |---|---|---|
 | `api.siteblocks.co.uk` | `siteblocks-api` | The builder's API: drafts, photo uploads, preview links, address checks, publishing. Also serves the builder's sample photos (`/samples/<file>`). |
 | `preview.siteblocks.co.uk` | `siteblocks-api` | Preview links (`/<token>/`), rendered live from the latest save, plus draft photos. Always noindex. |
-| `<slug>.siteblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders, no database. |
+| `<slug>.siteblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders, no database. `www.` redirects to the homepage. |
+| `siteblocks.co.uk` | `siteblocks-app` | The homepage and builder (`npm run build` output), static files only. Deploy with `npm run cf:deploy:app`; settings in `.env.production`. |
 
 ```
 builder ──PUT /v1/draft──▶ API worker ──parseSite──▶ D1 (drafts, previews, slugs, rate limits)

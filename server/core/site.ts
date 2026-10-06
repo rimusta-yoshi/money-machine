@@ -19,6 +19,8 @@ export async function handleSite(req: Request, deps: Deps): Promise<Response> {
     if (req.method !== 'GET' && req.method !== 'HEAD') return new Response(null, { status: 405, headers: { ...headers, Allow: 'GET, HEAD' } })
     const url = new URL(req.url)
     const slug = slugFromHost(url.host, deps.config)
+    // www. is our own homepage, not a customer site.
+    if (slug === 'www') return Response.redirect(`https://${deps.config.baseDomain}${url.pathname}${url.search}`, 301)
     if (!slug || !checkSlug(slug).ok) return notFound('Page not found', 'There is nothing at this address.')
     const font = await serveFont(url.pathname, deps)
     if (font) return font

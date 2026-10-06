@@ -15,7 +15,7 @@
   "vars": {
     "BASE_DOMAIN": "siteblocks.co.uk",
     // Where the builder runs. Comma-separated origins, no trailing slash.
-    "BUILDER_ORIGINS": "http://localhost:5173",
+    "BUILDER_ORIGINS": "https://siteblocks.co.uk,https://www.siteblocks.co.uk,http://localhost:5173",
     // Staging: noindex on everything until launch.
     "NOINDEX": "true",
     "PREVIEW_DAYS": "30"

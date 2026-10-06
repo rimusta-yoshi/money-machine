@@ -229,6 +229,9 @@ describe('publishing', () => {
     for (const p of ['/nope', '/photos/..%2findex.html', '/%2e%2e/x.css', '/.env', '/index.php']) expect((await get(p)).status, p).toBe(404)
     expect((await s.fetch(`https://joes-plumbing.${BASE}/`, { method: 'POST' })).status).toBe(405)
     expect((await s.fetch(`https://nobody-here.${BASE}/`)).status).toBe(404)
+    const www = await s.fetch(`https://www.${BASE}/build/?x=1`, { redirect: 'manual' })
+    expect(www.status).toBe(301)
+    expect(www.headers.get('Location')).toBe(`https://${BASE}/build/?x=1`)
 
     const draft = (await (await c.call('/v1/draft', { key })).json()) as { slug: string; publishedUrl: string }
     expect(draft).toMatchObject({ slug: 'joes-plumbing', publishedUrl: `https://joes-plumbing.${BASE}/` })
