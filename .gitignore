@@ -26,6 +26,9 @@ dist-ssr
 # Generated contact sheet (npm run sheet)
 reference/contact-sheet/
 
+# Local secrets for wrangler and npm run dev:stack (server/.dev.vars)
+.dev.vars
+
 # Local Cloudflare state (wrangler, npm run dev:stack)
 .wrangler/
 

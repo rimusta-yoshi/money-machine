@@ -71,3 +71,6 @@
 .sb-in { animation: sbIn .35s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes sbIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .sb-in { animation: none; } }
+
+/* For someone who paid on another device and lost the email. */
+.bb-paid { margin: 0; font-size: 15px; }

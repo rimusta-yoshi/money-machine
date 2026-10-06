@@ -7,13 +7,27 @@ import { HttpError, json, readBody, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import { draftPhotoKey, draftPhotoPrefix, draftPhotoUrl, ownPhotoName, photoName } from './photos'
 import type { Deps, DraftRow } from './ports'
-import { DRAFT_KEY, newDraftKey, newRef, sha256Hex } from './tokens'
+import { DRAFT_KEY, LINK_TOKEN, linkRef, newDraftKey, newRef, sha256Hex, verifyLink } from './tokens'
 
-/** The draft whose key is in the Authorization header. */
+/** The draft an edit link (from the welcome email) opens: paid sites only. */
+async function draftByEditLink(token: string, deps: Deps): Promise<DraftRow | null> {
+  const ref = linkRef('edit', token)
+  const draft = ref && deps.config.linkSecret ? await deps.db.draftByRef(ref) : null
+  if (!draft?.payment) return null
+  return (await verifyLink(deps.config.linkSecret!, 'edit', token, draft.linkVersion)) ? draft : null
+}
+
+/**
+ * The draft whose key is in the Authorization header: the browser's own draft key, or an
+ * edit link's token (which works on any device).
+ */
 export async function authDraft(req: Request, deps: Deps): Promise<DraftRow> {
   const key = /^Bearer (\S+)$/.exec(req.headers.get('Authorization') ?? '')?.[1] ?? ''
-  const draft = DRAFT_KEY.test(key) ? await deps.db.draftByKey(await sha256Hex(key)) : null
+  const draft = DRAFT_KEY.test(key) ? await deps.db.draftByKey(await sha256Hex(key))
+    : LINK_TOKEN.test(key) ? await draftByEditLink(key, deps)
+      : null
   if (!draft) throw new HttpError(401, 'unknown_draft', 'We could not find that saved site. It may have been started on another device.')
+  await deps.db.touch(draft.ref, deps.now())
   return draft
 }
 
@@ -57,14 +71,17 @@ export async function getDraft(req: Request, deps: Deps): Promise<Response> {
   return json({
     record: storedRecord(draft),
     slug: draft.slug,
-    publishedUrl: draft.slug ? `${siteOrigin(deps.config, draft.slug)}/` : null,
+    publishedUrl: draft.slug && !draft.refundedAt ? `${siteOrigin(deps.config, draft.slug)}/` : null,
     updatedAt: draft.updatedAt,
+    paid: !!draft.payment,
+    refunded: !!draft.refundedAt,
   })
 }
 
 export async function saveDraft(req: Request, deps: Deps): Promise<Response> {
   await rateLimit(deps, req, 'save')
   const draft = await authDraft(req, deps)
+  if (draft.refundedAt) throw new HttpError(403, 'refunded', 'This site was refunded and taken down.')
   const site = validRecord(await readJson(req, SIZE.record), deps, draft.ref)
   const now = deps.now()
   await deps.db.saveRecord(draft.ref, JSON.stringify(site), now)
@@ -74,6 +91,7 @@ export async function saveDraft(req: Request, deps: Deps): Promise<Response> {
 export async function uploadPhoto(req: Request, deps: Deps): Promise<Response> {
   await rateLimit(deps, req, 'photo')
   const draft = await authDraft(req, deps)
+  if (draft.refundedAt) throw new HttpError(403, 'refunded', 'This site was refunded and taken down.')
   const bytes = await readBody(req, SIZE.photo)
   const { name, type } = await photoName(bytes)
   const existing = await deps.blobs.list(draftPhotoPrefix(draft.ref))

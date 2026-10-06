@@ -26,15 +26,32 @@ import { useDraft } from './api/useDraft'
 import { BRAND } from './brand/config'
 import { SaveStatusChip } from './builder/save/SaveStatusChip'
 import { ShareCard } from './builder/save/ShareCard'
+import { useScreen } from './builder/account/screens'
+import { PaidScreen } from './builder/account/PaidScreen'
+import { RefundScreen } from './builder/account/RefundScreen'
+import { LostLinkScreen } from './builder/account/LostLinkScreen'
+import { AccountShell } from './builder/account/AccountShell'
+import { EditLinkChoice } from './builder/account/EditLinkChoice'
 
 /** The server, when this build has one (VITE_API_URL). Without it nothing is saved, as before. */
 const API_BASE = apiBase()
 const api = API_BASE ? createApi(API_BASE) : null
-/** Publishing needs the admin key until payment exists (Phase 2): shown on dev builds, or with VITE_ADMIN_PUBLISH. */
+/** Publishing without paying, with the admin key (testing and support): dev builds, or with VITE_ADMIN_PUBLISH. */
 const ADMIN_PUBLISH = !!api && (import.meta.env.DEV || import.meta.env.VITE_ADMIN_PUBLISH === 'true')
 const DOMAIN = API_BASE ? siteDomain(API_BASE) : BRAND.domain
 
+/** The builder, or one of the pages around paying (Stripe's return page, a refund link, a lost edit link). */
 export default function App() {
+  const screen = useScreen()
+  if (screen.kind === 'builder') return <Builder cancelled={screen.cancelled} />
+  if (!api) return <AccountShell title="Not switched on"><p>Payments aren’t switched on in this version of the builder.</p></AccountShell>
+  if (screen.kind === 'paid') return <PaidScreen api={api} sessionId={screen.sessionId} />
+  if (screen.kind === 'refund') return <RefundScreen api={api} token={screen.token} />
+  return <LostLinkScreen api={api} />
+}
+
+/** Back from Stripe without paying: the go-live step opens again with everything kept. */
+function Builder({ cancelled }: { cancelled: boolean }) {
   const [step, setStep] = useState<Step>('basics')
   const [site, dispatch] = useReducer(siteReducer, null, () => {
     // A trade picked on the homepage (/build/?trade=plumber) starts the site with it.
@@ -53,7 +70,11 @@ export default function App() {
   const preview = usePreviewContent(step === 'build' || step === 'look' ? site : null, trade, import.meta.env.DEV && sample)
   const fit = useFitRepair(editing ? site : null, trade, repair, step === 'build' ? preview : null)
   const dismissFit = fit.dismiss
-  const onLoaded = useCallback((saved: Site) => { dispatch({ type: 'load', site: saved }); setStep('build') }, [])
+  const onLoaded = useCallback((saved: Site) => {
+    dispatch({ type: 'load', site: saved })
+    setStep(cancelled ? 'finish' : 'build')
+    if (cancelled) window.history.replaceState(null, '', window.location.pathname)
+  }, [cancelled])
   const onUploaded = useCallback((urls: Record<string, string>) => dispatch({ type: 'replacePhotoUrls', urls }), [])
   const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded })
 
@@ -102,6 +123,7 @@ export default function App() {
   }
 
   const status = draft.enabled ? <SaveStatusChip status={draft.status} onRetry={draft.retry} /> : null
+  if (draft.conflict) return <EditLinkChoice conflict={draft.conflict} onChoose={draft.resolveConflict} />
   if (step === 'basics' || !site || !trade) {
     return (
       <BasicsStep
@@ -112,6 +134,7 @@ export default function App() {
         onPickTrade={pickTrade}
         onBusinessChange={onBusinessChange}
         onNext={() => go('look')}
+        lostLink={!!api}
       />
     )
   }
@@ -173,13 +196,14 @@ export default function App() {
           draft={draft.enabled ? draft : null}
           adminPublish={ADMIN_PUBLISH}
           domain={DOMAIN}
+          cancelled={cancelled}
           verify={verify}
           onReset={reset}
           share={draft.enabled ? <ShareCard draft={draft} /> : null}
         />
       )}
 
-      <FitNotice notice={editing ? fit.notice : null} onDismiss={dismissFit} />
+      <FitNotice notice={draft.notice ?? (editing ? fit.notice : null)} onDismiss={draft.notice ? draft.dismissNotice : dismissFit} />
       {verifying && (
         <div className="mm-verify" role="status" aria-live="polite">
           <span className="mm-verify-spin" aria-hidden="true" /> Checking every section on a phone and a desktop screen…

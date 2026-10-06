@@ -23,6 +23,10 @@ export interface StackOptions {
   builderOrigins?: string
   /** Keep data between runs (dev stack) in this folder. */
   persistTo?: string
+  /** More settings and secrets for the API worker (Stripe keys, LINK_SECRET, APP_URL…). */
+  vars?: Record<string, string>
+  /** Answers the API worker's outgoing requests (a fake Stripe and Resend in tests). Unset: the real internet. */
+  outbound?: (req: Request) => Response | Promise<Response>
 }
 
 export interface Stack {
@@ -67,6 +71,19 @@ export const MIGRATIONS = readdirSync(join(root, 'server', 'migrations')).sort()
 export const statements = (sql: string): string[] =>
   sql.split(/\r?\n/).map(l => l.replace(/--.*$/, '')).join('\n').split(';').map(s => s.trim()).filter(Boolean)
 
+/** Applies every migration, again safely on a kept database (dev stack): what exists already is skipped. */
+async function migrate(d1: D1Like): Promise<void> {
+  for (const sql of MIGRATIONS) {
+    for (const s of statements(sql)) {
+      try {
+        await d1.prepare(s.replace(/^CREATE (TABLE|INDEX|UNIQUE INDEX) /, 'CREATE $1 IF NOT EXISTS ')).run()
+      } catch (err) {
+        if (!/duplicate column name/i.test(String(err))) throw err
+      }
+    }
+  }
+}
+
 export async function startStack(o: StackOptions): Promise<Stack> {
   bundles ??= Promise.all([bundle('api-worker.ts'), bundle('site-worker.ts')])
   const [apiScript, siteScript] = await bundles
@@ -85,16 +102,16 @@ export async function startStack(o: StackOptions): Promise<Stack> {
   const mf = new Miniflare(convertV4MiniflareOptions({
     ...(o.port ? { port: o.port, host: '127.0.0.1', https: o.https ?? false } : {}),
     workers: [
-      { ...shared, name: 'api', script: apiScript, d1Databases: { DB: 'siteblocks' }, routes: [`api.${host}/*`, `preview.${host}/*`] },
+      {
+        ...shared, name: 'api', script: apiScript, d1Databases: { DB: 'siteblocks' }, routes: [`api.${host}/*`, `preview.${host}/*`],
+        bindings: { ...vars, ...o.vars }, ...(o.outbound ? { outboundService: o.outbound } : {}),
+      },
       { ...shared, name: 'sites', script: siteScript, routes: [`*.${host}/*`] },
     ],
   } as never))
   const url = o.port ? (await mf.ready).toString() : (await mf.ready, null)
   const db = async () => (await mf.getD1Database('DB', 'api')) as unknown as D1Like
-  const d1 = await db()
-  for (const sql of MIGRATIONS) {
-    for (const s of statements(sql)) await d1.prepare(s.replace(/^CREATE (TABLE|INDEX) /, 'CREATE $1 IF NOT EXISTS ')).run()
-  }
+  await migrate(await db())
   return {
     mf,
     url,

@@ -25,9 +25,11 @@ interface Props {
   adminPublish: boolean
   domain: string
   verify: () => Promise<Site | null>
+  /** Back from Stripe without paying. */
+  cancelled?: boolean
   /** Start a new site from scratch. */
   onReset: () => void
-  /** Preview and resume links, when the builder saves to the server. */
+  /** The preview link, when the builder has a server. */
   share?: ReactNode
 }
 
@@ -38,7 +40,7 @@ const Tick = () => (
 )
 
 /** Final step: what's ready, photos worth adding, anything still hidden, and the go-live panel. */
-export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, onReset, share }: Props) {
+export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, cancelled, onReset, share }: Props) {
   const shareId = useId()
   const [sharing, setSharing] = useState(false)
   const b = site.business
@@ -109,7 +111,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEdi
         {share && <div id={shareId} hidden={!sharing}>{share}</div>}
       </section>
 
-      <GoLivePanel site={site} trade={trade} draft={draft} adminPublish={adminPublish} domain={domain} onBusinessChange={onBusinessChange} verify={verify} />
+      <GoLivePanel site={site} trade={trade} draft={draft} adminPublish={adminPublish} domain={domain} onBusinessChange={onBusinessChange} verify={verify} cancelled={cancelled} />
     </main>
   )
 }

@@ -30,3 +30,34 @@ export async function sameSecret(a: string, b: string): Promise<boolean> {
   for (let i = 0; i < x.length; i++) diff |= x.charCodeAt(i) ^ y.charCodeAt(i)
   return diff === 0
 }
+
+/** What a signed link lets its holder do. */
+export type LinkPurpose = 'edit' | 'refund'
+
+const hmacKey = (secret: string): Promise<CryptoKey> =>
+  crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
+
+/** e.g. edit.<ref>.<signature>: a link token for one site and one purpose, signed with LINK_SECRET. */
+export const LINK_TOKEN = /^(edit|refund)\.([0-9a-f]{32})\.([A-Za-z0-9_-]{43})$/
+
+/**
+ * Signs `purpose.ref.version`. The version is the site's link version: bumping it cuts off its
+ * old edit links (a fresh one is sent by email). Refund links always use version 0.
+ */
+export async function signLink(secret: string, purpose: LinkPurpose, ref: string, version = 0): Promise<string> {
+  const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(`${purpose}.${ref}.${version}`))
+  return `${purpose}.${ref}.${base64url(new Uint8Array(sig))}`
+}
+
+/** The site a token names (not yet checked), if it has the right shape for this purpose. */
+export const linkRef = (purpose: LinkPurpose, token: string): string | null => {
+  const m = LINK_TOKEN.exec(token)
+  return m && m[1] === purpose ? m[2] : null
+}
+
+/** True if the token is genuine for this purpose, site and link version. */
+export async function verifyLink(secret: string, purpose: LinkPurpose, token: string, version = 0): Promise<boolean> {
+  const ref = linkRef(purpose, token)
+  // Compared as the exact signed string, so no other spelling of the signature passes.
+  return !!ref && (await sameSecret(token, await signLink(secret, purpose, ref, version)))
+}

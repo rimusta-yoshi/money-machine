@@ -22,6 +22,8 @@ interface Props {
   onNext: () => void
   /** Save status, shown only when something went wrong (a saved draft didn't reopen). */
   status?: ReactNode
+  /** Offer "Already paid? Get your edit link" (when this build has a server). */
+  lostLink?: boolean
 }
 
 const EMPTY: Basics = { name: '', location: '', phone: '' }
@@ -35,7 +37,7 @@ const needsLine = (gaps: BasicsGap[]) =>
  * Desktop shows one form; phones split it in two (trade first, then the three fields).
  * Typing before a trade is picked is kept here and handed over with the trade.
  */
-export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext, status }: Props) {
+export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext, status, lostLink }: Props) {
   const narrow = useNarrow()
   const [stage, setStage] = useState<0 | 1>(0)
   const [pending, setPending] = useState<Basics>(EMPTY)
@@ -82,6 +84,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
     </>
   )
   const note = <p className="bb-message" role="status" aria-live="polite">{message ?? ''}</p>
+  const paidAlready = lostLink && <p className="bb-paid"><a href="#lost-link">Already paid? Get your edit link</a></p>
 
   if (narrow) {
     return (
@@ -103,6 +106,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
             <TradePicker value={trade?.id ?? null} onPick={pick} variant="rows" legend="Your trade" legendHidden firstRef={tradeRef} />
             {note}
             <button type="button" className="sb-main-btn bb-wide-btn" onClick={toDetails}>Continue</button>
+            {paidAlready}
           </main>
         ) : (
           <main className="sb-in">
@@ -135,6 +139,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
           {fields}
           {note}
           <button type="submit" className="sb-main-btn bb-submit">Next: your look</button>
+          {paidAlready}
         </form>
         <BasicsPreview trade={trade} business={values} />
       </main>
