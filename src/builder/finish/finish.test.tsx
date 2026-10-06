@@ -88,10 +88,10 @@ describe('FinishStep (go live)', () => {
     expect(screen.getByText(/isn’t switched on/)).toBeTruthy()
   })
 
-  it('shows the price and the refund placeholder, and promises no card payment before payments open', () => {
+  it('shows the price and the money-back guarantee, and promises no card payment before payments open', () => {
     renderStep(site())
     expect(screen.getByText('£99')).toBeTruthy()
-    expect(screen.getByText(/\[REFUND POLICY\]/)).toBeTruthy()
+    expect(screen.getByText(/14-day money-back guarantee\. No questions asked\./)).toBeTruthy()
     expect(screen.queryByText(/Stripe/)).toBeNull()
   })
 

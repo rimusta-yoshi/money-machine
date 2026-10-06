@@ -156,7 +156,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
           <span>One payment</span>
           <span className="bg-price-big">{BRAND.price}</span>
         </div>
-        <p className="bg-small">No monthly fees, ever. {BRAND.refundPolicy}</p>
+        <p className="bg-small">No monthly fees, ever. {BRAND.guarantee.line}</p>
         <p className="bg-message" role="status" aria-live="polite">{message ?? ''}</p>
         <button type="submit" className="sb-main-btn bg-go" disabled={busy}>
           {busy ? 'Going live…' : draft?.published ? 'Publish changes' : `Go live for ${BRAND.price}`}

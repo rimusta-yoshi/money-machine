@@ -1,26 +1,5 @@
 import { BRAND } from '../brand/config'
-import { BUILDER_URL, EXAMPLES, FAQS, GETS, HOW_STEPS } from './content'
-import { SampleHero } from './SampleHero'
-
-/** Example sites, rendered by the real generator: one per style, each a different trade. */
-export function Examples() {
-  return (
-    <section id="examples" aria-labelledby="ex-h" className="hp-bento hp-bento--examples">
-      <div className="hp-head">
-        <h2 id="ex-h" className="hp-h2">Every site looks different</h2>
-        <p className="hp-head-text">Four styles, thousands of layouts. These example sites were all made with the builder.</p>
-      </div>
-      <ul className="hp-examples" role="list">
-        {EXAMPLES.map(ex => (
-          <li key={ex.label} className={`hp-example hp-example--${ex.span} sb-tile`}>
-            <SampleHero look={ex.look} width={ex.width} crop className="hp-example-shot" />
-            <span className="hp-example-tag">{ex.label}</span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
+import { BUILDER_URL, FAQS, GETS, HOW_STEPS } from './content'
 
 const HOW_COLOURS = ['brick', 'yellow', 'lawn'] as const
 
@@ -57,7 +36,7 @@ export function Pricing() {
       <div className="hp-tile hp-compare hp-compare--us half sb-tile">
         <span className="hp-compare-label">{BRAND.name}</span>
         <span className="hp-compare-big">{BRAND.price}</span>
-        <span className="hp-compare-note">once. That's it.</span>
+        <span className="hp-compare-note">once. That's it. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
       </div>
     </section>
   )

@@ -75,18 +75,18 @@ describe.each(VIEWPORTS)('$name', vp => {
     expect(await page.getByRole('link', { name: 'Build my site free' }).first().getAttribute('href')).toBe('/build/')
     expect(await page.getByRole('link', { name: 'Roofer' }).getAttribute('href')).toBe('/build/?trade=roofer')
     await page.getByText('What if I’m not happy?').click()
-    await expect.poll(() => page.getByText(/\[REFUND POLICY\]/).isVisible()).toBe(true)
+    await expect.poll(() => page.getByText(/within 14 days of paying/).isVisible()).toBe(true)
     expect(errors).toEqual([])
     await close()
   })
 
   it('homepage motion is off under reduced motion, on otherwise', async () => {
     const reduced = await open('/', vp, 'reduce')
-    const still = await reduced.page.evaluate(() => [...document.querySelectorAll('.sb-rise, .hp-cycle > div, .sb-logo-mark--drop > span')].every(el => getComputedStyle(el).animationName === 'none'))
+    const still = await reduced.page.evaluate(() => [...document.querySelectorAll('.sb-rise, .sb-logo-mark--drop > span')].every(el => getComputedStyle(el).animationName === 'none'))
     expect(still).toBe(true)
     await reduced.close()
     const moving = await open('/', vp, 'no-preference')
-    expect(await moving.page.evaluate(() => getComputedStyle(document.querySelector('.hp-cycle > div')!).animationName)).toBe('sbCycle')
+    expect(await moving.page.evaluate(() => getComputedStyle(document.querySelector('.sb-rise')!).animationName)).toBe('sbRise')
     await moving.close()
   })
 

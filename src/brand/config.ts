@@ -10,6 +10,6 @@ export const BRAND = {
   domain: 'siteblocks.co.uk',
   /** The one price, said plainly. */
   price: '£99',
-  /** Placeholder until the wording is supplied; shown as-is on purpose. */
-  refundPolicy: '[REFUND POLICY]',
+  /** The refund promise, said the same way everywhere. */
+  guarantee: { days: 14, line: '14-day money-back guarantee. No questions asked.' },
 } as const
