@@ -22,7 +22,7 @@
     // ADMIN_TOKEN is a secret: npx wrangler secret put ADMIN_TOKEN -c server/wrangler.api.jsonc
   },
   "d1_databases": [
-    { "binding": "DB", "database_name": "siteblocks", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "siteblocks", "database_id": "400a2f77-8ebe-4878-8576-c9747999bc80", "migrations_dir": "migrations" }
   ],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],
   // Self-hosted fonts, deployed with the code. The worker decides what to serve.
