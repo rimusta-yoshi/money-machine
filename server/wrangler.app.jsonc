@@ -1,0 +1,14 @@
+// The homepage and builder (the Vite build in dist/), at siteblocks.co.uk and www.
+// Static files only, no code. Deploy: npm run cf:deploy:app (builds first).
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "siteblocks-app",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  // A custom domain creates its own DNS record. www. is caught by the sites worker's
+  // *.siteblocks.co.uk/* route, which redirects it here.
+  "routes": [{ "pattern": "siteblocks.co.uk", "custom_domain": true }],
+  "assets": { "directory": "../dist", "not_found_handling": "404-page", "html_handling": "auto-trailing-slash" },
+  "observability": { "enabled": true }
+}
