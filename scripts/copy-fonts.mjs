@@ -9,10 +9,11 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'public', 'fonts')
 
-/** family -> faces ("400", "400-italic"). Builder chrome first, then everything a site theme can use. */
+/** family -> faces ("400", "400-italic"). siteblocks' own pages first (homepage and builder), the contact sheet's Inter, then everything a site theme can use. */
 const FONTS = {
   'Inter': ['400', '500', '600', '700'],
-  'JetBrains Mono': ['400', '500'],
+  'Unbounded': ['800', '900'],
+  'DM Sans': ['400', '500', '700'],
   'Anton': ['400'],
   'Barlow': ['400', '500', '600', '700'],
   'Barlow Condensed': ['600', '700'],

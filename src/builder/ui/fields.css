@@ -1,0 +1,17 @@
+/* Builder form fields: label above, 2px borders, helper text below. Shared by every step. */
+.bf-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.bf-label, .mm-fld label { font-weight: 700; font-size: 16px; color: var(--sb-night); }
+.bf-input, .mm-fld input, .mm-fld textarea, .mm-fld select {
+  width: 100%; min-height: 56px; border-radius: var(--sb-r-input); border: 2px solid var(--sb-line); background: var(--sb-white);
+  padding: 0 16px; font: inherit; font-weight: 500; font-size: 17px; color: var(--sb-night);
+}
+textarea.bf-input, .mm-fld textarea { min-height: 110px; padding: 14px 16px; line-height: 1.5; resize: vertical; }
+.bf-input::placeholder, .mm-fld input::placeholder, .mm-fld textarea::placeholder { color: #75708A; }
+.bf-input:hover, .mm-fld input:hover, .mm-fld textarea:hover { border-color: #A9A6B4; }
+.bf-input:focus-visible, .mm-fld input:focus-visible, .mm-fld textarea:focus-visible, .mm-fld select:focus-visible { border-color: var(--sb-night); outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+.bf-input[aria-invalid="true"], .mm-fld input[aria-invalid="true"] { border-color: var(--sb-error); }
+.bf-hint, .mm-fld-hint { margin: 0; font-size: 15px; line-height: 1.45; color: var(--sb-muted); }
+.bf-error, .mm-fld-err, .mm-field-error { margin: 0; font-size: 15px; font-weight: 700; color: var(--sb-error); }
+.mm-fld { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mm-count { margin: 0; font-size: 15px; color: var(--sb-muted); }
+.mm-count.full { color: var(--sb-night); font-weight: 700; }

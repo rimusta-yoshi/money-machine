@@ -1,0 +1,69 @@
+/* ============================================================
+   Step 2 · Your look (mockup 05)
+   ============================================================ */
+.bl { flex-grow: 1; display: flex; flex-wrap: wrap; gap: 24px; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+.bl-preview {
+  flex: 3 1 560px; min-width: 0; border-radius: var(--sb-r-tile); background: var(--sb-mist); padding: clamp(16px, 3vw, 36px);
+  display: flex; align-items: center; justify-content: center;
+}
+.bl-frame { width: 100%; max-width: 760px; border-radius: 18px; overflow: hidden; background: var(--sb-white); box-shadow: 0 1px 0 var(--sb-line-soft), 0 20px 50px rgba(28, 26, 36, 0.12); }
+.bl-side { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
+.bl-intro { display: flex; flex-direction: column; gap: 6px; }
+
+.bl-group { display: flex; flex-direction: column; gap: 10px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.bl-label { margin: 0; padding: 0; font-weight: 700; font-size: 16px; }
+.bl-label span { font-weight: 400; color: var(--sb-muted); }
+.bl-styles > .bl-label { margin-bottom: 10px; }
+
+.bl-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.bl-swatch {
+  width: 44px; height: 44px; border-radius: 12px; border: 3px solid var(--sb-white); box-shadow: 0 0 0 1px var(--sb-line); cursor: pointer;
+}
+.bl-swatch.on { border-color: var(--sb-night); box-shadow: 0 0 0 1px var(--sb-night); }
+.bl-custom {
+  display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--sb-line);
+  background: var(--sb-white); font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.bl-custom.on { border-color: var(--sb-night); }
+.bl-custom-dot { width: 22px; height: 22px; border-radius: 6px; box-shadow: 0 0 0 1px var(--sb-line); }
+:is(.bl-swatch, .bl-custom, .bl-style):has(input:focus-visible) { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+.bl-tuned { margin: 0; font-size: 15px; color: var(--sb-lawn-ink); }
+.bl-tuned:empty { display: none; }
+
+.bl-style-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.bl-style {
+  display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; border: 2px solid var(--sb-line-soft);
+  background: var(--sb-white); cursor: pointer;
+}
+.bl-style:hover { border-color: var(--sb-night); }
+.bl-style.on { border-color: var(--sb-night); background: var(--sb-mist); }
+.bl-style-aa { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid var(--sb-line-soft); }
+.bl-style-name { font-weight: 700; font-size: 16px; }
+.bl-style-hint { font-size: 15px; line-height: 1.35; color: var(--sb-muted); }
+.bl-style.on .bl-style-hint { color: var(--sb-muted-mist); }
+.bl-shuffle { align-self: flex-start; }
+
+.bl-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-radius: 18px; background: var(--sb-mist); }
+.bl-switch-text { display: flex; flex-direction: column; gap: 2px; }
+.bl-switch-text b { font-size: 16px; }
+.bl-switch-text span { font-size: 15px; color: var(--sb-muted-mist); }
+.bl-switch {
+  flex-shrink: 0; width: 72px; height: 44px; border: 0; border-radius: 999px; padding: 5px; display: flex; justify-content: flex-start;
+  background: #77738A; cursor: pointer;
+}
+.bl-switch.on { justify-content: flex-end; background: var(--sb-night); }
+.bl-knob { width: 34px; height: 34px; border-radius: 999px; background: var(--sb-white); }
+.bl-dev { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 44px; font-size: 15px; font-weight: 700; }
+.bl-dev span { font-weight: 400; color: var(--sb-muted); }
+
+.sb-swap { animation: sbSwap .35s ease both; }
+@keyframes sbSwap { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .sb-swap { animation: none; } }
+
+@media (max-width: 767px) {
+  .bl { padding: 12px 16px 24px; gap: 18px; }
+  .bl-preview { flex-basis: 100%; padding: 12px; border-radius: 22px; }
+  .bl-side { flex-basis: 100%; }
+  .bl-frame { max-width: 340px; }
+  .bl-scaled { height: 380px; }
+}

@@ -9,8 +9,8 @@ import type { Stack } from '../server/test/stack'
 import { launchBrowser } from '../scripts/browser.mjs'
 
 /**
- * The real builder, end to end: pick a trade, fill in the details, add a photo, go through
- * the sections, get a preview link, publish with the admin key and visit the site. Screenshots
+ * The real builder, end to end: the basics, your look, add a photo, go through the sections,
+ * get a preview link, publish with the admin key and visit the site. Screenshots
  * land in e2e/screens (ignored by git) for a look by eye.
  */
 const PORT = 8791
@@ -45,14 +45,13 @@ it('builds, saves, previews and publishes a site from the builder', async () => 
   const errors: string[] = []
   page.on('pageerror', e => errors.push(e.message))
 
-  await page.goto(`http://localhost:${BUILDER_PORT}/`)
-  await page.getByRole('button', { name: /Plumber/ }).first().click()
-  await page.getByRole('button', { name: /Continue as/ }).click()
-  await page.getByLabel(/Business name/).fill('Riverside Plumbing')
-  await page.getByLabel(/^Phone/).fill('0113 496 0123')
-  await page.getByLabel(/Town \/ City/).fill('Leeds')
-  await page.getByLabel(/^Email/).fill('hello@riverside.example')
-  await page.getByRole('button', { name: /Build my site/ }).click()
+  await page.goto(`http://localhost:${BUILDER_PORT}/build/`)
+  await page.getByRole('radio', { name: 'Plumber' }).check({ force: true })
+  await page.getByLabel('Business name').fill('Riverside Plumbing')
+  await page.getByLabel('Phone number').fill('0113 496 0123')
+  await page.getByLabel('Where do you work?').fill('Leeds')
+  await page.getByRole('button', { name: 'Next: your look' }).click()
+  await page.getByRole('button', { name: 'Start building' }).click()
 
   // A photo for the hero: prepared in the browser now, uploaded when the builder saves.
   const file = page.locator('input[type=file]').first()
@@ -61,13 +60,18 @@ it('builds, saves, previews and publishes a site from the builder', async () => 
   await shot(page, '1-build-saved')
 
   for (let i = 0; i < 20; i++) {
-    const launch = page.getByRole('button', { name: /Review and go live/ })
-    if (await launch.isVisible()) { await launch.click(); break }
-    await page.getByRole('button', { name: /^Next ·/ }).click()
+    const next = page.getByRole('button', { name: /^Next: / })
+    await expect.poll(() => next.isEnabled(), { timeout: 30_000 }).toBe(true)
+    const label = await next.textContent()
+    await next.click()
+    if (label?.includes('go live')) break
   }
-  await page.getByText(/is ready\./).waitFor({ timeout: 60_000 })
+  await page.getByText(/Nearly there/).waitFor({ timeout: 60_000 })
+  // The email is asked for here now, for the receipt and edit link.
+  await page.getByLabel('Your email').fill('hello@riverside.example')
 
   // Preview link.
+  await page.getByRole('button', { name: 'Share a preview link first' }).click()
   await page.getByRole('button', { name: 'Get a preview link' }).click()
   const previewUrl = await page.getByLabel('Preview link').inputValue({ timeout: 30_000 })
   expect(previewUrl).toMatch(new RegExp(`^https://preview\\.${BASE.replace('.', '\\.')}/[A-Za-z0-9_-]{32}/$`))
@@ -85,14 +89,12 @@ it('builds, saves, previews and publishes a site from the builder', async () => 
   await shot(preview, '3-preview-phone')
 
   // Publish.
-  await page.getByRole('button', { name: /^Publish my site/ }).click()
   const slug = page.getByLabel('Your web address')
-  await slug.waitFor({ timeout: 60_000 })
   expect(await slug.inputValue()).toBe('riverside-plumbing')
   await page.getByLabel('Admin key').fill(ADMIN)
-  await page.getByText('riverside-plumbing.siteblocks.localhost:8791 is free.').waitFor({ timeout: 30_000 })
+  await page.getByText(/riverside-plumbing\.siteblocks\.localhost:8791 is free\./).waitFor({ timeout: 30_000 })
   await shot(page, '4-publish-panel')
-  await page.getByRole('button', { name: /Publish my site/ }).last().click()
+  await page.getByRole('button', { name: 'Go live for £99' }).click()
   await page.getByText('It’s live.').waitFor({ timeout: 30_000 })
   await shot(page, '5-published')
 
@@ -106,8 +108,8 @@ it('builds, saves, previews and publishes a site from the builder', async () => 
 
   // Reopening the builder brings the saved site back.
   const again = await context.newPage()
-  await again.goto(`http://localhost:${BUILDER_PORT}/`)
-  await again.getByText(/Build it, section by section/).waitFor({ timeout: 30_000 })
+  await again.goto(`http://localhost:${BUILDER_PORT}/build/`)
+  await again.getByRole('heading', { name: 'Hero' }).waitFor({ timeout: 30_000 })
 
   expect(errors).toEqual([])
   await phone.close()

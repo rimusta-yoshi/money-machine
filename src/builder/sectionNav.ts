@@ -1,6 +1,5 @@
-import type { SectionConfig, TradeConfig } from '../types'
+import type { BusinessInfo, SectionConfig, TradeConfig } from '../types'
 import type { Site, SiteContent } from '../site/schema'
-import type { SiteStyleControls } from './SiteStyleCard'
 
 export interface LayoutState {
   index: number
@@ -20,14 +19,17 @@ export interface SectionNavProps {
   activeIdx: number
   /** The layout currently shown for the active section, among its options. */
   layout: LayoutState
-  doneCount: number
   allDone: boolean
+  /** Where Next goes: the following section, or from the last one back to the first still unsettled. */
+  nextIdx: number
   onCycleLayout: (dir: 1 | -1) => void
-  /** Re-rolls a generated section's options. Absent for template sections. */
+  /** Re-rolls a generated section's options. */
   onNewOptions?: () => void
   onNext: () => void
   onFinish: () => void
   onContentChange: (patch: Partial<SiteContent>) => void
-  /** Theme picker, style re-roll and (in development) the sample-content switch. */
-  siteStyle: SiteStyleControls
+  /** Years in business and the about blurb are edited with the sections that show them. */
+  onBusinessChange: (patch: Partial<BusinessInfo>) => void
+  /** Back to step 2 (colour, style, reviews). */
+  onChangeLook: () => void
 }

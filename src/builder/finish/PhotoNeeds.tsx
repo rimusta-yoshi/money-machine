@@ -24,32 +24,27 @@ interface Props {
 export function PhotoNeeds({ needs, style, content, onAdd }: Props) {
   if (needs.length === 0) return null
   return (
-    <section className="mm-photo-needs" aria-labelledby="mm-photo-needs-title">
-      <h2 id="mm-photo-needs-title" className="mm-photo-needs-title">
-        Photos win jobs <span className="mm-photo-needs-tag">Strongly recommended</span>
-      </h2>
-      <ul>
-        {needs.map(need => {
-          const label = SECTION_LABELS[need.section]
-          return (
-            <li key={need.section} className="mm-photo-need">
-              <div className="mm-photo-need-text">
-                <p>
-                  Your {label.toLowerCase()} layout needs {WANTS[need.slot]}. Add one, or {need.swapped ? 'we’ll use this layout instead' : 'it goes live without it, like this'}.
-                </p>
-                <button type="button" className="mm-golive-add" onClick={() => onAdd(need.section)} aria-label={`Add ${WANTS[need.slot]} for the ${label.toLowerCase()} section`}>
-                  Add a photo
-                </button>
-              </div>
-              <div className="mm-photo-need-thumb" aria-hidden="true" inert>
-                <div className="mm-photo-need-scale">
-                  <GeneratedSection section={need.live} style={style} content={content} />
-                </div>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
+    <ul className="bg-list bg-needs" aria-label="Photos worth adding">
+      {needs.map(need => {
+        const label = SECTION_LABELS[need.section].toLowerCase()
+        return (
+          <li key={need.section} className="bg-row bg-need">
+            <span className="bg-bang" aria-hidden="true">!</span>
+            <span className="bg-need-text">
+              <b>Photos win jobs · <span>Strongly recommended</span></b>
+              <span>Your {label} layout needs {WANTS[need.slot]}. Add one, or {need.swapped ? 'we’ll use this layout instead' : 'it goes live without it, like this'}.</span>
+            </span>
+            <span className="bg-need-thumb" aria-hidden="true" inert>
+              <span className="bg-need-scale">
+                <GeneratedSection section={need.live} style={style} content={content} />
+              </span>
+            </span>
+            <button type="button" className="sb-line-btn" onClick={() => onAdd(need.section)} aria-label={`Add ${WANTS[need.slot]} for the ${label} section`}>
+              Add a photo
+            </button>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
