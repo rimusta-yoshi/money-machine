@@ -1,5 +1,6 @@
 import { BRAND } from '../brand/config'
 import { BUILDER_URL, FAQS, GETS, HOW_STEPS } from './content'
+import { GetIcon } from './GetIcon'
 
 const HOW_COLOURS = ['brick', 'yellow', 'lawn'] as const
 
@@ -20,29 +21,31 @@ export function HowItWorks() {
   )
 }
 
+/** One joined row: the pitch, then a monthly plan against our one price, with "vs" on the seam. */
 export function Pricing() {
   return (
-    <section id="pricing" aria-labelledby="price-h" className="hp-bento hp-gap-top">
-      <div className="hp-tile hp-price-pitch">
+    <section id="pricing" aria-labelledby="price-h" className="hp-pricing hp-gap-top">
+      <div className="hp-pricing-pitch">
         <h2 id="price-h" className="hp-h2">Pay once. Own it.</h2>
         <p>Most website builders charge you every month, forever. We charge you once, when you're happy with your site.</p>
         <a href={BUILDER_URL} className="sb-main-btn hp-btn hp-btn--start">Build my site free</a>
       </div>
-      <div className="hp-tile hp-compare hp-compare--them half sb-tile">
-        <span className="hp-compare-label">A £15-a-month plan</span>
-        <span className="hp-compare-big">£540</span>
-        <span className="hp-compare-note">over three years, and still counting</span>
-      </div>
-      <div className="hp-tile hp-compare hp-compare--us half sb-tile">
-        <span className="hp-compare-label">{BRAND.name}</span>
-        <span className="hp-compare-big">{BRAND.price}</span>
-        <span className="hp-compare-note">once. That's it. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
+      <div className="hp-vs">
+        <div className="hp-vs-them">
+          <span className="hp-vs-label">A £15-a-month plan</span>
+          <del className="hp-vs-big">£540</del>
+          <span className="hp-vs-note">after three years. And it keeps going up every month you stay.</span>
+        </div>
+        <div className="hp-vs-us">
+          <span className="hp-vs-label">{BRAND.name}</span>
+          <span className="hp-vs-big">{BRAND.price}</span>
+          <span className="hp-vs-note">once, for good. Year one, year three, year ten: still {BRAND.price}. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
+        </div>
+        <span className="hp-vs-badge" aria-hidden="true">vs</span>
       </div>
     </section>
   )
 }
-
-const GET_COLOURS = ['brick', 'yellow', 'lawn', 'night', 'blue', 'brick'] as const
 
 export function WhatYouGet() {
   return (
@@ -51,12 +54,12 @@ export function WhatYouGet() {
         <h2 id="get-h" className="hp-h2">What you get for {BRAND.price}</h2>
         <p>Everything a tradesperson needs from a website. Nothing you'll never use.</p>
       </div>
-      <ul className="hp-gets" role="list">
-        {GETS.map((g, i) => (
-          <li key={g.title} className="hp-tile hp-get sb-tile">
-            <span className={`hp-get-block hp-get-block--${GET_COLOURS[i]}`} aria-hidden="true" />
-            <b>{g.title}</b>
-            <span>{g.text}</span>
+      <ul className="hp-gets">
+        {GETS.map(g => (
+          <li key={g.title} className="hp-get sb-tile">
+            <span className={`hp-get-block hp-get-block--${g.colour}`}><GetIcon name={g.icon} /></span>
+            <h3 className="hp-get-name">{g.title}</h3>
+            <p>{g.text}</p>
           </li>
         ))}
       </ul>

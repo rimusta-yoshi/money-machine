@@ -1,5 +1,6 @@
 import { BRAND } from '../brand/config'
 import type { TradeId } from '../types'
+import type { GetIconName } from './GetIcon'
 
 /** The builder, and the builder with a trade already picked. */
 export const BUILDER_URL = '/build/'
@@ -19,13 +20,14 @@ export const HOW_STEPS = [
   { title: 'Go live', text: `Pay ${BRAND.price} once and your site's online, ready for your van, your cards and Google.` },
 ]
 
-export const GETS = [
-  { title: 'Your own web address', text: `yourname.${BRAND.domain}, free. Or connect a domain you own.` },
-  { title: 'Works on every phone', text: 'Your number is one tap away for every customer.' },
-  { title: 'Change it whenever', text: 'Update your text and photos with a link we email you.' },
-  { title: 'Your colours, your photos', text: 'Use your van colour. We keep the text easy to read.' },
-  { title: 'Easy for everyone to use', text: 'Clear, readable and checked for accessibility, automatically.' },
-  { title: 'No ads, no catches', text: 'No monthly fees, no upsell emails, no small print.' },
+/** `colour` is the icon block's brand colour. */
+export const GETS: { title: string; text: string; icon: GetIconName; colour: 'brick' | 'yellow' | 'lawn' | 'night' | 'blue' }[] = [
+  { title: 'Your own web address', text: `yourname.${BRAND.domain}, free. Or connect a domain you own.`, icon: 'globe', colour: 'brick' },
+  { title: 'Works on every phone', text: 'Your number is one tap away for every customer.', icon: 'phone', colour: 'yellow' },
+  { title: 'Change it whenever', text: 'Update your text and photos with a link we email you.', icon: 'pencil', colour: 'lawn' },
+  { title: 'Your colours, your photos', text: 'Use your van colour. We keep the text easy to read.', icon: 'palette', colour: 'night' },
+  { title: 'Easy for everyone to use', text: 'Clear, readable and checked for accessibility, automatically.', icon: 'access', colour: 'blue' },
+  { title: 'No ads, no catches', text: 'No monthly fees, no upsell emails, no small print.', icon: 'shield', colour: 'brick' },
 ]
 
 export const FAQS = [
