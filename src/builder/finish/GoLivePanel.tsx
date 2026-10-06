@@ -16,30 +16,34 @@ interface Props {
   trade: TradeConfig
   /** The saved draft, when this build has a server. */
   draft: Draft | null
-  /** Publishing with the admin key (Phase 1, until payments exist). */
+  /** Shows the admin key field (dev builds): publishing without paying, for testing and support. */
   adminPublish: boolean
   /** e.g. siteblocks.co.uk */
   domain: string
   onBusinessChange: (patch: Partial<BusinessInfo>) => void
   /** Measures every section on real screens first: the checked record, or null if that failed. */
   verify: () => Promise<Site | null>
+  /** Back from Stripe without paying. */
+  cancelled?: boolean
+  /** Sends the browser to Stripe's checkout page (swapped in tests). */
+  redirect?: (url: string) => void
 }
 
 const ADMIN_STORAGE = 'siteblocks.admin'
 const readAdmin = () => { try { return sessionStorage.getItem(ADMIN_STORAGE) ?? '' } catch { return '' } }
 const keepAdmin = (v: string) => { try { sessionStorage.setItem(ADMIN_STORAGE, v) } catch { /* not kept */ } }
 const emailSchema = z.string().trim().email()
-/** Card payments come in Phase 2; until then the panel doesn't promise them. */
-const PAYMENTS_OPEN = false
+const toStripe = (url: string) => window.location.assign(url)
+const CANCELLED = 'Payment cancelled: nothing was taken. Everything is kept, so go live whenever you’re ready.'
 
 type Check = { state: 'idle' | 'checking' } | { state: 'ok'; url?: string } | { state: 'bad'; message: string; suggestion?: string | null }
 
 /**
  * The go-live panel: web address (checked as it's typed, and again by the server), email
- * for the receipt and edit link, the price, and the one button. Publishing still uses the
- * admin key until payments open; without it the button says so plainly.
+ * for the receipt and edit link, the price, and the one button. Paying (Stripe Checkout) is
+ * what puts a site live; a paid site re-publishes free at its own address.
  */
-export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusinessChange, verify }: Props) {
+export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusinessChange, verify, cancelled, redirect = toStripe }: Props) {
   const slugId = useId()
   const emailRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
   const slugRef = useRef<HTMLInputElement>(null)
@@ -48,34 +52,45 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
   const [remote, setRemote] = useState<{ slug: string; check: Check } | null>(null)
   const [emailTouched, setEmailTouched] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(cancelled ? CANCELLED : null)
   const [live, setLive] = useState<string | null>(null)
 
+  // A paid site keeps the address it paid for (known once the server answers).
+  const paidSlug = draft?.account.paid && draft.published ? draft.published.slug : null
+  const paid = !!paidSlug
+  const shown = paidSlug ?? slug
   const email = site.business.email
   const emailError = emailTouched && email.trim() !== '' && !emailSchema.safeParse(email).success ? "That email doesn't look right. Check for a missing @ or dot." : null
-  const local = checkSlug(slug)
+  const local = checkSlug(shown)
   const server = !!draft?.enabled
-  const check: Check = !local.ok ? { state: 'bad', message: local.message } : !server ? { state: 'idle' } : remote?.slug === slug ? remote.check : { state: 'checking' }
+  const check: Check = paid ? { state: 'ok' } : !local.ok ? { state: 'bad', message: local.message } : !server ? { state: 'idle' } : remote?.slug === slug ? remote.check : { state: 'checking' }
 
-  const key = draft?.key
-  const saveNow = draft?.saveNow
   const slugStatus = draft?.slugStatus
   useEffect(() => {
-    if (!server || !saveNow || !slugStatus || !checkSlug(slug).ok) return
+    if (paid || !server || !slugStatus || !checkSlug(slug).ok) return
     let stale = false
     const t = setTimeout(async () => {
       let answer: Check = { state: 'idle' }
       try {
-        if (!key) await saveNow()
         const s = await slugStatus(slug)
         if (s) answer = s.available ? { state: 'ok', url: s.url } : { state: 'bad', message: s.message ?? 'That address is taken.', suggestion: s.suggestion }
       } catch {
-        // Unknown for now: the server checks again when publishing.
+        // Unknown for now: the server checks again at checkout.
       }
       if (!stale) setRemote({ slug, check: answer })
     }, 400)
     return () => { stale = true; clearTimeout(t) }
-  }, [slug, key, server, saveNow, slugStatus])
+  }, [slug, paid, server, slugStatus])
+
+  /** Puts the checked record live: free for a paid site, with the admin key when testing, else through Stripe. */
+  const goLive = async (d: Draft, checked: Site) => {
+    if (paid) return setLive((await d.publish(undefined, undefined, checked)).url)
+    if (adminPublish && admin) {
+      keepAdmin(admin)
+      return setLive((await d.publish(slug, admin, checked)).url)
+    }
+    redirect(await d.checkout(slug, checked))
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -87,24 +102,27 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
       return
     }
     if (check.state === 'bad') { slugRef.current?.focus(); return }
-    if (!draft?.enabled || !adminPublish) {
-      setMessage(draft?.enabled ? 'Payments open soon. Your site is saved, so you can go live as soon as they do.' : 'Going live isn’t switched on in this version of the builder.')
-      return
-    }
-    if (!admin) { setMessage('Publishing is invite-only until payments open: add the admin key.'); return }
+    if (!draft?.enabled) { setMessage('Going live isn’t switched on in this version of the builder.'); return }
     setBusy(true)
-    keepAdmin(admin)
     try {
       const checked = await verify()
       if (!checked) throw new Error('Checking the site failed')
       // The checked record goes up as it is, not as it was at the last render.
-      setLive((await draft.publish(slug, admin, checked)).url)
+      await goLive(draft, checked)
     } catch (err) {
-      setMessage(err instanceof ApiError ? err.message : 'We couldn’t publish just now. Please try again.')
+      setMessage(err instanceof ApiError ? err.message : 'We couldn’t go live just now. Please try again.')
       if (err instanceof ApiError && err.code === 'slug_taken') setRemote({ slug, check: { state: 'bad', message: err.message, suggestion: err.extra.suggestion as string | null } })
-    } finally {
       setBusy(false)
     }
+  }
+
+  if (draft?.account.refunded) {
+    return (
+      <aside aria-labelledby="live-h" className="bg-panel">
+        <h2 id="live-h" className="bg-h2">Refunded</h2>
+        <p>This site was refunded and taken down. To go live again, start a new site.</p>
+      </aside>
+    )
   }
 
   if (live) {
@@ -112,28 +130,29 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
       <aside aria-labelledby="live-h" className="bg-panel">
         <h2 id="live-h" className="bg-h2">It’s live.</h2>
         <p role="status">Your site is at <a href={live} target="_blank" rel="noreferrer">{live.replace(/^https:\/\//, '').replace(/\/$/, '')}</a></p>
-        <p className="bg-small">Changes you make later go live when you publish again.</p>
+        <p className="bg-small">Changes you make later go live, free, when you publish again.</p>
       </aside>
     )
   }
 
   return (
     <aside aria-labelledby="live-h" className="bg-panel">
-      <h2 id="live-h" className="bg-h2">Go live</h2>
+      <h2 id="live-h" className="bg-h2">{paid ? 'Publish your changes' : 'Go live'}</h2>
       <form className="bg-form" onSubmit={submit} noValidate>
         <div className="bf-field">
           <label htmlFor={slugId} className="bf-label">Your web address</label>
           <span className="bg-slug">
             <input
-              ref={slugRef} id={slugId} type="text" value={slug} maxLength={40} autoComplete="off" spellCheck={false} inputMode="url"
+              ref={slugRef} id={slugId} type="text" value={shown} maxLength={40} autoComplete="off" spellCheck={false} inputMode="url" readOnly={paid}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               aria-invalid={check.state === 'bad'} aria-describedby={`${slugId}-msg`}
             />
             <span aria-hidden="true">.{domain}</span>
           </span>
           <p id={`${slugId}-msg`} className={`bg-slug-msg bg-slug-msg--${check.state}`} aria-live="polite">
+            {paid && 'This address is yours. Need a different one? Get in touch.'}
             {check.state === 'checking' && 'Checking…'}
-            {check.state === 'ok' && <><span className="bg-ok-block" aria-hidden="true" />{slug}.{domain} is free. Got your own domain? Connect it after.</>}
+            {!paid && check.state === 'ok' && <><span className="bg-ok-block" aria-hidden="true" />{slug}.{domain} is free. Got your own domain? Connect it after.</>}
             {check.state === 'idle' && 'We check it’s free when you go live. Got your own domain? Connect it after.'}
             {check.state === 'bad' && check.message}
           </p>
@@ -146,22 +165,28 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
           value={email} onValue={v => onBusinessChange({ email: v })} onBlur={() => setEmailTouched(true)}
           hint="We'll send your receipt and a link to edit your site. Nothing else." error={emailError}
         />
-        {adminPublish && server && (
+        {adminPublish && server && !paid && (
           <TextField
             label="Admin key" type="password" autoComplete="off" value={admin} onValue={setAdmin}
-            hint="Publishing is invite-only until payments open."
+            hint="Testing only: publishes without paying. Leave it empty to pay."
           />
         )}
-        <div className="bg-price">
-          <span>One payment</span>
-          <span className="bg-price-big">{BRAND.price}</span>
-        </div>
-        <p className="bg-small">No monthly fees, ever. {BRAND.guarantee.line}</p>
+        {paid
+          ? <p className="bg-small">Paid. Publishing changes is free, as often as you like.</p>
+          : (
+            <>
+              <div className="bg-price">
+                <span>One payment</span>
+                <span className="bg-price-big">{BRAND.price}</span>
+              </div>
+              <p className="bg-small">No monthly fees, ever. {BRAND.guarantee.line}</p>
+            </>
+          )}
         <p className="bg-message" role="status" aria-live="polite">{message ?? ''}</p>
         <button type="submit" className="sb-main-btn bg-go" disabled={busy}>
-          {busy ? 'Going live…' : draft?.published ? 'Publish changes' : `Go live for ${BRAND.price}`}
+          {busy ? (paid ? 'Publishing…' : 'Going live…') : paid ? 'Publish changes' : `Go live for ${BRAND.price}`}
         </button>
-        {PAYMENTS_OPEN && <p className="bg-small bg-center">Card payment by Stripe. You'll come straight back to your live site.</p>}
+        {!paid && <p className="bg-small bg-center">Secure card payment by Stripe. Your card details go to Stripe, never to us.</p>}
       </form>
     </aside>
   )

@@ -5,7 +5,7 @@ A pay-once website builder for tradespeople. Vite + React + TypeScript.
 - `src/gen/`: the procedural section generator (framework-free: spec in, HTML out).
 - `src/site/`: the site record (`schema.ts`, `parseSite`) and how the builder edits it.
 - `src/publish/`: whole static pages from a saved record (meta tags, privacy notice, sitemap, address rules).
-- `server/`: publishing on Cloudflare: drafts, preview links, published sites. See [server/README.md](server/README.md).
+- `server/`: publishing on Cloudflare: checkout (Stripe), preview links, published sites, refunds. See [server/README.md](server/README.md), which also covers testing payments locally with the Stripe CLI and test cards.
 - `src/home/`: the homepage (`/`). `src/builder/`: the builder (`/build/`): Basics → Your look → Build → Go live.
 - `src/brand/`: siteblocks' own name (`config.ts`), tokens and logo, from [reference/design-handoff](reference/design-handoff/BRAND.md). Never used by customer sites.
 

@@ -3,7 +3,7 @@ import { checkSlug } from '../../src/publish/slug'
 import { slugFromHost } from './config'
 import { CACHE, htmlPage, pageHeaders } from './http'
 import type { Deps } from './ports'
-import { sitePrefix } from './storage'
+import { goneKey, sitePrefix } from './storage'
 import { serveFont, serveObject } from './static'
 
 const cacheFor = (file: string): string => (/^(site-[0-9a-f]+\.css|photos\/.+)$/.test(file) ? CACHE.immutable : CACHE.page)
@@ -27,6 +27,8 @@ export async function handleSite(req: Request, deps: Deps): Promise<Response> {
     const file = filePath(url.pathname)
     const res = file ? await serveObject(req, deps, sitePrefix(slug) + file, { ...headers, 'Cache-Control': cacheFor(file) }) : null
     if (res) return res
+    // A refunded site: every page of the address says so.
+    if (await deps.blobs.get(goneKey(slug))) return htmlPage(410, 'This site is no longer available', 'There is nothing at this address any more.', headers)
     const home = file === 'index.html'
     return notFound(home ? 'No site here yet' : 'Page not found', home ? 'This address has not been published.' : 'There is nothing at this address.')
   } catch (err) {

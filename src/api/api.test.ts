@@ -6,11 +6,13 @@ import { siteReducer } from '../site/reducer'
 import type { Site } from '../site/schema'
 import { ApiError, apiBase, createApi, siteDomain } from './client'
 import type { Api } from './client'
-import { forgetDraftKey, rememberDraftKey, resumeKeyFromHash, resumeLink, storedDraftKey } from './draftKey'
+import { editTokenFromHash, forgetDraftKey, refundTokenFromHash, rememberDraftKey, storedDraftKey } from './draftKey'
+import { loadLocalSite, saveLocalSite } from './localSite'
 import { dataUrlToBlob, uploadPhotos } from './uploadPhotos'
 import { useDraft } from './useDraft'
 
 const KEY = 'k'.repeat(43)
+const EDIT = `edit.${'a'.repeat(32)}.${'s'.repeat(43)}`
 const DATA_URL = `data:image/jpeg;base64,${btoa('\xff\xd8\xff\xe0fake')}`
 const withHero = (site: Site, url: string): Site => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Boiler' } } } })
 
@@ -34,12 +36,30 @@ describe('draft key', () => {
     expect(() => forgetDraftKey(broken)).not.toThrow()
   })
 
-  it('keeps the key after the # in resume links', () => {
-    const link = resumeLink('http://localhost:5173/?x=1#old', KEY)
-    expect(link).toBe(`http://localhost:5173/?x=1#resume=${KEY}`)
-    expect(resumeKeyFromHash(new URL(link).hash)).toBe(KEY)
-    expect(resumeKeyFromHash('#resume=short')).toBeNull()
-    expect(resumeKeyFromHash('')).toBeNull()
+  it('reads edit and refund tokens from links, and keeps an edit token as the key', () => {
+    expect(editTokenFromHash(`#edit=${EDIT}`)).toBe(EDIT)
+    expect(editTokenFromHash(`#edit=${KEY}`)).toBeNull()
+    expect(editTokenFromHash('#edit=edit.nope')).toBeNull()
+    const refund = EDIT.replace('edit.', 'refund.')
+    expect(refundTokenFromHash(`#refund=${refund}`)).toBe(refund)
+    expect(refundTokenFromHash(`#refund=${EDIT}`)).toBeNull()
+    rememberDraftKey(EDIT)
+    expect(storedDraftKey()).toBe(EDIT)
+  })
+})
+
+describe('the site kept in this browser', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('keeps and reads back a site, and ignores junk or full storage', () => {
+    expect(loadLocalSite()).toBeNull()
+    const site = finishedSite()
+    expect(saveLocalSite(site)).toBe(true)
+    expect(loadLocalSite()).toEqual(site)
+    localStorage.setItem('siteblocks.site', '{"hello":1}')
+    expect(loadLocalSite()).toBeNull()
+    const full = { setItem: () => { throw new Error('QuotaExceededError') } }
+    expect(saveLocalSite(site, full)).toBe(false)
   })
 })
 
@@ -78,6 +98,11 @@ describe('the API client', () => {
     const offline = createApi('https://api.x', (async () => { throw new TypeError('fail') }) as typeof fetch)
     await expect(offline.createDraft()).rejects.toBeInstanceOf(ApiError)
   })
+
+  it('reads a used or expired refund link as a state to show, not an error', async () => {
+    const api = createApi('https://api.x', (async () => new Response(JSON.stringify({ state: 'expired', support: 'help@x.co' }), { status: 409 })) as typeof fetch)
+    expect(await api.refund('t')).toEqual({ state: 'expired', support: 'help@x.co' })
+  })
 })
 
 describe('reducer: drafts', () => {
@@ -96,63 +121,121 @@ describe('reducer: drafts', () => {
 })
 
 describe('useDraft', () => {
-  const fakeApi = (record: unknown = null) => ({
+  const fakeApi = (record: unknown = null, state: { paid?: boolean; slug?: string | null } = {}) => ({
     createDraft: vi.fn(async () => KEY),
-    loadDraft: vi.fn(async () => ({ record, slug: null, publishedUrl: null, updatedAt: 1 })),
+    loadDraft: vi.fn(async () => ({ record, slug: state.slug ?? null, publishedUrl: state.slug ? `https://${state.slug}.x/` : null, updatedAt: 1, paid: !!state.paid, refunded: false })),
     saveDraft: vi.fn(async () => ({ updatedAt: 2 })),
     uploadPhoto: vi.fn(async () => 'https://preview.x/photos/a/b.jpg'),
     createPreview: vi.fn(async () => ({ url: 'https://preview.x/t/', expiresAt: '2026-11-01T00:00:00Z' })),
     slugStatus: vi.fn(async () => ({ slug: 'a', available: true })),
     publish: vi.fn(async () => ({ slug: 'joes', url: 'https://joes.x/' })),
+    checkout: vi.fn(async () => 'https://checkout.stripe.com/c/pay/cs_test_1'),
+    checkoutStatus: vi.fn(async () => ({ state: 'waiting' as const })),
+    refundStatus: vi.fn(async () => ({ state: 'used' as const })),
+    refund: vi.fn(async () => ({ state: 'used' as const })),
+    requestEditLink: vi.fn(async () => 'sent'),
   }) satisfies Api
 
   beforeEach(() => { localStorage.clear(); window.location.hash = '' })
   afterEach(() => vi.useRealTimers())
 
-  it('saves after edits: creates the draft, uploads photos, then saves the record with stored URLs', async () => {
+  it('autosaves in this browser only: photos uploaded, the record never sent', async () => {
     const api = fakeApi()
     const onUploaded = vi.fn()
     const site = withHero(finishedSite(), DATA_URL)
     const { result } = renderHook(() => useDraft({ api, site, autosave: true, onLoaded: vi.fn(), onUploaded }))
-    await waitFor(() => expect(api.saveDraft).toHaveBeenCalled(), { timeout: 4000 })
-    expect(api.createDraft).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(result.current.status.state).toBe('saved'), { timeout: 4000 })
     expect(api.uploadPhoto).toHaveBeenCalledTimes(1)
-    const saved = (api.saveDraft.mock.calls[0] as unknown as [string, Site])[1]
-    expect(saved.content.photos.hero?.url).toBe('https://preview.x/photos/a/b.jpg')
     expect(onUploaded).toHaveBeenCalledWith({ [DATA_URL]: 'https://preview.x/photos/a/b.jpg' })
+    expect(loadLocalSite()?.content.photos.hero?.url).toBe('https://preview.x/photos/a/b.jpg')
+    expect(api.saveDraft).not.toHaveBeenCalled()
     expect(storedDraftKey()).toBe(KEY)
-    await waitFor(() => expect(result.current.status.state).toBe('saved'))
   })
 
-  it('does not save the same record twice', async () => {
+  it('keeps a site with no photos without making a server copy at all', async () => {
     const api = fakeApi()
-    const site = finishedSite()
-    const { result } = renderHook(() => useDraft({ api, site, autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
+    const { result } = renderHook(() => useDraft({ api, site: finishedSite(), autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
     await act(async () => { await result.current.saveNow() })
-    await act(async () => { await result.current.saveNow() })
-    expect(api.saveDraft).toHaveBeenCalledTimes(1)
+    expect(loadLocalSite()).toEqual(finishedSite())
+    expect(api.createDraft).not.toHaveBeenCalled()
   })
 
-  it('reopens a draft from a resume link and keeps the key', async () => {
+  it('reopens this browser’s site on start, and learns whether it is paid for', async () => {
     const saved = finishedSite()
-    const api = fakeApi(JSON.parse(JSON.stringify(saved)))
-    window.location.hash = `#resume=${KEY}`
+    saveLocalSite(saved)
+    rememberDraftKey(KEY)
+    const api = fakeApi(null, { paid: true, slug: 'joes' })
     const onLoaded = vi.fn()
-    renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
-    await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(saved))
-    expect(api.loadDraft).toHaveBeenCalledWith(KEY)
-    expect(window.location.hash).toBe('')
-    expect(storedDraftKey()).toBe(KEY)
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    expect(onLoaded).toHaveBeenCalledWith(saved)
+    await waitFor(() => expect(result.current.account.paid).toBe(true))
+    expect(result.current.published).toEqual({ slug: 'joes', url: 'https://joes.x/' })
   })
 
-  it('forgets a key the server does not know', async () => {
+  it('opens a paid site from an edit link, on any device, and keeps the link as its key', async () => {
+    const saved = finishedSite()
+    const api = fakeApi(JSON.parse(JSON.stringify(saved)), { paid: true, slug: 'joes' })
+    window.location.hash = `#edit=${EDIT}`
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(saved))
+    expect(api.loadDraft).toHaveBeenCalledWith(EDIT)
+    expect(window.location.hash).toBe('')
+    expect(storedDraftKey()).toBe(EDIT)
+    expect(loadLocalSite()).toEqual(saved)
+    expect(result.current.account.paid).toBe(true)
+  })
+
+  it('asks before an edit link replaces a different site this browser is building', async () => {
+    const mine = finishedSite({ business: { name: 'Unpaid Ltd' } })
+    const paid = finishedSite({ business: { name: 'Paid Ltd' } })
+    for (const openLink of [false, true]) {
+      localStorage.clear()
+      saveLocalSite(mine)
+      rememberDraftKey(KEY)
+      window.location.hash = `#edit=${EDIT}`
+      const onLoaded = vi.fn()
+      const api = fakeApi(JSON.parse(JSON.stringify(paid)), { paid: true, slug: 'paid' })
+      const { result, unmount } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+      await waitFor(() => expect(result.current.conflict).toEqual({ here: 'Unpaid Ltd', link: 'Paid Ltd' }))
+      expect(onLoaded).not.toHaveBeenCalled()
+      expect(loadLocalSite()).toEqual(mine)
+      act(() => result.current.resolveConflict(openLink))
+      expect(onLoaded).toHaveBeenCalledWith(openLink ? paid : mine)
+      expect(loadLocalSite()).toEqual(openLink ? paid : mine)
+      expect(storedDraftKey()).toBe(openLink ? EDIT : KEY)
+      unmount()
+    }
+  })
+
+  it('drops photos the server cleared after 30 days unused, and says so', async () => {
+    saveLocalSite(withHero(finishedSite(), 'https://preview.x/photos/a/b.jpg'))
+    rememberDraftKey(KEY)
+    const api = { ...fakeApi(), loadDraft: vi.fn(async () => { throw new ApiError(401, 'unknown_draft', 'x') }) }
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(result.current.notice?.text).toContain('photos were cleared'))
+    expect(loadLocalSite()?.content.photos.hero).toBeNull()
+    expect(onLoaded).toHaveBeenLastCalledWith(expect.objectContaining({ content: expect.objectContaining({ photos: expect.objectContaining({ hero: null }) }) }))
+  })
+
+  it('says so when an edit link is not right', async () => {
+    window.location.hash = `#edit=${EDIT}`
+    const api = { ...fakeApi(), loadDraft: vi.fn(async () => { throw new ApiError(401, 'unknown_draft', 'x') }) }
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
+    await waitFor(() => expect(result.current.status).toMatchObject({ state: 'error', message: expect.stringContaining('edit link') }))
+  })
+
+  it('forgets a key the server no longer knows, keeping the site', async () => {
+    saveLocalSite(finishedSite())
     rememberDraftKey(KEY)
     const api = { ...fakeApi(), loadDraft: vi.fn(async () => { throw new ApiError(401, 'unknown_draft', 'x') }) }
     renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
     await waitFor(() => expect(storedDraftKey()).toBeNull())
+    expect(loadLocalSite()).not.toBeNull()
   })
 
-  it('never starts a new draft over a saved one that failed to open, and retries it', async () => {
+  it('never starts a new site over a server copy that failed to open, and retries it', async () => {
     rememberDraftKey(KEY)
     let fail = true
     const saved = finishedSite()
@@ -165,22 +248,38 @@ describe('useDraft', () => {
     await waitFor(() => expect(result.current.status.state).toBe('error'))
     await act(async () => { await result.current.saveNow() })
     expect(api.createDraft).not.toHaveBeenCalled()
-    expect(api.saveDraft).not.toHaveBeenCalled()
-    expect(storedDraftKey()).toBe(KEY)
+    expect(loadLocalSite()).toBeNull()
     fail = false
     act(() => result.current.retry())
     await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(saved))
     expect(result.current.key).toBe(KEY)
   })
 
-  it('saves before making a preview link or publishing', async () => {
+  it('sends the record before a preview link, a checkout or a publish, once per change', async () => {
     const api = fakeApi()
     const { result } = renderHook(() => useDraft({ api, site: finishedSite(), autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
     await act(async () => { await result.current.createPreview() })
     expect(api.saveDraft).toHaveBeenCalledTimes(1)
     expect(api.createPreview).toHaveBeenCalledWith(KEY)
-    await act(async () => { await result.current.publish('joes', 'admin') })
-    expect(api.publish).toHaveBeenCalledWith(KEY, 'joes', 'admin')
+    const checked = finishedSite({ business: { name: 'Checked Ltd' } })
+    let url = ''
+    await act(async () => { url = await result.current.checkout('joes', checked) })
+    expect(url).toBe('https://checkout.stripe.com/c/pay/cs_test_1')
+    expect(api.saveDraft).toHaveBeenCalledTimes(2)
+    expect((api.saveDraft.mock.calls[1] as unknown as [string, Site])[1].business.name).toBe('Checked Ltd')
+    expect(api.checkout).toHaveBeenCalledWith(KEY, 'joes')
+    await act(async () => { await result.current.publish(undefined, undefined, checked) })
+    expect(api.saveDraft).toHaveBeenCalledTimes(2)
+    expect(api.publish).toHaveBeenCalledWith(KEY, undefined, undefined)
     expect(result.current.published).toEqual({ slug: 'joes', url: 'https://joes.x/' })
+  })
+
+  it('forgets this browser’s site on Start over', async () => {
+    saveLocalSite(finishedSite())
+    rememberDraftKey(KEY)
+    const { result } = renderHook(() => useDraft({ api: fakeApi(), site: null, autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
+    act(() => result.current.forget())
+    expect(loadLocalSite()).toBeNull()
+    expect(storedDraftKey()).toBeNull()
   })
 })

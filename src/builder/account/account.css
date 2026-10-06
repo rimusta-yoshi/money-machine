@@ -1,0 +1,22 @@
+/* ============================================================
+   Pages around paying: publishing after payment, refunds, lost edit links
+   ============================================================ */
+.ba-root { min-height: 100vh; display: flex; flex-direction: column; background: var(--sb-white); }
+.ba-main { flex-grow: 1; display: flex; justify-content: center; align-items: flex-start; padding: 12vh 24px 48px; }
+.ba-card { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 18px; padding: 32px; border-radius: var(--sb-r-tile); background: var(--sb-mist); }
+.ba-card p { margin: 0; font-size: 17px; line-height: 1.5; }
+.ba-card form { display: flex; flex-direction: column; gap: 18px; }
+.ba-card .ba-small { font-size: 15px; color: var(--sb-muted-mist); }
+.ba-big-link { font-family: var(--sb-font-display); font-weight: 800; font-size: 20px; overflow-wrap: anywhere; }
+.ba-btn { align-self: flex-start; }
+.ba-wait { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+.ba-spin { flex: none; width: 22px; height: 22px; border-radius: 6px; background: var(--sb-brick); animation: ba-turn 1.2s ease-in-out infinite; }
+@keyframes ba-turn { 50% { transform: rotate(90deg); background: var(--sb-hard-hat); } }
+@media (prefers-reduced-motion: reduce) { .ba-spin { animation: none; } }
+.ba-error { color: var(--sb-error); font-weight: 700; }
+
+@media (max-width: 767px) {
+  .ba-main { padding: 24px 16px 32px; }
+  .ba-card { padding: 22px 18px; }
+  .ba-btn { align-self: stretch; }
+}

@@ -18,8 +18,18 @@
     "BUILDER_ORIGINS": "https://siteblocks.co.uk,https://www.siteblocks.co.uk,http://localhost:5173",
     // Staging: noindex on everything until launch.
     "NOINDEX": "true",
-    "PREVIEW_DAYS": "30"
-    // ADMIN_TOKEN is a secret: npx wrangler secret put ADMIN_TOKEN -c server/wrangler.api.jsonc
+    "PREVIEW_DAYS": "30",
+    // The product's name in emails and on Stripe's page. Changes here with the rename.
+    "BRAND_NAME": "Site Blocks",
+    // Where the homepage and builder live: links in emails, Stripe's return pages.
+    "APP_URL": "https://siteblocks.co.uk",
+    // The one price, in pence. The builder never sends an amount.
+    "PRICE_PENCE": "9900",
+    "REFUND_DAYS": "14",
+    "EMAIL_FROM": "Site Blocks <hello@siteblocks.co.uk>",
+    "SUPPORT_EMAIL": "help@siteblocks.co.uk"
+    // Secrets (never in this file): see server/README.md "Payments and email".
+    //   ADMIN_TOKEN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, LINK_SECRET, RESEND_API_KEY
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "siteblocks", "database_id": "400a2f77-8ebe-4878-8576-c9747999bc80", "migrations_dir": "migrations" }

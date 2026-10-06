@@ -20,7 +20,13 @@ export class ApiError extends Error {
   }
 }
 
-export interface DraftState { record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number }
+export interface DraftState { record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number; paid?: boolean; refunded?: boolean }
+export type CheckoutState = { state: 'waiting' } | { state: 'live'; url: string } | { state: 'refunded' }
+export type RefundState =
+  | { state: 'ok'; amount: number; siteUrl: string; until: string }
+  | { state: 'used' }
+  | { state: 'expired'; support: string }
+  | { state: 'refunded'; amount: number }
 export interface SlugStatus { slug: string; available: boolean; url?: string; message?: string; suggestion?: string | null }
 
 /** The API's address (VITE_API_URL), or null when this build has no server (nothing is saved). */
@@ -61,6 +67,17 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
       call<{ url: string }>('/v1/draft/photos', { method: 'POST', body: photo, headers: { 'Content-Type': photo.type || 'application/octet-stream' }, key }).then(r => r.url),
     createPreview: (key: string) => call<{ url: string; expiresAt: string }>('/v1/draft/preview', { method: 'POST', key }),
     slugStatus: (key: string, slug: string) => call<SlugStatus>(`/v1/slugs/${encodeURIComponent(slug)}`, { key }),
-    publish: (key: string, slug: string, admin: string) => call<{ slug: string; url: string }>('/v1/draft/publish', { ...json('POST', { slug }), key, admin }),
+    /** Puts the saved record live: free for a paid site (at its own address), else with the admin key. */
+    publish: (key: string, slug?: string, admin?: string) => call<{ slug: string; url: string }>('/v1/draft/publish', { ...json('POST', slug ? { slug } : {}), key, admin }),
+    /** Opens a Stripe Checkout for the saved record; the price is set by the server. */
+    checkout: (key: string, slug: string) => call<{ url: string }>('/v1/draft/checkout', { ...json('POST', { slug }), key }).then(r => r.url),
+    checkoutStatus: (sessionId: string) => call<CheckoutState>(`/v1/checkouts/${encodeURIComponent(sessionId)}`),
+    refundStatus: (token: string) => call<RefundState>('/v1/refund/status', json('POST', { token })),
+    /** A used or expired link answers 409 with its state, which is what the page shows. */
+    refund: (token: string) => call<RefundState>('/v1/refund', json('POST', { token })).catch(err => {
+      if (err instanceof ApiError && err.status === 409 && typeof err.extra.state === 'string') return { ...err.extra } as RefundState
+      throw err
+    }),
+    requestEditLink: (email: string) => call<{ message: string }>('/v1/edit-link', json('POST', { email })).then(r => r.message),
   }
 }

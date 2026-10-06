@@ -6,7 +6,10 @@
 // https://<slug>.siteblocks.localhost:8787 (Chrome sends *.localhost to this machine). The
 // certificate is self-signed: open https://api.siteblocks.localhost:8787/health once and
 // accept it (and the same for preview. and each site address). Data is kept in .wrangler/dev-stack.
-import { readFileSync } from 'node:fs'
+//
+// Payments: put Stripe test keys in server/.dev.vars (git-ignored; see server/README.md) and
+// forward webhooks with the Stripe CLI. Without them, checkout says payments aren't open.
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { STOCK_PHOTO_FILES } from '../src/sample/stockPhotoFiles.ts'
 import { startStack } from '../server/test/stack.ts'
@@ -15,17 +18,37 @@ const PORT = 8787
 const BASE = `siteblocks.localhost:${PORT}`
 /** Local only. The real one is a wrangler secret. */
 const ADMIN = 'local-admin-key-0123456789abcdef'
+const DEV_VARS = join(process.cwd(), 'server', '.dev.vars')
 
+/** KEY=value lines (wrangler's .dev.vars format); # starts a comment, values may be quoted. */
+function readDevVars(file: string): Record<string, string> {
+  if (!existsSync(file)) return {}
+  const vars: Record<string, string> = {}
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const m = /^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line)
+    if (m && !line.trimStart().startsWith('#')) vars[m[1]] = m[2].replace(/^(['"])(.*)\1$/, '$2')
+  }
+  return vars
+}
+
+const devVars = readDevVars(DEV_VARS)
 const stack = await startStack({
   baseDomain: BASE, port: PORT, https: true, adminToken: ADMIN, builderOrigins: 'http://localhost:5173',
   persistTo: join(process.cwd(), '.wrangler', 'dev-stack'),
+  // Stripe sends people back to the local builder; emails are logged unless RESEND_API_KEY is set.
+  vars: { APP_URL: 'http://localhost:5173', BRAND_NAME: 'Site Blocks', ...devVars },
 })
 const bucket = await stack.mf.getR2Bucket('BUCKET', 'api')
 for (const file of STOCK_PHOTO_FILES) {
   await bucket.put(`samples/${file}`, readFileSync(join(process.cwd(), 'reference', 'sample-photos', file)), { httpMetadata: { contentType: 'image/jpeg' } })
 }
+const payments = devVars.STRIPE_SECRET_KEY
+  ? `Payments on (Stripe test mode). Forward webhooks:
+  stripe listen --forward-to https://127.0.0.1:${PORT}/v1/stripe/webhook --skip-verify`
+  : `Payments off: add Stripe test keys to server/.dev.vars to turn them on.`
 console.log(`API      https://api.${BASE}
 Previews https://preview.${BASE}/<token>/
 Sites    https://<slug>.${BASE}/
-Admin key for publishing: ${ADMIN}
+Admin key (publishing without paying): ${ADMIN}
+${payments}
 Builder: npm run dev:api  (Vite with VITE_API_URL=https://api.${BASE})`)

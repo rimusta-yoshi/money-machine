@@ -42,5 +42,6 @@ export function client(s: Stack, base = BASE) {
     save: (key: string, site: Site | unknown) => call('/v1/draft', { method: 'PUT', key, json: site }),
     preview: async (key: string) => (await (await call('/v1/draft/preview', { method: 'POST', key })).json()) as { url: string; expiresAt: string },
     publish: (key: string, slug: string, admin = ADMIN) => call('/v1/draft/publish', { method: 'POST', key, json: { slug }, admin }),
+    checkout: (key: string, slug: string, extra: Record<string, unknown> = {}) => call('/v1/draft/checkout', { method: 'POST', key, json: { slug, ...extra } }),
   }
 }

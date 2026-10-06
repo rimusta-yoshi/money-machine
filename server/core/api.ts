@@ -1,4 +1,6 @@
 import { STOCK_PHOTO_FILES } from '../../src/sample/stockPhotoFiles'
+import { refund, refundStatus, requestEditLink } from './account'
+import { checkoutStatus, createCheckout } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
 import { corsHeaders, errorResponse, HttpError, htmlPage, json, withHeaders } from './http'
@@ -6,6 +8,7 @@ import type { Deps } from './ports'
 import { createPreview, servePreviewHost } from './preview'
 import { publish, slugStatus } from './publish'
 import { serveObject } from './static'
+import { stripeWebhook } from './webhook'
 
 function decodeSegment(s: string): string {
   try {
@@ -25,10 +28,18 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/draft\/photos$/, uploadPhoto],
   ['POST', /^\/v1\/draft\/preview$/, createPreview],
   ['POST', /^\/v1\/draft\/publish$/, publish],
+  ['POST', /^\/v1\/draft\/checkout$/, createCheckout],
+  ['GET', /^\/v1\/checkouts\/([A-Za-z0-9_]{1,255})$/, checkoutStatus],
+  ['POST', /^\/v1\/stripe\/webhook$/, stripeWebhook],
+  ['POST', /^\/v1\/refund\/status$/, refundStatus],
+  ['POST', /^\/v1\/refund$/, refund],
+  ['POST', /^\/v1\/edit-link$/, requestEditLink],
   ['GET', /^\/v1\/slugs\/([^/]{1,64})$/, (req, deps, slug) => slugStatus(req, deps, decodeSegment(slug))],
   ['GET', /^\/samples\/([a-z-]+\.jpg)$/, sample],
   ['GET', /^\/health$/, async () => json({ ok: true })],
 ]
+
+const WEBHOOK = '/v1/stripe/webhook'
 
 /** The builder's sample stock photos (never published), from storage, for listed builder origins. */
 async function sample(req: Request, deps: Deps, file: string): Promise<Response> {
@@ -61,7 +72,9 @@ async function handleApiHost(req: Request, deps: Deps): Promise<Response> {
 export async function handleApi(req: Request, deps: Deps): Promise<Response> {
   const host = new URL(req.url).host.toLowerCase()
   try {
-    if (host === apiHost(deps.config)) return await handleApiHost(req, deps)
+    // Stripe's webhook is signed, so it's taken on any host this worker answers (the Stripe CLI
+    // forwards to 127.0.0.1 when testing locally).
+    if (host === apiHost(deps.config) || new URL(req.url).pathname === WEBHOOK) return await handleApiHost(req, deps)
     if (host === previewHost(deps.config)) return await servePreviewHost(req, deps)
     return htmlPage(404, 'Page not found', 'There is nothing at this address.', {})
   } catch (err) {

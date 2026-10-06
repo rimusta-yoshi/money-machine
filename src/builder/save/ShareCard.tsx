@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
-import { resumeLink } from '../../api/draftKey'
 import type { Draft } from '../../api/useDraft'
 import { CopyLink } from './CopyLink'
 import './save.css'
@@ -9,7 +8,7 @@ interface Props {
   draft: Draft
 }
 
-/** On the go-live step: a preview link to share before publishing, and a link to carry on editing later. */
+/** On the go-live step: a preview link to share before going live. */
 export function ShareCard({ draft }: Props) {
   const [preview, setPreview] = useState<{ url: string; expiresAt: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -36,13 +35,6 @@ export function ShareCard({ draft }: Props) {
         ? <CopyLink label="Preview link" url={preview.url} hint={`Works until ${expires}. Search engines won’t list it.`} />
         : <button type="button" className="mm-share-btn" onClick={makePreview} disabled={busy}>{busy ? 'Making a link…' : 'Get a preview link'}</button>}
       {error && <p className="mm-fld-err" role="alert">{error}</p>}
-      {draft.key && (
-        <CopyLink
-          label="Your link to carry on editing"
-          url={resumeLink(window.location.href, draft.key)}
-          hint="Opens this site in the builder on any device. Anyone with it can edit your site, so keep it to yourself."
-        />
-      )}
     </section>
   )
 }
