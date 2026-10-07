@@ -7,8 +7,8 @@ import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, DraftRow } from './ports'
 import { paymentsOn } from './checkout'
-import { takeDown } from './publish'
-import { linkRef, signLink, verifyLink } from './tokens'
+import { takeDownOwn } from './publish'
+import { signLink, verifyLink } from './tokens'
 
 /** After paying: the welcome email, edit links, and self-serve refunds within the guarantee. */
 
@@ -19,8 +19,9 @@ function linkSecret(c: Config): string {
   return c.linkSecret
 }
 
-export const editLink = async (c: Config, d: Pick<DraftRow, 'ref' | 'linkVersion'>): Promise<string> =>
-  `${builderUrl(c)}#edit=${await signLink(linkSecret(c), 'edit', d.ref, d.linkVersion)}`
+/** Edit link number n for a site (0: the welcome email's). */
+export const editLink = async (c: Config, ref: string, n: number): Promise<string> =>
+  `${builderUrl(c)}#edit=${await signLink(linkSecret(c), 'edit', ref, n)}`
 export const refundLink = async (c: Config, ref: string): Promise<string> => `${builderUrl(c)}#refund=${await signLink(linkSecret(c), 'refund', ref)}`
 
 /** Sends the welcome email once per paid site (whichever webhook delivery gets there first). */
@@ -34,7 +35,7 @@ export async function sendWelcome(deps: Deps, draft: DraftRow): Promise<void> {
     console.error('No receipt link from Stripe', err)
   }
   const sent = await sendQuietly(deps.mailer, welcomeEmail(deps.config, {
-    to: p.email, siteUrl: `${siteOrigin(deps.config, draft.slug)}/`, editLink: await editLink(deps.config, draft),
+    to: p.email, siteUrl: `${siteOrigin(deps.config, draft.slug)}/`, editLink: await editLink(deps.config, draft.ref, 0),
     refundLink: await refundLink(deps.config, draft.ref), amount: p.amount, paidAt: p.paidAt, reference: draft.ref.slice(0, 8).toUpperCase(), receiptUrl,
   }))
   // Not sent: give the claim back, and fail so Stripe delivers the event again later.
@@ -50,7 +51,7 @@ export async function sendWelcome(deps: Deps, draft: DraftRow): Promise<void> {
  */
 export async function refundedAndDown(deps: Deps, draft: DraftRow, refundId: string | null): Promise<void> {
   const first = await deps.db.markRefunded(draft.ref, deps.now(), refundId)
-  if (draft.slug) await takeDown(deps, draft.slug)
+  await takeDownOwn(deps, draft)
   if (first && draft.payment) {
     await sendQuietly(deps.mailer, refundEmail(deps.config, draft.payment.email, `${siteOrigin(deps.config, draft.slug ?? '')}/`, draft.payment.amount))
   }
@@ -62,17 +63,19 @@ type RefundState =
   | { state: 'ok'; draft: DraftRow; amount: number; siteUrl: string; until: string }
   | { state: 'used' }
   | { state: 'expired'; support: string }
+  | { state: 'disputed'; support: string }
 
 async function refundState(req: Request, deps: Deps): Promise<RefundState> {
   const parsed = tokenBody.safeParse(await readJson(req, SIZE.smallJson))
-  const token = parsed.success ? parsed.data.token : ''
-  const ref = linkRef('refund', token)
-  const genuine = !!ref && (await verifyLink(linkSecret(deps.config), 'refund', token))
-  const draft = genuine ? await deps.db.draftByRef(ref!) : null
+  const claim = parsed.success ? await verifyLink(linkSecret(deps.config), 'refund', parsed.data.token) : null
+  const draft = claim ? await deps.db.draftByRef(claim.ref) : null
   if (!draft?.payment) throw new HttpError(404, 'unknown_link', 'That refund link isn’t right. Check it’s the whole link from your email.')
   if (draft.refundedAt) return { state: 'used' }
+  const support = deps.config.email.support.replace(/^.*<([^>]+)>$/, '$1')
+  // The bank is already handling the money: refunding too would pay it back twice.
+  if (draft.disputedAt) return { state: 'disputed', support }
   const until = draft.payment.paidAt + deps.config.refundDays * DAY
-  if (deps.now() > until) return { state: 'expired', support: deps.config.email.support.replace(/^.*<([^>]+)>$/, '$1') }
+  if (deps.now() > until) return { state: 'expired', support }
   return { state: 'ok', draft, amount: draft.payment.amount, siteUrl: draft.slug ? `${siteOrigin(deps.config, draft.slug)}/` : '', until: new Date(until).toISOString() }
 }
 
@@ -110,11 +113,11 @@ export async function requestEditLink(req: Request, deps: Deps): Promise<Respons
   if (sites.length) {
     const now = deps.now()
     const links = await Promise.all(sites.map(async d => {
-      // A fresh link cuts off the old ones (in case one was shared or left on another device).
-      const linkVersion = await deps.db.bumpLinkVersion(d.ref)
+      // A new link leaves the old ones working until the owner opens it.
+      const n = await deps.db.issueEditLink(d.ref)
       const until = d.payment!.paidAt + deps.config.refundDays * DAY
       return {
-        siteUrl: `${siteOrigin(deps.config, d.slug!)}/`, editLink: await editLink(deps.config, { ref: d.ref, linkVersion }),
+        siteUrl: `${siteOrigin(deps.config, d.slug!)}/`, editLink: await editLink(deps.config, d.ref, n),
         refund: now <= until ? { link: await refundLink(deps.config, d.ref), until } : null,
       }
     }))

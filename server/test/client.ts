@@ -8,6 +8,8 @@ export const ADMIN = 'test-admin-key-0123456789abcdef'
 export const BASE = 'siteblocks.test'
 export const API = `https://api.${BASE}`
 export const BUILDER = 'http://localhost:5173'
+/** The tester code in the payment test stacks (server/test/fakeStripe.ts). */
+export const TESTER_CODE = 'tester-code-0123'
 
 export const photoBytes = (file = 'bathroom.jpg'): Uint8Array<ArrayBuffer> => new Uint8Array(readFileSync(join(process.cwd(), 'reference', 'sample-photos', file)))
 
@@ -42,6 +44,7 @@ export function client(s: Stack, base = BASE) {
     save: (key: string, site: Site | unknown) => call('/v1/draft', { method: 'PUT', key, json: site }),
     preview: async (key: string) => (await (await call('/v1/draft/preview', { method: 'POST', key })).json()) as { url: string; expiresAt: string },
     publish: (key: string, slug: string, admin = ADMIN) => call('/v1/draft/publish', { method: 'POST', key, json: { slug }, admin }),
-    checkout: (key: string, slug: string, extra: Record<string, unknown> = {}) => call('/v1/draft/checkout', { method: 'POST', key, json: { slug, ...extra } }),
+    /** Sends the test stack's tester code unless told otherwise (orders aren't open before launch). */
+    checkout: (key: string, slug: string, extra: Record<string, unknown> = {}) => call('/v1/draft/checkout', { method: 'POST', key, json: { slug, testerCode: TESTER_CODE, ...extra } }),
   }
 }

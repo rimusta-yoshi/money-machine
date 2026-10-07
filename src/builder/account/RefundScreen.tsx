@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '../../api/client'
 import type { Api, RefundState } from '../../api/client'
 import { BRAND } from '../../brand/config'
+import { money } from '../../brand/price'
 import { AccountShell } from './AccountShell'
 
 interface Props {
@@ -12,7 +13,6 @@ interface Props {
 
 type View = { state: 'loading' } | { state: 'invalid'; message: string } | RefundState
 
-const money = (pence: number) => `£${(pence / 100).toFixed(pence % 100 ? 2 : 0)}`
 const bare = (url: string) => url.replace(/^https:\/\//, '').replace(/\/$/, '')
 
 /**
@@ -52,6 +52,12 @@ export function RefundScreen({ api, token }: Props) {
       return (
         <AccountShell title={`The ${BRAND.guarantee.days}-day guarantee has ended`}>
           <p>Refunds through this link work for {BRAND.guarantee.days} days after paying. Get in touch at <a href={`mailto:${view.support}`}>{view.support}</a> and we’ll see what we can do.</p>
+        </AccountShell>
+      )
+    case 'disputed':
+      return (
+        <AccountShell title="Your payment is being disputed">
+          <p>Your bank is looking into this payment, so it can’t be refunded here as well. Get in touch at <a href={`mailto:${view.support}`}>{view.support}</a> if you need help.</p>
         </AccountShell>
       )
     case 'refunded':

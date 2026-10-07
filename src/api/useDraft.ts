@@ -260,9 +260,9 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded }: Options)
   }, [api, sendToServer])
 
   /** Sends the checked record and opens a Stripe Checkout for it: resolves to Stripe's page. */
-  const checkout = useCallback(async (slug: string, latest?: Site) => {
+  const checkout = useCallback(async (slug: string, latest?: Site, testerCode?: string) => {
     const k = await sendToServer(latest)
-    return api!.checkout(k, slug)
+    return api!.checkout(k, slug, testerCode)
   }, [api, sendToServer])
 
   /** Re-publishes a paid site for free (slug omitted), or publishes with the admin key (testing and support). */

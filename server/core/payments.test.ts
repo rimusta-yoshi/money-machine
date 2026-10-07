@@ -3,7 +3,7 @@ import { money, parseConfig } from './config'
 import { logMailer, mailerFor, resendMailer, sendQuietly } from './email'
 import { welcomeEmail } from './emails'
 import { stripePayments, stripeSignature, verifyStripeSignature } from './stripe'
-import { linkRef, signLink, verifyLink } from './tokens'
+import { parseLink, signLink, verifyLink } from './tokens'
 
 const env = { BASE_DOMAIN: 'siteblocks.co.uk' }
 const stripe = { STRIPE_SECRET_KEY: 'sk_test_abc123', STRIPE_WEBHOOK_SECRET: 'whsec_abc123', LINK_SECRET: 'x'.repeat(32) }
@@ -15,6 +15,13 @@ describe('payment settings', () => {
     expect(parseConfig({ ...env, ...stripe, BRAND_NAME: 'Local Blocks', APP_URL: 'http://localhost:5173/' })).toMatchObject({
       stripe: { secretKey: 'sk_test_abc123', webhookSecret: 'whsec_abc123' }, brandName: 'Local Blocks', appUrl: 'http://localhost:5173',
     })
+  })
+
+  it('takes orders only once launched; before that, testers need a code', () => {
+    expect(parseConfig(env)).toMatchObject({ launched: false, testerCode: null })
+    expect(parseConfig({ ...env, LAUNCHED: 'true', TESTER_CODE: 'tester-1234' })).toMatchObject({ launched: true, testerCode: 'tester-1234' })
+    expect(() => parseConfig({ ...env, LAUNCHED: 'yes' })).toThrow()
+    expect(() => parseConfig({ ...env, TESTER_CODE: 'short' })).toThrow()
   })
 
   it('refuses live keys unless switched on, and payments without a link secret', () => {
@@ -37,14 +44,17 @@ describe('signed links', () => {
   const ref = 'a'.repeat(32)
   it('verifies only genuine links for their own purpose', async () => {
     const token = await signLink('s'.repeat(32), 'edit', ref, 2)
-    expect(linkRef('edit', token)).toBe(ref)
-    expect(await verifyLink('s'.repeat(32), 'edit', token, 2)).toBe(true)
-    // A newer link version cuts off this one.
-    expect(await verifyLink('s'.repeat(32), 'edit', token, 3)).toBe(false)
-    expect(await verifyLink('s'.repeat(32), 'refund', token, 2)).toBe(false)
-    expect(await verifyLink('t'.repeat(32), 'edit', token, 2)).toBe(false)
-    expect(await verifyLink('s'.repeat(32), 'edit', token.replace(ref, 'b'.repeat(32)), 2)).toBe(false)
-    expect(await verifyLink('s'.repeat(32), 'edit', 'edit.nope')).toBe(false)
+    expect(token).toMatch(new RegExp(`^edit\\.${ref}\\.2\\.[\\w-]{43}$`))
+    expect(parseLink(token)).toEqual({ purpose: 'edit', ref, n: 2 })
+    expect(await verifyLink('s'.repeat(32), 'edit', token)).toEqual({ purpose: 'edit', ref, n: 2 })
+    // The number is signed: changing it breaks the link.
+    expect(await verifyLink('s'.repeat(32), 'edit', token.replace(`.${ref}.2.`, `.${ref}.3.`))).toBeNull()
+    expect(await verifyLink('s'.repeat(32), 'refund', token)).toBeNull()
+    expect(await verifyLink('t'.repeat(32), 'edit', token)).toBeNull()
+    expect(await verifyLink('s'.repeat(32), 'edit', token.replace(ref, 'b'.repeat(32)))).toBeNull()
+    expect(await verifyLink('s'.repeat(32), 'edit', 'edit.nope')).toBeNull()
+    const refund = await signLink('s'.repeat(32), 'refund', ref)
+    expect(await verifyLink('s'.repeat(32), 'refund', refund)).toEqual({ purpose: 'refund', ref, n: 0 })
   })
 })
 

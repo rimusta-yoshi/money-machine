@@ -1,4 +1,5 @@
 import { BRAND } from '../brand/config'
+import { PRICE } from '../brand/price'
 import type { TradeId } from '../types'
 import type { GetIconName } from './GetIcon'
 
@@ -17,7 +18,7 @@ export const TRADE_LINKS: { id: TradeId; label: string }[] = [
 export const HOW_STEPS = [
   { title: 'Pick your trade', text: 'We fill in the basics: your services, the right wording, the sections customers look for.' },
   { title: 'Stack your blocks', text: 'Flick through designs for each section and keep the ones you like. Add your photos and details.' },
-  { title: 'Go live', text: `Pay ${BRAND.price} once and your site's online, ready for your van, your cards and Google.` },
+  { title: 'Go live', text: `Pay ${PRICE} once and your site's online, ready for your van, your cards and Google.` },
 ]
 
 /** `colour` is the icon block's brand colour. */
@@ -32,7 +33,7 @@ export const GETS: { title: string; text: string; icon: GetIconName; colour: 'br
 
 export const FAQS = [
   { q: 'Do I need to be good with computers?', a: 'No. If you can pick from a few options on your phone, you can build your site.' },
-  { q: 'Are there really no monthly fees?', a: `Really. You pay ${BRAND.price} once and your site stays online.` },
+  { q: 'Are there really no monthly fees?', a: `Really. You pay ${PRICE} once and your site stays online.` },
   { q: 'Can I use my own domain?', a: 'Yes. Buy it wherever you like and follow our short guide to connect it.' },
   { q: 'What if I’m not happy?', a: `Building is free, so you only pay once you’re happy. And if you change your mind within ${BRAND.guarantee.days} days of paying, we’ll give you your money back. No questions asked.` },
   { q: 'Can I change my site later?', a: 'Yes. We email you a link to update your text and photos whenever you need.' },

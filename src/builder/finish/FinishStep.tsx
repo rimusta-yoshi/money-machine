@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
 import { THEMES } from '../../gen'
+import type { Shop } from '../../api/client'
 import type { Draft } from '../../api/useDraft'
 import type { BusinessInfo, SectionType, TradeConfig } from '../../types'
 import type { Site } from '../../site/schema'
@@ -27,6 +28,8 @@ interface Props {
   verify: () => Promise<Site | null>
   /** Back from Stripe without paying. */
   cancelled?: boolean
+  /** The server's price and whether orders are open. */
+  shop?: Shop | null
   /** Start a new site from scratch. */
   onReset: () => void
   /** The preview link, when the builder has a server. */
@@ -40,7 +43,7 @@ const Tick = () => (
 )
 
 /** Final step: what's ready, photos worth adding, anything still hidden, and the go-live panel. */
-export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, cancelled, onReset, share }: Props) {
+export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, cancelled, shop, onReset, share }: Props) {
   const shareId = useId()
   const [sharing, setSharing] = useState(false)
   const b = site.business
@@ -111,7 +114,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEdi
         {share && <div id={shareId} hidden={!sharing}>{share}</div>}
       </section>
 
-      <GoLivePanel site={site} trade={trade} draft={draft} adminPublish={adminPublish} domain={domain} onBusinessChange={onBusinessChange} verify={verify} cancelled={cancelled} />
+      <GoLivePanel site={site} trade={trade} draft={draft} adminPublish={adminPublish} domain={domain} onBusinessChange={onBusinessChange} verify={verify} cancelled={cancelled} shop={shop} />
     </main>
   )
 }

@@ -47,6 +47,35 @@ async function paidSite(slug: string) {
   return { ...d, session, welcome, editToken: link('edit'), refundToken: link('refund') }
 }
 
+describe('before launch', () => {
+  it('opens no checkout without the tester code', async () => {
+    const { key } = await ready()
+    const before = stripe.sessions.size
+    for (const testerCode of [undefined, '', 'wrong-code-0000']) {
+      const res = await c.checkout(key, 'too-early', { testerCode })
+      expect(res.status).toBe(403)
+      expect(await res.json()).toMatchObject({ error: 'not_launched', message: expect.stringContaining('not taking orders yet') })
+    }
+    expect(stripe.sessions.size).toBe(before)
+    expect((await c.checkout(key, 'too-early')).status).toBe(201)
+    expect(await (await c.call('/v1/config')).json()).toEqual({ pricePence: 9900, currency: 'gbp', launched: false, refundDays: 14 })
+  })
+
+  it('needs no code once launched', async () => {
+    const launched = await startStack({ baseDomain: BASE, vars: { ...PAYMENT_VARS, LAUNCHED: 'true', PRICE_PENCE: '7900' }, outbound: stripe.handle })
+    try {
+      const lc = client(launched)
+      const key = await lc.newDraft()
+      await lc.save(key, finishedSite())
+      expect((await lc.checkout(key, 'launched-site', { testerCode: undefined })).status).toBe(201)
+      expect(stripe.lastSession().amount).toBe(7900)
+      expect(await (await lc.call('/v1/config')).json()).toMatchObject({ pricePence: 7900, launched: true })
+    } finally {
+      await launched.close()
+    }
+  }, 60_000)
+})
+
 describe('checkout', () => {
   it('opens a Stripe Checkout at the configured price, whatever the builder sends', async () => {
     const { key, email } = await ready()
@@ -226,10 +255,12 @@ describe('edit links', () => {
     expect(sent.text).toContain('https://app.siteblocks.test/build/#edit=')
     // Still within the guarantee: the refund link comes too.
     expect(sent.text).toContain('https://app.siteblocks.test/build/#refund=')
-    // The fresh link works; the old one no longer does.
+    // Asking for a link revokes nothing: the old one works until the new one is opened.
     const fresh = /#edit=([\w.-]+)/.exec(sent.text)![1]
+    expect((await c.call('/v1/draft', { key: p.editToken })).status).toBe(200)
     expect((await c.call('/v1/draft', { key: fresh })).status).toBe(200)
     expect((await c.call('/v1/draft', { key: p.editToken })).status).toBe(401)
+    expect((await c.call('/v1/draft', { key: fresh })).status).toBe(200)
     expect((await ask('not an email')).status).toBe(422)
   })
 })
@@ -289,16 +320,71 @@ describe('refunds', () => {
     for (const token of [p.editToken, `refund.${'a'.repeat(32)}.${'b'.repeat(43)}`, 'nonsense']) expect((await status(token)).status, token).toBe(404)
   })
 
-  it('a refund from the Stripe dashboard takes the site down too; a partial one leaves it up', async () => {
+  it('a refund from the Stripe dashboard takes the site down too; a partial one leaves it up, recorded', async () => {
     const partial = await paidSite('partly-refunded')
-    expect((await send(stripe.chargeRefunded(partial.session.paymentIntent, { full: false }))).status).toBe(200)
+    expect((await send(stripe.chargeRefunded(partial.session.paymentIntent, { full: false, amountRefunded: 2500 }))).status).toBe(200)
     expect((await site('partly-refunded')).status).toBe(200)
+    const row = await (await s.db()).prepare('SELECT refunded_amount, refunded_at FROM drafts WHERE stripe_payment_intent = ?1').bind(partial.session.paymentIntent).first()
+    expect(row).toEqual({ refunded_amount: 2500, refunded_at: null })
 
     const p = await paidSite('dashboard-refund')
     expect((await send(stripe.chargeRefunded(p.session.paymentIntent))).status).toBe(200)
     expect((await site('dashboard-refund')).status).toBe(410)
     expect(stripe.emailsTo(p.email).map(e => e.subject)).toContain('Refund on its way: £99')
     expect(await (await status(p.refundToken)).json()).toEqual({ state: 'used' })
+  })
+})
+
+describe('refunded addresses', () => {
+  it('are freed for anyone 90 days after the refund, and the old site can never take them back down', async () => {
+    const p = await paidSite('free-again')
+    expect((await c.call('/v1/refund', { method: 'POST', json: { token: p.refundToken } })).status).toBe(200)
+    const other = await ready()
+    expect(await (await c.call('/v1/slugs/free-again', { key: other.key })).json()).toMatchObject({ available: false })
+    const worker = await s.mf.getWorker('api')
+    await worker.scheduled({ cron: '17 3 * * *' })
+    expect(await (await c.call('/v1/slugs/free-again', { key: other.key })).json()).toMatchObject({ available: false })
+
+    await sql('UPDATE drafts SET refunded_at = refunded_at - ?1 WHERE stripe_session_id = ?2', 91 * DAY, p.session.id)
+    await worker.scheduled({ cron: '17 3 * * *' })
+    expect(await (await c.call('/v1/slugs/free-again', { key: other.key })).json()).toMatchObject({ available: true })
+    expect(await (await site('free-again')).text()).toContain('No site here yet')
+    expect((await c.publish(other.key, 'free-again', ADMIN)).status).toBe(200)
+    // A late event for the old site leaves the new one alone.
+    expect((await send(stripe.chargeRefunded(p.session.paymentIntent))).status).toBe(200)
+    expect((await site('free-again')).status).toBe(200)
+  })
+})
+
+describe('disputes', () => {
+  it('take the site down while open, and put it back when won', async () => {
+    const p = await paidSite('disputed-won')
+    const opened = stripe.dispute(p.session.paymentIntent, 'created')
+    expect((await send(opened)).status).toBe(200)
+    expect(await send(opened).then(r => r.json())).toEqual({ received: true, duplicate: true })
+    expect((await site('disputed-won')).status).toBe(410)
+    // The owner can't put it back up, or refund it on top of the bank's chargeback.
+    expect((await c.call('/v1/draft/publish', { method: 'POST', key: p.editToken, json: {} })).status).toBe(403)
+    expect(await (await c.call('/v1/refund/status', { method: 'POST', json: { token: p.refundToken } })).json()).toEqual({ state: 'disputed', support: 'help@siteblocks.test' })
+    expect(await (await c.call('/v1/draft', { key: p.key })).json()).toMatchObject({ disputed: true, publishedUrl: null })
+
+    const won = stripe.dispute(p.session.paymentIntent, 'closed', 'won')
+    expect((await send(won)).status).toBe(200)
+    expect((await send({ ...won, id: `${won.id}x` })).status).toBe(200)
+    const back = await site('disputed-won')
+    expect(back.status).toBe(200)
+    expect(await back.text()).toContain('Joe')
+    expect((await c.call('/v1/draft/publish', { method: 'POST', key: p.editToken, json: {} })).status).toBe(200)
+  })
+
+  it('leave the site down when lost', async () => {
+    const p = await paidSite('disputed-lost')
+    await send(stripe.dispute(p.session.paymentIntent, 'created'))
+    await send(stripe.dispute(p.session.paymentIntent, 'closed', 'lost'))
+    // A stray "won" after a loss changes nothing.
+    await send(stripe.dispute(p.session.paymentIntent, 'closed', 'won'))
+    expect((await site('disputed-lost')).status).toBe(410)
+    expect((await c.call('/v1/draft/publish', { method: 'POST', key: p.editToken, json: {} })).status).toBe(403)
   })
 })
 

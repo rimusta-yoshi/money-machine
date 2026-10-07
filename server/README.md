@@ -21,6 +21,11 @@ visitor ──<slug>.siteblocks.co.uk──▶ site worker ──▶ R2 sites/<s
 
 ### How paying works
 
+0. **Before launch** (`LAUNCHED` is `false`): a checkout needs the tester code (`TESTER_CODE`
+   secret), typed on the go-live step or given in a link, `/build/?tester=<code>`. Without it the
+   go-live step says "We're not taking orders yet" and no Checkout Session is created. The builder
+   reads the price and the launch flag from `GET /v1/config`; the price is set only in
+   `PRICE_PENCE` (the homepage and builder are also built with that value).
 1. **Go live for £99**: the builder sends the checked record (`PUT /v1/draft`), then
    `POST /v1/draft/checkout {slug}`. The server checks the site is ready, holds the address for
    45 minutes (nobody else can check out or publish it meanwhile) and opens a Stripe Checkout
@@ -35,14 +40,19 @@ visitor ──<slug>.siteblocks.co.uk──▶ site worker ──▶ R2 sites/<s
    publishes the record checked at checkout, and sends the welcome email once. If the same site is
    paid for twice (two tabs), the second payment is refunded straight away.
 4. **Edit link** (`/build/#edit=<token>`, in the welcome email): opens the paid site in the builder
-   on any device. *Publish changes* re-publishes free, at the address paid for. "Lost your edit
-   link?" (`/build/#lost-link`) emails fresh links to the payment email only, answering the same
-   either way.
+   on any device. *Publish changes* re-publishes free, at the address paid for (changing the
+   address needs the admin key until redirects exist). "Lost your edit link?" (`/build/#lost-link`)
+   emails a new, numbered link to the payment email only, answering the same either way. Asking
+   revokes nothing; opening a link cuts off every link issued before it.
 5. **Refund link** (`/build/#refund=<token>`): valid 14 days from payment (`REFUND_DAYS`), works once.
    It refunds the full amount through Stripe (idempotency key per payment), takes the site down
    (the address says "This site is no longer available") and emails a confirmation.
    `charge.refunded` does the same for refunds made in the Stripe dashboard, and copes with the
-   refund link having done it already. Partial refunds leave the site up.
+   refund link having done it already. Partial refunds leave the site up and are recorded
+   (`drafts.refunded_amount`). A refunded address is freed for anyone 90 days after the refund.
+6. **Disputes** (chargebacks): `charge.dispute.created` takes the site down the same way, and the
+   owner can't re-publish or self-refund meanwhile. `charge.dispute.closed` with status `won` puts
+   the site back as it was; `lost` leaves it down.
 
 Edit and refund links are HMAC-signed with `LINK_SECRET` (rotating it invalidates every link).
 Paid sites stay `noindex` while `NOINDEX` is `true`; unpaid sites published with the admin key
@@ -119,7 +129,11 @@ is printed by `dev:stack`.
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
    LINK_SECRET=any-long-random-string-of-32-or-more-characters
+   TESTER_CODE=any-code-of-8-or-more
    ```
+
+   Then open the builder as `http://localhost:5173/build/?tester=<that code>` (or set
+   `LAUNCHED=true` in the same file).
 
    `RESEND_API_KEY=re_...` is optional: without it every email is written to the `dev:stack`
    terminal instead (with its edit and refund links), which is all local testing needs.
@@ -251,13 +265,15 @@ Check: https://api.siteblocks.co.uk/health answers `{"ok":true}`.
 | `PREVIEW_DAYS` | API config | How long preview links work (30). |
 | `BRAND_NAME` | API config | The product's name in emails and on Stripe's page (changes with the rename). |
 | `APP_URL` | API config | Where the homepage and builder live: Stripe's return pages and the links in emails. |
-| `PRICE_PENCE` | API config | The one price, in pence (`9900`). |
+| `PRICE_PENCE` | API config | The one price, in pence (`9900`). The only place it's set: the builder asks the server (`GET /v1/config`), and the homepage and builder are built with it. |
+| `LAUNCHED` | API config | `false` until launch: checkouts need the tester code. `true` takes orders from everyone. |
 | `REFUND_DAYS` | API config | How long the self-serve refund link works after paying (`14`). |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | API config | Sender of every email, and the address replies and "get in touch" go to. |
 | `ADMIN_TOKEN` | API secret | Publishing without paying, for testing and support. Unset: closed. |
 | `STRIPE_SECRET_KEY` | API secret | `sk_test_…`. Unset: checkout says payments aren't open. A live key (`sk_live_…`) is refused unless `STRIPE_ALLOW_LIVE=true`. |
 | `STRIPE_WEBHOOK_SECRET` | API secret | `whsec_…`, from the webhook endpoint in the Stripe dashboard. |
 | `LINK_SECRET` | API secret | Signs edit and refund links (32+ characters). Needed when payments are on. |
+| `TESTER_CODE` | API secret | Lets testers check out before launch (8+ characters). Unset: nobody can until `LAUNCHED` is `true`. |
 | `RESEND_API_KEY` | API secret | Sends email through Resend. Unset: emails are written to the worker's log instead (fine for testing, not for customers: the log then holds their links). |
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
@@ -273,7 +289,7 @@ Everything here is **test mode**. Live keys come with launch, not before.
    **Secret key** (`sk_test_…`).
 2. **Developers** → **Webhooks** → **Add endpoint**. URL `https://api.siteblocks.co.uk/v1/stripe/webhook`.
    Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
-   `charge.refunded`. **Add endpoint**, then reveal and copy its **Signing secret** (`whsec_…`).
+   `charge.refunded`, `charge.dispute.created`, `charge.dispute.closed`. **Add endpoint**, then reveal and copy its **Signing secret** (`whsec_…`).
 3. **Settings** → **Business** → **Public details**: the business name and support email people
    see on Stripe's page and their bank statement.
 
@@ -307,7 +323,13 @@ npx wrangler secret put LINK_SECRET -c server/wrangler.api.jsonc
 npx wrangler secret put RESEND_API_KEY -c server/wrangler.api.jsonc
 ```
 
-Then apply the new database migration and deploy:
+The tester code (any 8+ characters you'll give testers; make one the same way as the link secret):
+
+```bash
+npx wrangler secret put TESTER_CODE -c server/wrangler.api.jsonc
+```
+
+Then apply the new database migrations and deploy:
 
 ```bash
 npm run cf:migrate

@@ -6,8 +6,8 @@
  */
 
 const STORAGE_KEY = 'siteblocks.draft'
-/** A draft key (this browser's own) or an edit link's token (edit.<ref>.<signature>). */
-const KEY_SHAPE = /^([A-Za-z0-9_-]{43}|edit\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43})$/
+/** A draft key (this browser's own) or an edit link's token (edit.<ref>.<number>.<signature>). */
+const KEY_SHAPE = /^([A-Za-z0-9_-]{43}|edit\.[0-9a-f]{32}\.\d{1,9}\.[A-Za-z0-9_-]{43})$/
 const REFUND_SHAPE = /^refund\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/
 
 export function storedDraftKey(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): string | null {

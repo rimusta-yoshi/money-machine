@@ -26,10 +26,12 @@
     // The one price, in pence. The builder never sends an amount.
     "PRICE_PENCE": "9900",
     "REFUND_DAYS": "14",
+    // "true" opens orders to everyone. Until then a checkout needs the TESTER_CODE secret.
+    "LAUNCHED": "false",
     "EMAIL_FROM": "Site Blocks <hello@siteblocks.co.uk>",
     "SUPPORT_EMAIL": "help@siteblocks.co.uk"
     // Secrets (never in this file): see server/README.md "Payments and email".
-    //   ADMIN_TOKEN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, LINK_SECRET, RESEND_API_KEY
+    //   ADMIN_TOKEN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, LINK_SECRET, RESEND_API_KEY, TESTER_CODE
   },
   "d1_databases": [
     { "binding": "DB", "database_name": "siteblocks", "database_id": "400a2f77-8ebe-4878-8576-c9747999bc80", "migrations_dir": "migrations" }

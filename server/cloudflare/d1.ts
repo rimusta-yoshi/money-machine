@@ -4,6 +4,7 @@ interface DraftDbRow {
   ref: string; record: string | null; slug: string | null; updated_at: number; published_at: number | null
   email: string | null; paid_at: number | null; stripe_session_id: string | null; stripe_payment_intent: string | null
   amount: number | null; currency: string | null; welcome_sent_at: number | null; refunded_at: number | null; link_version: number
+  link_floor: number; disputed_at: number | null; dispute_lost_at: number | null; refunded_amount: number | null
 }
 
 interface CheckoutDbRow { session_id: string; ref: string; slug: string; email: string; record: string; created_at: number; expires_at: number }
@@ -15,14 +16,15 @@ const toDraft = (r: DraftDbRow | null): DraftRow | null =>
       sessionId: r.stripe_session_id ?? '', paymentIntent: r.stripe_payment_intent ?? '', amount: r.amount ?? 0,
       currency: r.currency ?? '', email: r.email ?? '', paidAt: r.paid_at,
     },
-    welcomeSentAt: r.welcome_sent_at, refundedAt: r.refunded_at, linkVersion: r.link_version ?? 0,
+    welcomeSentAt: r.welcome_sent_at, refundedAt: r.refunded_at, linksIssued: r.link_version ?? 0, linkFloor: r.link_floor ?? 0,
+    disputedAt: r.disputed_at, disputeLostAt: r.dispute_lost_at, refundedAmount: r.refunded_amount,
   }
 
 const toCheckout = (r: CheckoutDbRow | null): CheckoutRow | null =>
   r && { sessionId: r.session_id, ref: r.ref, slug: r.slug, email: r.email, record: r.record, createdAt: r.created_at, expiresAt: r.expires_at }
 
 const DRAFT_COLUMNS = `ref, record, slug, updated_at, published_at, email, paid_at, stripe_session_id, stripe_payment_intent,
-  amount, currency, welcome_sent_at, refunded_at, link_version`
+  amount, currency, welcome_sent_at, refunded_at, link_version, link_floor, disputed_at, dispute_lost_at, refunded_amount`
 const DAY_SEC = 24 * 60 * 60
 const DAY_MS = DAY_SEC * 1000
 /** Stripe retries an event for up to 3 days; ids (and old checkouts) are kept well past that. */
@@ -82,7 +84,7 @@ export function d1Database(db: D1Database): Database {
     },
     async markPublished(ref, slug, now) {
       const [published] = await db.batch([
-        db.prepare('UPDATE drafts SET slug = ?2, published_at = ?3 WHERE ref = ?1 AND refunded_at IS NULL').bind(ref, slug, now),
+        db.prepare('UPDATE drafts SET slug = ?2, published_at = ?3 WHERE ref = ?1 AND refunded_at IS NULL AND disputed_at IS NULL').bind(ref, slug, now),
         db.prepare('UPDATE slugs SET held_until = NULL WHERE slug = ?2 AND ref = ?1').bind(ref, slug),
         db.prepare('DELETE FROM slugs WHERE ref = ?1 AND slug != ?2').bind(ref, slug),
       ])
@@ -108,9 +110,28 @@ export function d1Database(db: D1Database): Database {
     async releaseWelcome(ref) {
       await db.prepare('UPDATE drafts SET welcome_sent_at = NULL WHERE ref = ?1').bind(ref).run()
     },
-    async bumpLinkVersion(ref) {
+    async issueEditLink(ref) {
       const row = await db.prepare('UPDATE drafts SET link_version = link_version + 1 WHERE ref = ?1 RETURNING link_version').bind(ref).first<{ link_version: number }>()
       return row?.link_version ?? 0
+    },
+    async raiseLinkFloor(ref, n) {
+      await db.prepare('UPDATE drafts SET link_floor = MAX(link_floor, ?2) WHERE ref = ?1').bind(ref, n).run()
+    },
+    async markDisputed(ref, now) {
+      return changed(await db.prepare('UPDATE drafts SET disputed_at = ?2 WHERE ref = ?1 AND disputed_at IS NULL').bind(ref, now).run())
+    },
+    async endDispute(ref, won, now) {
+      return changed(await (won
+        ? db.prepare('UPDATE drafts SET disputed_at = NULL WHERE ref = ?1 AND disputed_at IS NOT NULL AND dispute_lost_at IS NULL').bind(ref)
+        : db.prepare('UPDATE drafts SET dispute_lost_at = ?2, disputed_at = COALESCE(disputed_at, ?2) WHERE ref = ?1 AND dispute_lost_at IS NULL').bind(ref, now)
+      ).run())
+    },
+    async recordPartialRefund(ref, amountRefunded) {
+      await db.prepare('UPDATE drafts SET refunded_amount = MAX(COALESCE(refunded_amount, 0), ?2) WHERE ref = ?1').bind(ref, amountRefunded).run()
+    },
+    async releaseRefundedSlugs(before) {
+      const rows = await db.prepare('DELETE FROM slugs WHERE ref IN (SELECT ref FROM drafts WHERE refunded_at < ?1) RETURNING slug').bind(before).all<{ slug: string }>()
+      return rows.results.map(r => r.slug)
     },
     async releaseHolds(ref, except) {
       await db.prepare('DELETE FROM slugs WHERE ref = ?1 AND slug != ?2 AND held_until IS NOT NULL').bind(ref, except).run()

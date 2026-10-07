@@ -9,6 +9,7 @@ export const STRIPE_KEY = 'sk_test_fake0123456789'
 export const WEBHOOK_SECRET = 'whsec_fake0123456789abcdef'
 export const LINK_SECRET = 'test-link-secret-0123456789abcdefghij'
 export const RESEND_KEY = 're_fake0123456789'
+import { TESTER_CODE } from './client'
 
 export interface FakeSession { id: string; ref: string; slug: string; email: string; amount: number; currency: string; successUrl: string; cancelUrl: string; paymentIntent: string }
 export interface SentEmail { from: string; to: string[]; subject: string; html: string; text: string }
@@ -74,13 +75,18 @@ export function fakeStripe() {
     }
   }
 
-  const chargeRefunded = (paymentIntent: string, o: { full?: boolean; eventId?: string } = {}) => ({
+  const chargeRefunded = (paymentIntent: string, o: { full?: boolean; eventId?: string; amountRefunded?: number } = {}) => ({
     id: o.eventId ?? id('evt'), type: 'charge.refunded',
-    data: { object: { id: `ch_${paymentIntent}`, object: 'charge', payment_intent: paymentIntent, refunded: o.full ?? true, refunds: { data: [{ id: id('re_dash') }] } } },
+    data: { object: { id: `ch_${paymentIntent}`, object: 'charge', payment_intent: paymentIntent, refunded: o.full ?? true, amount_refunded: o.amountRefunded ?? 9900, refunds: { data: [{ id: id('re_dash') }] } } },
+  })
+
+  const dispute = (paymentIntent: string, type: 'created' | 'closed', status = 'needs_response', eventId?: string) => ({
+    id: eventId ?? id('evt'), type: `charge.dispute.${type}`,
+    data: { object: { id: id('dp'), object: 'dispute', charge: `ch_${paymentIntent}`, payment_intent: paymentIntent, status, amount: 9900 } },
   })
 
   return {
-    handle, webhook, completed, chargeRefunded, sessions, refunds, emails,
+    handle, webhook, completed, chargeRefunded, dispute, sessions, refunds, emails,
     failRefunds: (on: boolean) => { failRefunds = on },
     failEmails: (on: boolean) => { failEmails = on },
     lastSession: () => [...sessions.values()].at(-1)!,
@@ -95,6 +101,9 @@ export const PAYMENT_VARS = {
   LINK_SECRET,
   RESEND_API_KEY: RESEND_KEY,
   APP_URL: 'https://app.siteblocks.test',
+  // Before launch: checkouts need the tester code (the test client sends it).
+  LAUNCHED: 'false',
+  TESTER_CODE,
   BRAND_NAME: 'Test Blocks',
   EMAIL_FROM: 'Test Blocks <hello@siteblocks.test>',
   SUPPORT_EMAIL: 'help@siteblocks.test',

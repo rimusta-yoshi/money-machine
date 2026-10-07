@@ -1,4 +1,5 @@
 import { BRAND } from '../brand/config'
+import { PRICE } from '../brand/price'
 import { BUILDER_URL, builderFor, TRADE_LINKS } from './content'
 
 /** The top bento: the pitch, the price with the money-back guarantee, two numbers and the trade picker. */
@@ -22,10 +23,10 @@ export function HomeHero() {
           <span className="hp-price-label">One price</span>
           <span className="hp-price-mark" aria-hidden="true"><span /><span /><span /><span /></span>
         </div>
-        <p className="hp-price-main"><span className="hp-price-big">{BRAND.price}</span><span className="hp-price-once">once. That's it.</span></p>
+        <p className="hp-price-main"><span className="hp-price-big">{PRICE}</span><span className="hp-price-once">once. That's it.</span></p>
         <div className="hp-guarantee">
           <span className="hp-guarantee-badge" aria-hidden="true"><b>{BRAND.guarantee.days}</b>days</span>
-          <p><b>Money-back guarantee.</b> Not happy? Get your {BRAND.price} back within {BRAND.guarantee.days} days. No questions asked.</p>
+          <p><b>Money-back guarantee.</b> Not happy? Get your {PRICE} back within {BRAND.guarantee.days} days. No questions asked.</p>
         </div>
       </div>
 

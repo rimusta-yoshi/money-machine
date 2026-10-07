@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig } from 'vitest/config'
 import type { Plugin } from 'vite'
@@ -12,9 +13,17 @@ const brandName = (): Plugin => ({
 
 const page = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 
+/**
+ * The price is set in one place, the API worker's config (PRICE_PENCE in server/wrangler.api.jsonc).
+ * The homepage and builder are built with it; the builder also asks the server when it runs.
+ */
+const PRICE_PENCE = Number(/"PRICE_PENCE"\s*:\s*"(\d+)"/.exec(readFileSync(page('./server/wrangler.api.jsonc'), 'utf8'))?.[1])
+if (!Number.isInteger(PRICE_PENCE) || PRICE_PENCE <= 0) throw new Error('PRICE_PENCE not found in server/wrangler.api.jsonc')
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), brandName()],
+  define: { __PRICE_PENCE__: JSON.stringify(PRICE_PENCE) },
   build: {
     rollupOptions: {
       // The homepage at the root, the builder at /build/.

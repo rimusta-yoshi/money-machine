@@ -2,14 +2,17 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { z } from 'zod'
 import { ApiError } from '../../api/client'
+import type { Shop } from '../../api/client'
 import type { Draft } from '../../api/useDraft'
 import { BRAND } from '../../brand/config'
+import { BUILT_PRICE_PENCE, money } from '../../brand/price'
 import { checkSlug, slugCandidates } from '../../publish/slug'
 import { isReadyToPublish } from '../../site/checklist'
 import { LIMITS } from '../../site/limits'
 import type { Site } from '../../site/schema'
 import type { BusinessInfo, TradeConfig } from '../../types'
 import { TextField } from '../ui/TextField'
+import { keepTesterCode, storedTesterCode } from './testerCode'
 
 interface Props {
   site: Site
@@ -25,6 +28,8 @@ interface Props {
   verify: () => Promise<Site | null>
   /** Back from Stripe without paying. */
   cancelled?: boolean
+  /** The server's price and whether orders are open (null until it answers). */
+  shop?: Shop | null
   /** Sends the browser to Stripe's checkout page (swapped in tests). */
   redirect?: (url: string) => void
 }
@@ -35,6 +40,7 @@ const keepAdmin = (v: string) => { try { sessionStorage.setItem(ADMIN_STORAGE, v
 const emailSchema = z.string().trim().email()
 const toStripe = (url: string) => window.location.assign(url)
 const CANCELLED = 'Payment cancelled: nothing was taken. Everything is kept, so go live whenever you’re ready.'
+const NOT_YET = 'We’re not taking orders yet. Your site is kept in this browser, so you can go live as soon as we are.'
 
 type Check = { state: 'idle' | 'checking' } | { state: 'ok'; url?: string } | { state: 'bad'; message: string; suggestion?: string | null }
 
@@ -43,7 +49,7 @@ type Check = { state: 'idle' | 'checking' } | { state: 'ok'; url?: string } | { 
  * for the receipt and edit link, the price, and the one button. Paying (Stripe Checkout) is
  * what puts a site live; a paid site re-publishes free at its own address.
  */
-export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusinessChange, verify, cancelled, redirect = toStripe }: Props) {
+export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusinessChange, verify, cancelled, shop = null, redirect = toStripe }: Props) {
   const slugId = useId()
   const emailRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
   const slugRef = useRef<HTMLInputElement>(null)
@@ -54,6 +60,11 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(cancelled ? CANCELLED : null)
   const [live, setLive] = useState<string | null>(null)
+  const [testerCode, setTesterCode] = useState(storedTesterCode)
+  const [closedByServer, setClosedByServer] = useState(false)
+  // Before launch only testers can pay; the server says which, and checks again.
+  const ordersClosed = closedByServer || (shop ? !shop.launched : false)
+  const price = money(shop?.pricePence ?? BUILT_PRICE_PENCE)
 
   // A paid site keeps the address it paid for (known once the server answers).
   const paidSlug = draft?.account.paid && draft.published ? draft.published.slug : null
@@ -89,7 +100,9 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
       keepAdmin(admin)
       return setLive((await d.publish(slug, admin, checked)).url)
     }
-    redirect(await d.checkout(slug, checked))
+    const code = testerCode.trim()
+    if (code) keepTesterCode(code)
+    redirect(await d.checkout(slug, checked, code || undefined))
   }
 
   const submit = async (e: FormEvent) => {
@@ -103,6 +116,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
     }
     if (check.state === 'bad') { slugRef.current?.focus(); return }
     if (!draft?.enabled) { setMessage('Going live isn’t switched on in this version of the builder.'); return }
+    if (!paid && !(adminPublish && admin) && ordersClosed && !testerCode.trim()) { setMessage(NOT_YET); return }
     setBusy(true)
     try {
       const checked = await verify()
@@ -111,6 +125,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
       await goLive(draft, checked)
     } catch (err) {
       setMessage(err instanceof ApiError ? err.message : 'We couldn’t go live just now. Please try again.')
+      if (err instanceof ApiError && err.code === 'not_launched') setClosedByServer(true)
       if (err instanceof ApiError && err.code === 'slug_taken') setRemote({ slug, check: { state: 'bad', message: err.message, suggestion: err.extra.suggestion as string | null } })
       setBusy(false)
     }
@@ -165,6 +180,12 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
           value={email} onValue={v => onBusinessChange({ email: v })} onBlur={() => setEmailTouched(true)}
           hint="We'll send your receipt and a link to edit your site. Nothing else." error={emailError}
         />
+        {ordersClosed && !paid && (
+          <TextField
+            label="Tester code" type="text" autoComplete="off" spellCheck={false} value={testerCode} onValue={setTesterCode}
+            hint="We’re not taking orders yet. Testing for us? Enter your code."
+          />
+        )}
         {adminPublish && server && !paid && (
           <TextField
             label="Admin key" type="password" autoComplete="off" value={admin} onValue={setAdmin}
@@ -177,14 +198,14 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
             <>
               <div className="bg-price">
                 <span>One payment</span>
-                <span className="bg-price-big">{BRAND.price}</span>
+                <span className="bg-price-big">{price}</span>
               </div>
               <p className="bg-small">No monthly fees, ever. {BRAND.guarantee.line}</p>
             </>
           )}
         <p className="bg-message" role="status" aria-live="polite">{message ?? ''}</p>
         <button type="submit" className="sb-main-btn bg-go" disabled={busy}>
-          {busy ? (paid ? 'Publishing…' : 'Going live…') : paid ? 'Publish changes' : `Go live for ${BRAND.price}`}
+          {busy ? (paid ? 'Publishing…' : 'Going live…') : paid ? 'Publish changes' : `Go live for ${price}`}
         </button>
         {!paid && <p className="bg-small bg-center">Secure card payment by Stripe. Your card details go to Stripe, never to us.</p>}
       </form>

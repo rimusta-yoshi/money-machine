@@ -7,14 +7,17 @@ import { HttpError, json, readBody, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import { draftPhotoKey, draftPhotoPrefix, draftPhotoUrl, ownPhotoName, photoName } from './photos'
 import type { Deps, DraftRow } from './ports'
-import { DRAFT_KEY, LINK_TOKEN, linkRef, newDraftKey, newRef, sha256Hex, verifyLink } from './tokens'
+import { DRAFT_KEY, LINK_TOKEN, newDraftKey, newRef, sha256Hex, verifyLink } from './tokens'
 
 /** The draft an edit link (from the welcome email) opens: paid sites only. */
 async function draftByEditLink(token: string, deps: Deps): Promise<DraftRow | null> {
-  const ref = linkRef('edit', token)
-  const draft = ref && deps.config.linkSecret ? await deps.db.draftByRef(ref) : null
-  if (!draft?.payment) return null
-  return (await verifyLink(deps.config.linkSecret!, 'edit', token, draft.linkVersion)) ? draft : null
+  const claim = deps.config.linkSecret ? await verifyLink(deps.config.linkSecret, 'edit', token) : null
+  const draft = claim ? await deps.db.draftByRef(claim.ref) : null
+  // Links issued before one the owner has since opened no longer work.
+  if (!claim || !draft?.payment || claim.n < draft.linkFloor || claim.n > draft.linksIssued) return null
+  // Opening a newer link cuts off every link issued before it.
+  if (claim.n > draft.linkFloor) await deps.db.raiseLinkFloor(draft.ref, claim.n)
+  return { ...draft, linkFloor: claim.n }
 }
 
 /**
@@ -71,10 +74,11 @@ export async function getDraft(req: Request, deps: Deps): Promise<Response> {
   return json({
     record: storedRecord(draft),
     slug: draft.slug,
-    publishedUrl: draft.slug && !draft.refundedAt ? `${siteOrigin(deps.config, draft.slug)}/` : null,
+    publishedUrl: draft.slug && !draft.refundedAt && !draft.disputedAt ? `${siteOrigin(deps.config, draft.slug)}/` : null,
     updatedAt: draft.updatedAt,
     paid: !!draft.payment,
     refunded: !!draft.refundedAt,
+    disputed: !!draft.disputedAt,
   })
 }
 

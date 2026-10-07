@@ -1,4 +1,5 @@
 import { BRAND } from '../brand/config'
+import { PRICE } from '../brand/price'
 import { BUILDER_URL, FAQS, GETS, HOW_STEPS } from './content'
 import { GetIcon } from './GetIcon'
 
@@ -38,8 +39,8 @@ export function Pricing() {
         </div>
         <div className="hp-vs-us">
           <span className="hp-vs-label">{BRAND.name}</span>
-          <span className="hp-vs-big">{BRAND.price}</span>
-          <span className="hp-vs-note">once, for good. Year one, year three, year ten: still {BRAND.price}. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
+          <span className="hp-vs-big">{PRICE}</span>
+          <span className="hp-vs-note">once, for good. Year one, year three, year ten: still {PRICE}. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
         </div>
         <span className="hp-vs-badge" aria-hidden="true">vs</span>
       </div>
@@ -51,7 +52,7 @@ export function WhatYouGet() {
   return (
     <section aria-labelledby="get-h" className="hp-bento hp-gap-top">
       <div className="hp-tile hp-get-title">
-        <h2 id="get-h" className="hp-h2">What you get for {BRAND.price}</h2>
+        <h2 id="get-h" className="hp-h2">What you get for {PRICE}</h2>
         <p>Everything a tradesperson needs from a website. Nothing you'll never use.</p>
       </div>
       <ul className="hp-gets">

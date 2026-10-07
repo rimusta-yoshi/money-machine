@@ -4,6 +4,7 @@ import type { Browser, Page } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { afterAll, beforeAll, expect, it } from 'vitest'
+import { TESTER_CODE } from '../server/test/client'
 import { fakeStripe, PAYMENT_VARS } from '../server/test/fakeStripe'
 import { startStack } from '../server/test/stack'
 import type { Stack } from '../server/test/stack'
@@ -65,7 +66,8 @@ it('builds, previews, pays for, edits and refunds a site from the builder', asyn
   const errors: string[] = []
   page.on('pageerror', e => errors.push(e.message))
 
-  await page.goto(`http://localhost:${BUILDER_PORT}/build/`)
+  // Before launch: a tester link (the code is kept for the tab and taken out of the address).
+  await page.goto(`${BUILDER}/build/?tester=${TESTER_CODE}`)
   await page.getByRole('radio', { name: 'Plumber' }).check({ force: true })
   await page.getByLabel('Business name').fill('Riverside Plumbing')
   await page.getByLabel('Phone number').fill('0113 496 0123')
@@ -104,6 +106,8 @@ it('builds, previews, pays for, edits and refunds a site from the builder', asyn
   const slug = page.getByLabel('Your web address')
   expect(await slug.inputValue()).toBe('riverside-plumbing')
   await page.getByText(/riverside-plumbing\.siteblocks\.localhost:8791 is free\./).waitFor({ timeout: 30_000 })
+  // Not launched yet: the tester code from the link is filled in.
+  expect(await page.getByLabel('Tester code').inputValue()).toBe(TESTER_CODE)
   await shot(page, '4-go-live-panel')
   await page.route('https://checkout.stripe.test/**', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Stripe</title><h1>Pay</h1>' }))
   await page.getByRole('button', { name: 'Go live for £99' }).click()

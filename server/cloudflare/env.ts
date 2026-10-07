@@ -23,6 +23,7 @@ export interface Env {
   APP_URL?: string
   PRICE_PENCE?: string
   REFUND_DAYS?: string
+  LAUNCHED?: string
   EMAIL_FROM?: string
   SUPPORT_EMAIL?: string
   /** Secrets (wrangler secret put; .dev.vars locally). */
@@ -31,6 +32,7 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET?: string
   LINK_SECRET?: string
   RESEND_API_KEY?: string
+  TESTER_CODE?: string
 }
 
 let cached: { env: Env; config: Config } | null = null
