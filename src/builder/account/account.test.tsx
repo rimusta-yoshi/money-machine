@@ -65,6 +65,10 @@ describe('the refund link', () => {
     cleanup()
     render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'used' as const })) })} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Already refunded' })).toBeTruthy())
+    cleanup()
+    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'disputed' as const, support: 'help@siteblocks.co.uk' })) })} token={TOKEN} />)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Your payment is being disputed' })).toBeTruthy())
+    expect(screen.queryByRole('button')).toBeNull()
   })
 })
 

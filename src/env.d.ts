@@ -1,5 +1,8 @@
 /// <reference types="vite/client" />
 
+/** PRICE_PENCE from server/wrangler.api.jsonc, filled in at build time (vite.config.ts). */
+declare const __PRICE_PENCE__: number
+
 interface ImportMetaEnv {
   /** The API's address, e.g. https://api.siteblocks.co.uk. Unset: the builder saves nothing. */
   readonly VITE_API_URL?: string

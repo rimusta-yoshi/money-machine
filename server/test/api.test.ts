@@ -177,11 +177,12 @@ describe('publishing', () => {
     expect((await c.publish(key, 'no-admin-plumbing', 'wrong-key-0123456789abcdef')).status).toBe(403)
   })
 
-  it('says checkout is closed when there are no Stripe keys', async () => {
+  it('takes no orders before launch, and has no webhook without Stripe keys', async () => {
     const { key } = await ready()
     const res = await c.call('/v1/draft/checkout', { method: 'POST', key, json: { slug: 'closed-plumbing' } })
-    expect(res.status).toBe(503)
-    expect(((await res.json()) as { error: string }).error).toBe('payments_closed')
+    expect(res.status).toBe(403)
+    expect(((await res.json()) as { error: string }).error).toBe('not_launched')
+    expect(await (await c.call('/v1/config')).json()).toEqual({ pricePence: 9900, currency: 'gbp', launched: false, refundDays: 14 })
     expect((await c.call('/v1/stripe/webhook', { method: 'POST', json: {} })).status).toBe(404)
   })
 

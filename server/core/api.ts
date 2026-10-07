@@ -1,6 +1,6 @@
 import { STOCK_PHOTO_FILES } from '../../src/sample/stockPhotoFiles'
 import { refund, refundStatus, requestEditLink } from './account'
-import { checkoutStatus, createCheckout } from './checkout'
+import { checkoutStatus, createCheckout, shopConfig } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
 import { corsHeaders, errorResponse, HttpError, htmlPage, json, withHeaders } from './http'
@@ -29,6 +29,7 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/draft\/preview$/, createPreview],
   ['POST', /^\/v1\/draft\/publish$/, publish],
   ['POST', /^\/v1\/draft\/checkout$/, createCheckout],
+  ['GET', /^\/v1\/config$/, shopConfig],
   ['GET', /^\/v1\/checkouts\/([A-Za-z0-9_]{1,255})$/, checkoutStatus],
   ['POST', /^\/v1\/stripe\/webhook$/, stripeWebhook],
   ['POST', /^\/v1\/refund\/status$/, refundStatus],

@@ -101,7 +101,7 @@ export async function putLive(deps: Deps, draft: DraftRow, slug: string, site: S
   }
   // Also frees any other address this draft still holds (the old one, a hold, a half-finished attempt).
   if (!(await deps.db.markPublished(draft.ref, slug, now))) {
-    // Refunded while the files went up: down it comes again.
+    // Refunded or disputed while the files went up: down it comes again.
     await takeDown(deps, slug)
     throw new HttpError(403, 'refunded', 'This site was refunded and taken down.')
   }
@@ -115,6 +115,11 @@ export async function takeDown(deps: Deps, slug: string): Promise<void> {
   await deps.blobs.delete(await deps.blobs.list(sitePrefix(slug)))
 }
 
+/** Takes a draft's site down, but only while the address is still that draft's (a freed one may be someone else's now). */
+export async function takeDownOwn(deps: Deps, draft: DraftRow): Promise<void> {
+  if (draft.slug && (await deps.db.slugOwner(draft.slug, deps.now())) === draft.ref) await takeDown(deps, draft.slug)
+}
+
 const publishBody = z.object({ slug: z.string().max(64).optional() })
 
 /**
@@ -126,6 +131,7 @@ export async function publish(req: Request, deps: Deps): Promise<Response> {
   await rateLimit(deps, req, 'publish')
   const draft = await authDraft(req, deps)
   if (draft.refundedAt) throw new HttpError(403, 'refunded', 'This site was refunded and taken down.')
+  if (draft.disputedAt) throw new HttpError(403, 'disputed', 'Your site is down while a payment dispute with your bank is open. Get in touch and we’ll help.')
   const parsed = publishBody.safeParse(await readJson(req, SIZE.smallJson))
   if (!parsed.success) throw new HttpError(422, 'invalid_slug', 'Choose an address for your site.')
   const paid = !!draft.payment && !!draft.slug

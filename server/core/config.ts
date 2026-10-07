@@ -21,6 +21,10 @@ export interface Config {
   currency: 'gbp'
   /** Days after paying that the self-serve refund link works. */
   refundDays: number
+  /** Taking orders. Until then a checkout needs the tester code. */
+  launched: boolean
+  /** Lets testers check out before launch. Null: nobody can. */
+  testerCode: string | null
   /** Card payments. Null: checkout is closed (the builder says so). */
   stripe: { secretKey: string; webhookSecret: string } | null
   /** Signs edit and refund links. Required when payments are on. */
@@ -81,6 +85,10 @@ export function parseConfig(env: Record<string, unknown>): Config {
   if (new URL(appUrl).origin !== appUrl) throw new Error('APP_URL must be a bare origin like https://siteblocks.co.uk')
   const token = setting(env, 'ADMIN_TOKEN', '')
   if (token && token.length < 24) throw new Error('ADMIN_TOKEN must be at least 24 characters')
+  const launched = setting(env, 'LAUNCHED', 'false')
+  if (launched !== 'true' && launched !== 'false') throw new Error('LAUNCHED must be "true" or "false"')
+  const testerCode = setting(env, 'TESTER_CODE', '')
+  if (testerCode && testerCode.length < 8) throw new Error('TESTER_CODE must be at least 8 characters')
   const stripe = stripeSettings(env)
   const linkSecret = setting(env, 'LINK_SECRET', '')
   if (linkSecret && linkSecret.length < 32) throw new Error('LINK_SECRET must be at least 32 characters')
@@ -96,6 +104,8 @@ export function parseConfig(env: Record<string, unknown>): Config {
     pricePence: wholeNumber(env, 'PRICE_PENCE', '9900', 100, 100_000),
     currency: 'gbp',
     refundDays: wholeNumber(env, 'REFUND_DAYS', '14', 1, 60),
+    launched: launched === 'true',
+    testerCode: testerCode || null,
     stripe,
     linkSecret: linkSecret || null,
     email: {

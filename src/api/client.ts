@@ -20,12 +20,15 @@ export class ApiError extends Error {
   }
 }
 
-export interface DraftState { record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number; paid?: boolean; refunded?: boolean }
+export interface DraftState { record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number; paid?: boolean; refunded?: boolean; disputed?: boolean }
+/** What the server says about paying (GET /v1/config): the price lives only there. */
+export interface Shop { pricePence: number; currency: string; launched: boolean; refundDays: number }
 export type CheckoutState = { state: 'waiting' } | { state: 'live'; url: string } | { state: 'refunded' }
 export type RefundState =
   | { state: 'ok'; amount: number; siteUrl: string; until: string }
   | { state: 'used' }
   | { state: 'expired'; support: string }
+  | { state: 'disputed'; support: string }
   | { state: 'refunded'; amount: number }
 export interface SlugStatus { slug: string; available: boolean; url?: string; message?: string; suggestion?: string | null }
 
@@ -69,8 +72,10 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
     slugStatus: (key: string, slug: string) => call<SlugStatus>(`/v1/slugs/${encodeURIComponent(slug)}`, { key }),
     /** Puts the saved record live: free for a paid site (at its own address), else with the admin key. */
     publish: (key: string, slug?: string, admin?: string) => call<{ slug: string; url: string }>('/v1/draft/publish', { ...json('POST', slug ? { slug } : {}), key, admin }),
-    /** Opens a Stripe Checkout for the saved record; the price is set by the server. */
-    checkout: (key: string, slug: string) => call<{ url: string }>('/v1/draft/checkout', { ...json('POST', { slug }), key }).then(r => r.url),
+    /** Opens a Stripe Checkout for the saved record; the price is set by the server. Before launch it needs the tester code. */
+    checkout: (key: string, slug: string, testerCode?: string) =>
+      call<{ url: string }>('/v1/draft/checkout', { ...json('POST', testerCode ? { slug, testerCode } : { slug }), key }).then(r => r.url),
+    shop: () => call<Shop>('/v1/config'),
     checkoutStatus: (sessionId: string) => call<CheckoutState>(`/v1/checkouts/${encodeURIComponent(sessionId)}`),
     refundStatus: (token: string) => call<RefundState>('/v1/refund/status', json('POST', { token })),
     /** A used or expired link answers 409 with its state, which is what the page shows. */

@@ -4,7 +4,8 @@ import { paymentsOn } from './checkout'
 import { HttpError, json, readBody } from './http'
 import { SIZE } from './limits'
 import type { Deps } from './ports'
-import { putLive, suggestion } from './publish'
+import { storedRecord } from './drafts'
+import { putLive, suggestion, takeDownOwn } from './publish'
 import { verifyStripeSignature } from './stripe'
 
 /**
@@ -20,7 +21,9 @@ interface Session {
   client_reference_id?: string | null; metadata?: Record<string, string> | null
 }
 
-interface Charge { payment_intent?: string | null; refunded?: boolean; refunds?: { data?: { id: string }[] } | null }
+interface Charge { payment_intent?: string | null; refunded?: boolean; amount_refunded?: number; refunds?: { data?: { id: string }[] } | null }
+
+interface Dispute { payment_intent?: string | null; status?: string }
 
 export async function stripeWebhook(req: Request, deps: Deps): Promise<Response> {
   const stripe = deps.config.stripe
@@ -45,6 +48,12 @@ export async function stripeWebhook(req: Request, deps: Deps): Promise<Response>
       break
     case 'charge.refunded':
       await chargeRefunded(deps, event.data.object as Charge)
+      break
+    case 'charge.dispute.created':
+      await disputeOpened(deps, event.data.object as Dispute)
+      break
+    case 'charge.dispute.closed':
+      await disputeClosed(deps, event.data.object as Dispute)
       break
     default:
       // Anything else the endpoint is sent is acknowledged and ignored.
@@ -109,12 +118,34 @@ async function paid(deps: Deps, session: Session): Promise<void> {
 /** A full refund, from the refund link or the Stripe dashboard: the site comes down. */
 async function chargeRefunded(deps: Deps, charge: Charge): Promise<void> {
   if (!charge.payment_intent) return
-  if (!charge.refunded) {
-    // Partial refunds (made by hand in the dashboard) leave the site up.
-    console.warn(`Partial refund on ${charge.payment_intent}: site left up`)
-    return
-  }
   const draft = await deps.db.draftByPaymentIntent(charge.payment_intent)
   if (!draft) return
+  if (!charge.refunded) {
+    // Partial refunds (made by hand in the dashboard) leave the site up: just recorded.
+    await deps.db.recordPartialRefund(draft.ref, charge.amount_refunded ?? 0)
+    return
+  }
   await refundedAndDown(deps, draft, charge.refunds?.data?.[0]?.id ?? null)
+}
+
+/** A chargeback opened: the site comes down while the bank decides. */
+async function disputeOpened(deps: Deps, dispute: Dispute): Promise<void> {
+  const draft = dispute.payment_intent ? await deps.db.draftByPaymentIntent(dispute.payment_intent) : null
+  if (!draft) return
+  await deps.db.markDisputed(draft.ref, deps.now())
+  await takeDownOwn(deps, draft)
+}
+
+/** A chargeback decided: won puts the site back up as it was; lost leaves it down. */
+async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
+  const draft = dispute.payment_intent ? await deps.db.draftByPaymentIntent(dispute.payment_intent) : null
+  if (!draft) return
+  if (dispute.status !== 'won') {
+    await deps.db.endDispute(draft.ref, false, deps.now())
+    await takeDownOwn(deps, draft)
+    return
+  }
+  await deps.db.endDispute(draft.ref, true, deps.now())
+  const site = storedRecord(draft)
+  if (!draft.refundedAt && !draft.disputeLostAt && draft.slug && site) await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
 }

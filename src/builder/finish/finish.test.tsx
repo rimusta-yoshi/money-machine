@@ -114,9 +114,31 @@ describe('FinishStep (go live)', () => {
     expect((screen.getByLabelText('Your web address') as HTMLInputElement).value).toBe('joe-pipes')
     await act(async () => { fireEvent.click(goLive()) })
     expect(verify).toHaveBeenCalled()
-    expect(draft.checkout).toHaveBeenCalledWith('joe-pipes', checked)
+    expect(draft.checkout).toHaveBeenCalledWith('joe-pipes', checked, undefined)
     expect(redirect).toHaveBeenCalledWith('https://checkout.stripe.com/c/pay/cs_test_1')
     expect(draft.publish).not.toHaveBeenCalled()
+  })
+
+  it('before launch, takes no order without a tester code, and sends the code when given', async () => {
+    sessionStorage.clear()
+    const draft = fakeDraft()
+    const redirect = vi.fn()
+    const shop = { pricePence: 9900, currency: 'gbp', launched: false, refundDays: 14 }
+    render(<GoLivePanel site={withEmail()} trade={plumber} draft={draft} adminPublish={false} domain="siteblocks.co.uk" onBusinessChange={vi.fn()} verify={vi.fn(async () => checked)} shop={shop} redirect={redirect} />)
+    await act(async () => { fireEvent.click(goLive()) })
+    expect(screen.getByText(/not taking orders yet\. Your site is kept/)).toBeTruthy()
+    expect(draft.checkout).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Tester code'), { target: { value: ' tester-1234 ' } })
+    await act(async () => { fireEvent.click(goLive()) })
+    expect(draft.checkout).toHaveBeenCalledWith('joe-pipes', checked, 'tester-1234')
+    expect(sessionStorage.getItem('siteblocks.tester')).toBe('tester-1234')
+  })
+
+  it('shows the price the server asks, and no tester field once launched', () => {
+    renderStep(withEmail(), { draft: fakeDraft(), shop: { pricePence: 7900, currency: 'gbp', launched: true, refundDays: 14 } })
+    expect(screen.getByText('£79')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Go live for £79' })).toBeTruthy()
+    expect(screen.queryByLabelText('Tester code')).toBeNull()
   })
 
   it('needs a valid email before going to Stripe', async () => {

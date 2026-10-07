@@ -23,6 +23,8 @@ import { randomSeed } from './gen'
 import type { Generated, SectionKey } from './gen'
 import { apiBase, createApi, siteDomain } from './api/client'
 import { useDraft } from './api/useDraft'
+import { useShop } from './api/useShop'
+import { takeTesterCodeFromUrl } from './builder/finish/testerCode'
 import { BRAND } from './brand/config'
 import { SaveStatusChip } from './builder/save/SaveStatusChip'
 import { ShareCard } from './builder/save/ShareCard'
@@ -42,6 +44,8 @@ const DOMAIN = API_BASE ? siteDomain(API_BASE) : BRAND.domain
 
 /** The builder, or one of the pages around paying (Stripe's return page, a refund link, a lost edit link). */
 export default function App() {
+  // A tester link (/build/?tester=…) is kept for the tab and taken out of the address bar.
+  useState(takeTesterCodeFromUrl)
   const screen = useScreen()
   if (screen.kind === 'builder') return <Builder cancelled={screen.cancelled} />
   if (!api) return <AccountShell title="Not switched on"><p>Payments aren’t switched on in this version of the builder.</p></AccountShell>
@@ -77,6 +81,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
   }, [cancelled])
   const onUploaded = useCallback((urls: Record<string, string>) => dispatch({ type: 'replacePhotoUrls', urls }), [])
   const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded })
+  const shop = useShop(api)
 
   // Before the go-live step and before publishing, every section is measured on real screens.
   const [verifying, setVerifying] = useState(false)
@@ -197,6 +202,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
           adminPublish={ADMIN_PUBLISH}
           domain={DOMAIN}
           cancelled={cancelled}
+          shop={shop}
           verify={verify}
           onReset={reset}
           share={draft.enabled ? <ShareCard draft={draft} /> : null}

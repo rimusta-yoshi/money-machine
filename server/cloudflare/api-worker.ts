@@ -14,6 +14,6 @@ export default {
     const deps = depsFrom(env)
     await deps.db.sweep(deps.now())
     const done = await cleanup(deps)
-    console.log(`Cleanup: ${done.drafts} unpaid drafts and ${done.orphanPhotos} orphan photos removed`)
+    console.log(`Cleanup: ${done.drafts} unpaid drafts and ${done.orphanPhotos} orphan photos removed, ${done.freedAddresses} refunded addresses freed`)
   },
 } satisfies ExportedHandler<Env>

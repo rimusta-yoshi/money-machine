@@ -12,7 +12,7 @@ import { dataUrlToBlob, uploadPhotos } from './uploadPhotos'
 import { useDraft } from './useDraft'
 
 const KEY = 'k'.repeat(43)
-const EDIT = `edit.${'a'.repeat(32)}.${'s'.repeat(43)}`
+const EDIT = `edit.${'a'.repeat(32)}.1.${'s'.repeat(43)}`
 const DATA_URL = `data:image/jpeg;base64,${btoa('\xff\xd8\xff\xe0fake')}`
 const withHero = (site: Site, url: string): Site => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Boiler' } } } })
 
@@ -40,7 +40,7 @@ describe('draft key', () => {
     expect(editTokenFromHash(`#edit=${EDIT}`)).toBe(EDIT)
     expect(editTokenFromHash(`#edit=${KEY}`)).toBeNull()
     expect(editTokenFromHash('#edit=edit.nope')).toBeNull()
-    const refund = EDIT.replace('edit.', 'refund.')
+    const refund = `refund.${'a'.repeat(32)}.${'s'.repeat(43)}`
     expect(refundTokenFromHash(`#refund=${refund}`)).toBe(refund)
     expect(refundTokenFromHash(`#refund=${EDIT}`)).toBeNull()
     rememberDraftKey(EDIT)
@@ -99,6 +99,17 @@ describe('the API client', () => {
     await expect(offline.createDraft()).rejects.toBeInstanceOf(ApiError)
   })
 
+  it('sends the tester code with a checkout only when there is one', async () => {
+    const bodies: unknown[] = []
+    const api = createApi('https://api.x', (async (_u: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response(JSON.stringify({ url: 'https://stripe/x' }), { status: 201 })
+    }) as typeof fetch)
+    await api.checkout(KEY, 'joes')
+    await api.checkout(KEY, 'joes', 'tester-1234')
+    expect(bodies).toEqual([{ slug: 'joes' }, { slug: 'joes', testerCode: 'tester-1234' }])
+  })
+
   it('reads a used or expired refund link as a state to show, not an error', async () => {
     const api = createApi('https://api.x', (async () => new Response(JSON.stringify({ state: 'expired', support: 'help@x.co' }), { status: 409 })) as typeof fetch)
     expect(await api.refund('t')).toEqual({ state: 'expired', support: 'help@x.co' })
@@ -134,6 +145,7 @@ describe('useDraft', () => {
     refundStatus: vi.fn(async () => ({ state: 'used' as const })),
     refund: vi.fn(async () => ({ state: 'used' as const })),
     requestEditLink: vi.fn(async () => 'sent'),
+    shop: vi.fn(async () => ({ pricePence: 9900, currency: 'gbp', launched: true, refundDays: 14 })),
   }) satisfies Api
 
   beforeEach(() => { localStorage.clear(); window.location.hash = '' })
@@ -267,7 +279,7 @@ describe('useDraft', () => {
     expect(url).toBe('https://checkout.stripe.com/c/pay/cs_test_1')
     expect(api.saveDraft).toHaveBeenCalledTimes(2)
     expect((api.saveDraft.mock.calls[1] as unknown as [string, Site])[1].business.name).toBe('Checked Ltd')
-    expect(api.checkout).toHaveBeenCalledWith(KEY, 'joes')
+    expect(api.checkout).toHaveBeenCalledWith(KEY, 'joes', undefined)
     await act(async () => { await result.current.publish(undefined, undefined, checked) })
     expect(api.saveDraft).toHaveBeenCalledTimes(2)
     expect(api.publish).toHaveBeenCalledWith(KEY, undefined, undefined)

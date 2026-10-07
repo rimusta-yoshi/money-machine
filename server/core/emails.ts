@@ -64,7 +64,7 @@ export interface EditLinks { siteUrl: string; editLink: string; refund: { link: 
 
 export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email {
   return email(c, to, 'Your edit link', sites.length > 1 ? 'Your edit links' : 'Your edit link', [
-    'Here is a fresh link to edit your site. Saving your changes puts them live, free. Keep it to yourself: anyone with it can edit your site. Older edit links no longer work.',
+    'Here is a fresh link to edit your site. Saving your changes puts them live, free. Keep it to yourself: anyone with it can edit your site. Once you open it, older edit links stop working.',
     ...sites.flatMap((s): Line[] => [
       { link: s.editLink, label: `Edit ${bare(s.siteUrl)}` },
       ...(s.refund ? [`Changed your mind? You can get a full refund until ${day(s.refund.until)}.`, { link: s.refund.link, label: `Request a refund for ${bare(s.siteUrl)}` }] : []),

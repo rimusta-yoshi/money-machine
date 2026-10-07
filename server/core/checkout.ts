@@ -5,6 +5,7 @@ import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, Payments } from './ports'
 import { checkReady, sitePhotoFiles, suggestion, validSlug } from './publish'
+import { sameSecret } from './tokens'
 
 const MINUTE = 60 * 1000
 /** Stripe needs at least 30 minutes; a minute more allows for clocks that differ. */
@@ -17,7 +18,22 @@ export function paymentsOn(deps: Deps): Payments {
   return deps.payments
 }
 
-const checkoutBody = z.object({ slug: z.string().max(64) })
+const checkoutBody = z.object({ slug: z.string().max(64), testerCode: z.string().max(100).optional() })
+
+/** Before launch only testers (with the tester code) can check out. */
+async function requireLaunchedOrTester(deps: Deps, code: string | undefined): Promise<void> {
+  if (deps.config.launched) return
+  const expected = deps.config.testerCode
+  if (!expected || !code || !(await sameSecret(code.trim(), expected))) {
+    throw new HttpError(403, 'not_launched', 'We’re not taking orders yet. Your site is kept in this browser, so you can go live as soon as we are.')
+  }
+}
+
+/** GET /v1/config: what the builder shows about paying. The price is said only here (and in the server's config). */
+export async function shopConfig(_req: Request, deps: Deps): Promise<Response> {
+  const c = deps.config
+  return json({ pricePence: c.pricePence, currency: c.currency, launched: c.launched, refundDays: c.refundDays }, 200, { 'Cache-Control': 'public, max-age=300' })
+}
 const emailSchema = z.string().trim().email().max(254)
 
 /**
@@ -27,12 +43,13 @@ const emailSchema = z.string().trim().email().max(254)
  */
 export async function createCheckout(req: Request, deps: Deps): Promise<Response> {
   await rateLimit(deps, req, 'checkout')
+  const parsed = checkoutBody.safeParse(await readJson(req, SIZE.smallJson))
+  if (!parsed.success) throw new HttpError(422, 'invalid_slug', 'Choose an address for your site.')
+  await requireLaunchedOrTester(deps, parsed.data.testerCode)
   const payments = paymentsOn(deps)
   const draft = await authDraft(req, deps)
   if (draft.refundedAt) throw new HttpError(403, 'refunded', 'This site was refunded and taken down.')
   if (draft.payment) throw new HttpError(409, 'already_paid', 'This site is paid for already. Use Publish changes to put your edits live.')
-  const parsed = checkoutBody.safeParse(await readJson(req, SIZE.smallJson))
-  if (!parsed.success) throw new HttpError(422, 'invalid_slug', 'Choose an address for your site.')
   const slug = validSlug(parsed.data.slug)
   const site = checkReady(storedRecord(draft))
   const email = emailSchema.safeParse(site.business.email)

@@ -29,8 +29,15 @@ export interface DraftRow {
   payment: Payment | null
   welcomeSentAt: number | null
   refundedAt: number | null
-  /** Signed into edit links; bumping it cuts off the old ones. */
-  linkVersion: number
+  /** Edit links issued so far after the welcome email's (number 0); each new one is numbered. */
+  linksIssued: number
+  /** Edit links numbered below this no longer work. */
+  linkFloor: number
+  /** A payment dispute is open (or was lost): the site is down. */
+  disputedAt: number | null
+  disputeLostAt: number | null
+  /** Pence refunded by partial refunds so far. */
+  refundedAmount: number | null
 }
 
 export interface CheckoutRow {
@@ -66,7 +73,7 @@ export interface Database {
    */
   claimSlug(slug: string, ref: string, now: number, heldUntil?: number | null): Promise<boolean>
   releaseSlug(slug: string, ref: string): Promise<void>
-  /** Records the address it's live at, and releases any other address the draft holds. False if the site was refunded meanwhile. */
+  /** Records the address it's live at, and releases any other address the draft holds. False if the site was refunded or disputed meanwhile. */
   markPublished(ref: string, slug: string, now: number): Promise<boolean>
   createCheckout(c: CheckoutRow): Promise<void>
   checkout(sessionId: string): Promise<CheckoutRow | null>
@@ -76,8 +83,17 @@ export interface Database {
   claimWelcome(ref: string, now: number): Promise<boolean>
   /** Gives the claim back after a failed send, so a retry sends it. */
   releaseWelcome(ref: string): Promise<void>
-  /** A new link version (old edit links stop working). */
-  bumpLinkVersion(ref: string): Promise<number>
+  /** Issues the next edit link number. Older links keep working until a newer one is opened. */
+  issueEditLink(ref: string): Promise<number>
+  /** Cuts off edit links numbered below n (never lowers it). */
+  raiseLinkFloor(ref: string, n: number): Promise<void>
+  /** Marks a dispute open once. True if this call did it. */
+  markDisputed(ref: string, now: number): Promise<boolean>
+  /** Closes the open dispute: won clears it (true if this call did), lost records it and the site stays down. */
+  endDispute(ref: string, won: boolean, now: number): Promise<boolean>
+  recordPartialRefund(ref: string, amountRefunded: number): Promise<void>
+  /** Frees the addresses of sites refunded before `before`; returns them. */
+  releaseRefundedSlugs(before: number): Promise<string[]>
   /** Drops this draft's other address holds: one open checkout's address at a time. */
   releaseHolds(ref: string, except: string): Promise<void>
   /** Marks the site refunded once. True if this call did it. */

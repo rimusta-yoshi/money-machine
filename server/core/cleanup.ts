@@ -1,4 +1,5 @@
 import type { Deps } from './ports'
+import { goneKey } from './storage'
 
 /**
  * Daily cleanup (Cron Trigger). The builder keeps a site in the browser; the server copy is
@@ -13,7 +14,10 @@ const BATCH = 50
 /** Enough for any day's churn; the rest waits for tomorrow. */
 const MAX_ROUNDS = 20
 
-export interface CleanupResult { drafts: number; orphanPhotos: number }
+/** A refunded site's address stays "no longer available" this long, then anyone can have it. */
+export const FREE_REFUNDED_DAYS = 90
+
+export interface CleanupResult { drafts: number; orphanPhotos: number; freedAddresses: number }
 
 export async function cleanup(deps: Deps): Promise<CleanupResult> {
   const before = deps.now() - KEEP_UNPAID_DAYS * DAY
@@ -26,7 +30,14 @@ export async function cleanup(deps: Deps): Promise<CleanupResult> {
     drafts += deleted.length
     if (refs.length < BATCH) break
   }
-  return { drafts, orphanPhotos: await orphanPhotos(deps) }
+  return { drafts, orphanPhotos: await orphanPhotos(deps), freedAddresses: await freeRefundedAddresses(deps) }
+}
+
+/** Addresses of sites refunded 90+ days ago: claim and "no longer available" page both go. */
+async function freeRefundedAddresses(deps: Deps): Promise<number> {
+  const slugs = await deps.db.releaseRefundedSlugs(deps.now() - FREE_REFUNDED_DAYS * DAY)
+  await deps.blobs.delete(slugs.map(goneKey))
+  return slugs.length
 }
 
 /** Photos left in storage for drafts that no longer exist (a failed run, a row removed by hand). */
