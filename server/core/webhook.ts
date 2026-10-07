@@ -5,6 +5,9 @@ import { HttpError, json, readBody } from './http'
 import { SIZE } from './limits'
 import type { Deps } from './ports'
 import { storedRecord } from './drafts'
+import { sendQuietly } from './email'
+import { disputeOpenedEmail, disputeWonEmail } from './emails'
+import { siteOrigin } from './config'
 import { putLive, suggestion, takeDownOwn } from './publish'
 import { verifyStripeSignature } from './stripe'
 
@@ -132,8 +135,12 @@ async function chargeRefunded(deps: Deps, charge: Charge): Promise<void> {
 async function disputeOpened(deps: Deps, dispute: Dispute): Promise<void> {
   const draft = dispute.payment_intent ? await deps.db.draftByPaymentIntent(dispute.payment_intent) : null
   if (!draft) return
-  await deps.db.markDisputed(draft.ref, deps.now())
+  const first = await deps.db.markDisputed(draft.ref, deps.now())
   await takeDownOwn(deps, draft)
+  // Once per dispute, whichever delivery gets here first.
+  if (first && draft.payment && draft.slug) {
+    await sendQuietly(deps.mailer, disputeOpenedEmail(deps.config, draft.payment.email, `${siteOrigin(deps.config, draft.slug)}/`))
+  }
 }
 
 /** A chargeback decided: won puts the site back up as it was; lost leaves it down. */
@@ -145,7 +152,9 @@ async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
     await takeDownOwn(deps, draft)
     return
   }
-  await deps.db.endDispute(draft.ref, true, deps.now())
+  const first = await deps.db.endDispute(draft.ref, true, deps.now())
   const site = storedRecord(draft)
-  if (!draft.refundedAt && !draft.disputeLostAt && draft.slug && site) await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
+  if (draft.refundedAt || draft.disputeLostAt || !draft.slug || !site) return
+  const url = await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
+  if (first && draft.payment) await sendQuietly(deps.mailer, disputeWonEmail(deps.config, draft.payment.email, url))
 }

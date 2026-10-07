@@ -10,3 +10,4 @@ ALTER TABLE drafts ADD COLUMN refunded_amount INTEGER;
 ALTER TABLE drafts ADD COLUMN disputed_at INTEGER;
 ALTER TABLE drafts ADD COLUMN dispute_lost_at INTEGER;
 CREATE INDEX drafts_refunded_at ON drafts (refunded_at);
+CREATE INDEX drafts_dispute_lost_at ON drafts (dispute_lost_at);
