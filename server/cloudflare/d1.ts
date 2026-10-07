@@ -129,8 +129,8 @@ export function d1Database(db: D1Database): Database {
     async recordPartialRefund(ref, amountRefunded) {
       await db.prepare('UPDATE drafts SET refunded_amount = MAX(COALESCE(refunded_amount, 0), ?2) WHERE ref = ?1').bind(ref, amountRefunded).run()
     },
-    async releaseRefundedSlugs(before) {
-      const rows = await db.prepare('DELETE FROM slugs WHERE ref IN (SELECT ref FROM drafts WHERE refunded_at < ?1) RETURNING slug').bind(before).all<{ slug: string }>()
+    async releaseEndedSlugs(before) {
+      const rows = await db.prepare('DELETE FROM slugs WHERE ref IN (SELECT ref FROM drafts WHERE refunded_at < ?1 OR dispute_lost_at < ?1) RETURNING slug').bind(before).all<{ slug: string }>()
       return rows.results.map(r => r.slug)
     },
     async releaseHolds(ref, except) {

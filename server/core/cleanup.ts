@@ -14,7 +14,7 @@ const BATCH = 50
 /** Enough for any day's churn; the rest waits for tomorrow. */
 const MAX_ROUNDS = 20
 
-/** A refunded site's address stays "no longer available" this long, then anyone can have it. */
+/** A refunded site's (or lost dispute's) address stays "no longer available" this long, then anyone can have it. */
 export const FREE_REFUNDED_DAYS = 90
 
 export interface CleanupResult { drafts: number; orphanPhotos: number; freedAddresses: number }
@@ -33,9 +33,9 @@ export async function cleanup(deps: Deps): Promise<CleanupResult> {
   return { drafts, orphanPhotos: await orphanPhotos(deps), freedAddresses: await freeRefundedAddresses(deps) }
 }
 
-/** Addresses of sites refunded 90+ days ago: claim and "no longer available" page both go. */
+/** Addresses of sites refunded, or whose dispute was lost, 90+ days ago: claim and "no longer available" page both go. */
 async function freeRefundedAddresses(deps: Deps): Promise<number> {
-  const slugs = await deps.db.releaseRefundedSlugs(deps.now() - FREE_REFUNDED_DAYS * DAY)
+  const slugs = await deps.db.releaseEndedSlugs(deps.now() - FREE_REFUNDED_DAYS * DAY)
   await deps.blobs.delete(slugs.map(goneKey))
   return slugs.length
 }

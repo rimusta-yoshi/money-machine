@@ -60,6 +60,22 @@ export function refundEmail(c: Config, to: string, siteUrl: string, amount: numb
   ])
 }
 
+const supportAddress = (c: Config): string => c.email.support.replace(/^.*<([^>]+)>$/, '$1')
+
+export function disputeOpenedEmail(c: Config, to: string, siteUrl: string): Email {
+  return email(c, to, `Your site is paused: ${bare(siteUrl)}`, 'Your site is paused', [
+    `Your payment is being disputed with your bank, so your site is paused. If this is a mistake, contact us at ${supportAddress(c)}.`,
+    `${bare(siteUrl)} shows "This site is no longer available" until the dispute is settled.`,
+  ])
+}
+
+export function disputeWonEmail(c: Config, to: string, siteUrl: string): Email {
+  return email(c, to, `Your site is back: ${bare(siteUrl)}`, 'Your site is back', [
+    'The dispute about your payment has been settled, so your site is live again, just as it was.',
+    { link: siteUrl, label: bare(siteUrl) },
+  ])
+}
+
 export interface EditLinks { siteUrl: string; editLink: string; refund: { link: string; until: number } | null }
 
 export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email {

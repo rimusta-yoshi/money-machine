@@ -368,9 +368,19 @@ describe('disputes', () => {
     expect(await (await c.call('/v1/refund/status', { method: 'POST', json: { token: p.refundToken } })).json()).toEqual({ state: 'disputed', support: 'help@siteblocks.test' })
     expect(await (await c.call('/v1/draft', { key: p.key })).json()).toMatchObject({ disputed: true, publishedUrl: null })
 
+    // The owner hears once, with the support address.
+    const paused = stripe.emailsTo(p.email).filter(e => e.subject.startsWith('Your site is paused'))
+    expect(paused).toHaveLength(1)
+    expect(paused[0].text).toContain('Your payment is being disputed with your bank, so your site is paused. If this is a mistake, contact us at help@siteblocks.test.')
+    expect((await send({ ...opened, id: `${opened.id}x` })).status).toBe(200)
+    expect(stripe.emailsTo(p.email).filter(e => e.subject.startsWith('Your site is paused'))).toHaveLength(1)
+
     const won = stripe.dispute(p.session.paymentIntent, 'closed', 'won')
     expect((await send(won)).status).toBe(200)
     expect((await send({ ...won, id: `${won.id}x` })).status).toBe(200)
+    const backEmails = stripe.emailsTo(p.email).filter(e => e.subject.startsWith('Your site is back'))
+    expect(backEmails).toHaveLength(1)
+    expect(backEmails[0].text).toContain(`https://disputed-won.${BASE}/`)
     const back = await site('disputed-won')
     expect(back.status).toBe(200)
     expect(await back.text()).toContain('Joe')
@@ -385,6 +395,17 @@ describe('disputes', () => {
     await send(stripe.dispute(p.session.paymentIntent, 'closed', 'won'))
     expect((await site('disputed-lost')).status).toBe(410)
     expect((await c.call('/v1/draft/publish', { method: 'POST', key: p.editToken, json: {} })).status).toBe(403)
+    expect(stripe.emailsTo(p.email).some(e => e.subject.startsWith('Your site is back'))).toBe(false)
+
+    // The address is freed 90 days after the dispute closed, as after a refund.
+    const other = await ready()
+    const worker = await s.mf.getWorker('api')
+    await worker.scheduled({ cron: '17 3 * * *' })
+    expect(await (await c.call('/v1/slugs/disputed-lost', { key: other.key })).json()).toMatchObject({ available: false })
+    await sql('UPDATE drafts SET dispute_lost_at = dispute_lost_at - ?1 WHERE stripe_session_id = ?2', 91 * DAY, p.session.id)
+    await worker.scheduled({ cron: '17 3 * * *' })
+    expect(await (await c.call('/v1/slugs/disputed-lost', { key: other.key })).json()).toMatchObject({ available: true })
+    expect(await (await site('disputed-lost')).text()).toContain('No site here yet')
   })
 })
 

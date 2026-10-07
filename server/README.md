@@ -51,8 +51,10 @@ visitor ──<slug>.siteblocks.co.uk──▶ site worker ──▶ R2 sites/<s
    refund link having done it already. Partial refunds leave the site up and are recorded
    (`drafts.refunded_amount`). A refunded address is freed for anyone 90 days after the refund.
 6. **Disputes** (chargebacks): `charge.dispute.created` takes the site down the same way, and the
-   owner can't re-publish or self-refund meanwhile. `charge.dispute.closed` with status `won` puts
-   the site back as it was; `lost` leaves it down.
+   owner can't re-publish or self-refund meanwhile, and is emailed once that the site is paused
+   (with the support address). `charge.dispute.closed` with status `won` puts the site back as it
+   was and emails them that it's back; `lost` leaves it down, and the address is freed 90 days
+   after the dispute closed, as after a refund.
 
 Edit and refund links are HMAC-signed with `LINK_SECRET` (rotating it invalidates every link).
 Paid sites stay `noindex` while `NOINDEX` is `true`; unpaid sites published with the admin key

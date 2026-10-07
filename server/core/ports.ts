@@ -92,8 +92,8 @@ export interface Database {
   /** Closes the open dispute: won clears it (true if this call did), lost records it and the site stays down. */
   endDispute(ref: string, won: boolean, now: number): Promise<boolean>
   recordPartialRefund(ref: string, amountRefunded: number): Promise<void>
-  /** Frees the addresses of sites refunded before `before`; returns them. */
-  releaseRefundedSlugs(before: number): Promise<string[]>
+  /** Frees the addresses of sites refunded, or whose dispute was lost, before `before`; returns them. */
+  releaseEndedSlugs(before: number): Promise<string[]>
   /** Drops this draft's other address holds: one open checkout's address at a time. */
   releaseHolds(ref: string, except: string): Promise<void>
   /** Marks the site refunded once. True if this call did it. */
