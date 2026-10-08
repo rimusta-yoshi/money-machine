@@ -42,6 +42,18 @@ export const siteDomain = (base: string): string => new URL(base).host.replace(/
 
 export type Api = ReturnType<typeof createApi>
 
+/**
+ * What to say when the server can't be reached. The local dev server (*.localhost) uses a
+ * self-signed certificate: once Chrome forgets it was accepted, every call fails silently, so
+ * say how to fix that instead of blaming the connection.
+ */
+export function unreachable(base: string): string {
+  const local = /^https:\/\/[^/]+\.localhost(:\d+)?$/.test(base)
+  return local
+    ? `Can't reach the local server. Is npm run dev:pay running? If it is, open ${base}/health, choose Advanced, then Proceed, and try again.`
+    : 'We could not reach the server. Check your connection and try again.'
+}
+
 export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(...a)) {
   async function call<T>(path: string, init: RequestInit & { key?: string; admin?: string } = {}): Promise<T> {
     const headers = new Headers(init.headers)
@@ -51,7 +63,7 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
     try {
       res = await fetcher(`${base}${path}`, { ...init, headers })
     } catch {
-      throw new ApiError(0, 'offline', 'We could not reach the server. Check your connection and try again.')
+      throw new ApiError(0, 'offline', unreachable(base))
     }
     const body = await res.json().catch(() => ({})) as Record<string, unknown>
     if (!res.ok) {

@@ -99,6 +99,12 @@ describe('the API client', () => {
     await expect(offline.createDraft()).rejects.toBeInstanceOf(ApiError)
   })
 
+  it('says how to fix the local certificate when the local server is out of reach', async () => {
+    const offline = (base: string) => createApi(base, (async () => { throw new TypeError('fail') }) as typeof fetch)
+    await expect(offline('https://api.siteblocks.localhost:8787').createDraft()).rejects.toMatchObject({ message: expect.stringContaining('open https://api.siteblocks.localhost:8787/health') })
+    await expect(offline('https://api.siteblocks.co.uk').createDraft()).rejects.toMatchObject({ message: 'We could not reach the server. Check your connection and try again.' })
+  })
+
   it('sends the tester code with a checkout only when there is one', async () => {
     const bodies: unknown[] = []
     const api = createApi('https://api.x', (async (_u: RequestInfo | URL, init?: RequestInit) => {
