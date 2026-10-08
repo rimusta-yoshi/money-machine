@@ -142,7 +142,7 @@ is printed by `dev:stack`.
 3. Start the webhook forwarding and copy the `whsec_...` it prints into `STRIPE_WEBHOOK_SECRET`:
 
    ```bash
-   stripe listen --forward-to https://127.0.0.1:8787/v1/stripe/webhook --skip-verify
+   stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,charge.refunded,charge.dispute.created,charge.dispute.closed --forward-to https://127.0.0.1:8787/v1/stripe/webhook --skip-verify
    ```
 
    (`127.0.0.1`, not the `.localhost` name: the CLI can't resolve it; `--skip-verify` accepts the

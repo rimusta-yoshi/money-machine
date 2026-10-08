@@ -44,7 +44,7 @@ for (const file of STOCK_PHOTO_FILES) {
 }
 const payments = devVars.STRIPE_SECRET_KEY
   ? `Payments on (Stripe test mode). Forward webhooks:
-  stripe listen --forward-to https://127.0.0.1:${PORT}/v1/stripe/webhook --skip-verify`
+  stripe listen --events checkout.session.completed,checkout.session.async_payment_succeeded,charge.refunded,charge.dispute.created,charge.dispute.closed --forward-to https://127.0.0.1:${PORT}/v1/stripe/webhook --skip-verify`
   : `Payments off: add Stripe test keys to server/.dev.vars to turn them on.`
 console.log(`API      https://api.${BASE}
 Previews https://preview.${BASE}/<token>/
