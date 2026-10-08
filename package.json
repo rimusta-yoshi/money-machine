@@ -16,6 +16,7 @@
     "e2e": "vitest run -c vitest.e2e.config.ts",
     "dev:stack": "node scripts/dev-stack.ts",
     "dev:api": "vite --mode stack",
+    "dev:pay": "node scripts/dev-pay.mjs",
     "cf:migrate": "wrangler d1 migrations apply siteblocks --remote -c server/wrangler.api.jsonc",
     "cf:deploy": "wrangler deploy -c server/wrangler.api.jsonc && wrangler deploy -c server/wrangler.site.jsonc",
     "cf:samples": "node scripts/upload-samples.mjs",

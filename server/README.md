@@ -147,7 +147,14 @@ is printed by `dev:stack`.
 
    (`127.0.0.1`, not the `.localhost` name: the CLI can't resolve it; `--skip-verify` accepts the
    local self-signed certificate.)
-4. `npm run dev:stack` and `npm run dev:api`, build a site, and press **Go live for £99** (leave the
+   That's only needed once (the secret stays the same on this computer). From then on, one
+   command starts everything (the server, the builder and the forwarding); Ctrl+C stops it all:
+
+   ```bash
+   npm run dev:pay
+   ```
+
+4. Open http://localhost:5173/build/, build a site, and press **Go live for £99** (leave the
    admin key empty). On Stripe's page pay with a test card:
 
    | Card | What happens |
