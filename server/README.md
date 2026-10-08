@@ -154,6 +154,10 @@ is printed by `dev:stack`.
    npm run dev:pay
    ```
 
+   If the builder says it can't reach the local server, Chrome has forgotten that you accepted the
+   local certificate (it does after a while, or after a restart): open
+   https://api.siteblocks.localhost:8787/health, choose **Advanced** → **Proceed**, and retry.
+
 4. Open http://localhost:5173/build/, build a site, and press **Go live for £99** (leave the
    admin key empty). On Stripe's page pay with a test card:
 
