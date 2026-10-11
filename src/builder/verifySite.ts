@@ -55,7 +55,12 @@ export interface MeasurerSource { open: (site: Site, content: PageContent) => Pr
 const domMeasurer: MeasurerSource = {
   open: async (site, content) => {
     const measurer = createDomMeasurer(document)
-    await measurer.prepare(site.style.resolved, content)
+    try {
+      await measurer.prepare(site.style.resolved, content)
+    } catch (err) {
+      measurer.dispose()
+      throw err
+    }
     return measurer
   },
 }

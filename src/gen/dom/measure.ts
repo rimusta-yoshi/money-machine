@@ -118,10 +118,14 @@ export interface DomMeasurer extends Measurer {
 
 /** Every photo URL in some content (data URLs and https links), wherever it sits. */
 function photoUrls(content: unknown, out = new Set<string>()): Set<string> {
-  if (typeof content === 'string') {
-    if (content.startsWith('data:image/') || content.startsWith('https://')) out.add(content)
-  } else if (Array.isArray(content)) content.forEach(c => photoUrls(c, out))
-  else if (content && typeof content === 'object') Object.values(content).forEach(c => photoUrls(c, out))
+  if (Array.isArray(content)) content.forEach(c => photoUrls(c, out))
+  else if (content && typeof content === 'object') {
+    for (const [k, v] of Object.entries(content)) {
+      // Only photos ({ url, alt }): links in text are never fetched.
+      if (k === 'url' && typeof v === 'string' && (v.startsWith('data:image/') || v.startsWith('https://'))) out.add(v)
+      else photoUrls(v, out)
+    }
+  }
   return out
 }
 
@@ -176,7 +180,9 @@ export function createDomMeasurer(doc: Document): DomMeasurer {
   inner.documentElement.appendChild(kept)
   const blobs = new Map<string, string>()
   const loaded = new Set<string>()
+  // Lazy images in an off-screen frame might never load; measuring copies load straight away.
   const short = (html: string) => (blobs.size ? html.replace(/src="(data:image\/[^"]+)"/g, (m, u: string) => (blobs.has(u) ? `src="${blobs.get(u)}"` : m)) : html)
+    .replace(/loading="lazy"/g, 'loading="eager"')
 
   const frame = (width: number, html: string): HTMLElement => {
     const f = inner.createElement('div')
@@ -224,7 +230,12 @@ export function createDomMeasurer(doc: Document): DomMeasurer {
         loaded.add(url)
         let src = url
         if (url.startsWith('data:')) {
-          const blob = dataUrlBlob(url)
+          let blob: Blob | null = null
+          try {
+            blob = dataUrlBlob(url)
+          } catch {
+            // Not valid base64: measured with the original URL instead.
+          }
           if (blob) {
             src = URL.createObjectURL(blob)
             blobs.set(url, src)

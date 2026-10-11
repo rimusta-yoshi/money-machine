@@ -40,15 +40,18 @@ export function usePreviewContent(site: Site | null, trade: TradeConfig | null, 
   useEffect(() => {
     if (!wantPhotos || !set) return
     let live = true
-    loadStockPhotos(set).then(photos => { if (live && photos) setStock({ set, photos }) })
+    loadStockPhotos(set)
+      .then(photos => { if (live && photos) setStock({ set, photos }) })
+      .catch(err => console.error('Sample photos failed to load', err))
     return () => { live = false }
   }, [wantPhotos, set])
 
   return useMemo(() => {
     if (!site || !trade) return null
     const own = pageContent(site, trade)
-    const photos = (stock?.set === set ? stock?.photos : null) ?? placeholders ?? []
+    // While a new set loads (the name changed), the last one stays, so photos never flicker to placeholders.
+    const photos = stock?.photos ?? placeholders ?? []
     if (sampleText) return withSample(own, photos, THEMES[site.style.theme].voice.why)
     return SAMPLE_PHOTOS_WHILE_BUILDING ? withSamplePhotos(own, photos) : own
-  }, [site, trade, sampleText, stock, set, placeholders])
+  }, [site, trade, sampleText, stock, placeholders])
 }

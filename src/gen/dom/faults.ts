@@ -133,14 +133,13 @@ function textOverlap(root: HTMLElement, lines: readonly Box[], detail: string[])
     .map(owner => ({ rect: owner.getBoundingClientRect(), owner }))
     .filter(c => visible(c.rect))
   let n = 0
+  // Lines of one paragraph may touch when the leading is tight; only different blocks clash.
+  const blocks = lines.map(l => l.owner.closest('p, h1, h2, h3, li, dt, dd, figcaption, blockquote, label, a, button') ?? l.owner)
   for (let i = 0; i < lines.length; i++) {
     const a = lines[i]
     for (let j = i + 1; j < lines.length; j++) {
       const b = lines[j]
-      // Lines of one paragraph may touch when the leading is tight; only different blocks clash.
-      const blockA = a.owner.closest('p, h1, h2, h3, li, dt, dd, figcaption, blockquote, label, a, button') ?? a.owner
-      const blockB = b.owner.closest('p, h1, h2, h3, li, dt, dd, figcaption, blockquote, label, a, button') ?? b.owner
-      if (related(blockA, blockB) || !clash(a.rect, b.rect)) continue
+      if (!clash(a.rect, b.rect) || related(blocks[i], blocks[j])) continue
       n++
       detail.push(`text overlaps text: “${(a.owner.textContent ?? '').trim().slice(0, 30)}”`)
     }

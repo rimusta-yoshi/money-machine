@@ -87,6 +87,7 @@ export const SAMPLE_SET_SIZE = 8
 export function stockSetFor(trade: TradeId, seed: number): StockPhoto[] {
   const own = STOCK_PHOTOS.filter(p => p.trade === trade)
   const pool = [...own, ...STOCK_PHOTOS.filter(p => p.trade === 'any')].slice(0, Math.max(SAMPLE_SET_SIZE, own.length))
+  if (!pool.length) return []
   const s = Math.abs(Math.floor(seed)) >>> 0
   const heroes = pool.filter(p => p.hero)
   const hero = heroes.length ? heroes[s % heroes.length] : pool[0]

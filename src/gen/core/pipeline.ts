@@ -52,6 +52,12 @@ export const SHOW = 6
 export const MIN_OPTIONS = 3
 /** Extra rolls when the first batch leaves too few options. */
 export const MORE_ROLLS = 80
+/**
+ * Most candidates one section may evaluate (each is measured in the browser, on the main
+ * thread). Past it, the ladder goes straight to the safe layouts. A count, not a clock, so
+ * the options stay the same on every machine.
+ */
+export const MAX_EVALUATIONS = 160
 
 /** Something went wrong building one candidate: it's logged and rejected, never the whole section. */
 export interface GenError { section: string; seed: number; spec: AnySpec | null; error: unknown }
@@ -242,6 +248,9 @@ export function relaxSpec<S extends AnySpec>(spec: S): S {
   return { ...spec, step: 0, params } as S
 }
 
+/** Checks that don't depend on layout (colour and theme): relaxing decorations never changes them. */
+const STATIC_ONLY = new Set(['theme-fit', 'error'])
+
 const errorCheck = (error: unknown): Check =>
   ({ id: 'error', label: 'Builds without errors', ok: false, detail: error instanceof Error ? error.message : String(error) })
 
@@ -263,12 +272,16 @@ export function generateOptions<S extends AnySpec, C>(def: SectionDef<S, C>, req
   const rolled = new Set<string>()
   const kept = new Set<string>()
   const candidates: Candidate<S>[] = []
+  /** Each evaluated spec, by its key before any stepping down, so safe layouts can be found again. */
+  const byOriginal = new Map<string, Candidate<S>>()
+  let evaluations = 0
   const validCount = () => candidates.filter(c => c.valid).length
 
-  const consider = (seed: number, spec: S, tier: Tier) => {
+  const consider = (seed: number, spec: S, tier: Tier, always = false) => {
     const key = specKey(spec)
-    if (rolled.has(key)) return
+    if (rolled.has(key) || (!always && evaluations >= MAX_EVALUATIONS)) return
     rolled.add(key)
+    evaluations++
     let c: Candidate<S>
     try {
       c = { ...evaluate(def, seed, spec, req), tier }
@@ -276,6 +289,7 @@ export function generateOptions<S extends AnySpec, C>(def: SectionDef<S, C>, req
       onError({ section: def.type, seed, spec, error })
       c = { seed, spec, checks: [errorCheck(error)], valid: false, score: { total: 0 }, features: features(def, spec), tier }
     }
+    byOriginal.set(key, c)
     // Two rolls can shrink to the same spec.
     const fitted = specKey(c.spec)
     if (kept.has(fitted)) return
@@ -283,7 +297,7 @@ export function generateOptions<S extends AnySpec, C>(def: SectionDef<S, C>, req
     candidates.push(c)
   }
   const roll = (from: number, to: number, tier: Tier) => {
-    for (let i = from; i < to; i++) {
+    for (let i = from; i < to && evaluations < MAX_EVALUATIONS; i++) {
       const seed = candidateSeed(req.batchSeed, i)
       let spec: S
       try {
@@ -301,21 +315,22 @@ export function generateOptions<S extends AnySpec, C>(def: SectionDef<S, C>, req
     roll(0, count, 'batch')
     if (validCount() < enough) roll(count, count + MORE_ROLLS, 'more')
     if (validCount() < enough) {
-      for (const c of [...candidates]) if (!c.valid) consider(c.seed, relaxSpec(c.spec), 'relaxed')
+      // Only layouts that failed on fit: taking decorations off can't fix a colour or theme failure.
+      const layoutFailures = candidates.filter(c => !c.valid && c.checks.every(x => x.ok || !STATIC_ONLY.has(x.id)))
+      for (const c of layoutFailures) consider(c.seed, relaxSpec(c.spec), 'relaxed')
     }
     if (validCount() < enough) {
-      for (const spec of def.safe) if (def.archetypes[spec.archetype]?.gate(req.content as never)) consider(req.batchSeed, spec, 'safe')
+      for (const spec of def.safe) if (def.archetypes[spec.archetype]?.gate(req.content as never)) consider(req.batchSeed, spec, 'safe', true)
     }
   }
   const valid = candidates.filter(c => c.valid)
   let shown = pickDistinct(valid, show)
   // Last resort, never expected: a section with no passing layout still shows its safe ones.
   if (present && shown.length < enough) {
-    const byKey = new Map(candidates.map(c => [specKey(c.spec), c]))
     const onShow = new Set(shown.map(c => specKey(c.spec)))
     const forced = def.safe
       .filter(spec => def.archetypes[spec.archetype]?.gate(req.content as never) && !onShow.has(specKey(spec)))
-      .map((spec): Candidate<S> => ({ ...(byKey.get(specKey(spec)) ?? { seed: req.batchSeed, spec, checks: [], valid: false, score: { total: 0 }, features: features(def, spec) }), tier: 'forced' }))
+      .map((spec): Candidate<S> => ({ ...(byOriginal.get(specKey(spec)) ?? { seed: req.batchSeed, spec, checks: [], valid: false, score: { total: 0 }, features: features(def, spec) }), tier: 'forced' }))
     shown = [...shown, ...forced].slice(0, Math.max(shown.length, enough))
   }
   return {

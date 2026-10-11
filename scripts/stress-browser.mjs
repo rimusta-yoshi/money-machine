@@ -29,10 +29,9 @@ try {
     page.on('pageerror', err => console.error('page error:', err.message))
     const part = shard * pages + i
     await page.goto(`${url}sheet.html?mode=stress&seeds=${seeds}&shard=${part}&of=${tabs}&${extra}`)
-    let last = ''
-    await page.waitForFunction(() => window.__stress?.done, undefined, { timeout: 6 * 60 * 60_000, polling: 5000 }).catch(e => { throw e })
+    // Under CI's job limit, so a stuck tab still ends with a report.
+    await page.waitForFunction(() => window.__stress?.done, undefined, { timeout: Number(arg('--timeout-min', '40')) * 60_000, polling: 5000 })
     const state = await page.evaluate(() => window.__stress)
-    if (state.progress !== last) last = state.progress
     await page.close()
     return state
   }))

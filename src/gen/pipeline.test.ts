@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { distance, generateOptions, MIN_OPTIONS, punchScore, relaxSpec, repairSection, safeOptions, specKey } from './core/pipeline'
+import { distance, generateOptions, MAX_EVALUATIONS, MIN_OPTIONS, punchScore, relaxSpec, repairSection, safeOptions, specKey } from './core/pipeline'
 import type { GenError } from './core/pipeline'
 import { features } from './core/pipeline'
 import { estimateMeasurer, resolveSiteStyle, sectionSchemas, SECTIONS, viewOf } from '.'
@@ -179,5 +179,17 @@ describe('always enough options', () => {
   it('has safe options for a section that couldn’t be generated at all', () => {
     const o = safeOptions(SECTIONS.gallery, 9, viewOf('gallery', RICH_PAGE))
     expect(o.shown.map(c => c.spec)).toEqual(SECTIONS.gallery.safe)
+  })
+})
+
+describe('bounded work', () => {
+  it('stops evaluating at the cap when nothing fits, so the browser never freezes', () => {
+    const specs = new Set<string>()
+    const counting: Measurer = { measure: i => { specs.add(specKey(i.spec)); return TOO_TALL } }
+    const { shown, rejected } = generateOptions(SECTIONS.hero, { batchSeed: 11, content: view('hero'), style, measurer: counting })
+    expect(rejected.length).toBeLessThanOrEqual(MAX_EVALUATIONS + SECTIONS.hero.safe.length)
+    expect(shown.length).toBeGreaterThanOrEqual(MIN_OPTIONS)
+    // The safe layouts are always tried, past the cap.
+    for (const s of SECTIONS.hero.safe) expect([...specs].some(k => k.startsWith(`hero:${s.archetype}:`))).toBe(true)
   })
 })
