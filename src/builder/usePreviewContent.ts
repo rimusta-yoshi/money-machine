@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { hashString, THEMES } from '../gen'
+import { THEMES } from '../gen'
 import type { PageContent, PagePhoto } from '../gen'
 import type { TradeConfig } from '../types'
 import { pageContent } from '../site/pageContent'
@@ -17,13 +17,6 @@ import { loadStockPhotos, stockSetFor } from '../sample/stockPhotos'
 export const SAMPLE_PHOTOS_WHILE_BUILDING = true
 
 /**
- * Which sample set a builder gets: from its trade and business name, so it stays the same
- * through colour and style changes, and differs between two builders of the same trade.
- */
-export const sampleSeed = (site: { tradeId: Site['tradeId']; business: { name: string } }): number =>
-  hashString(`${site.tradeId}|${site.business.name.trim().toLowerCase()}`)
-
-/**
  * The content the builder lays out: the customer's own, plus sample photos (matched to the
  * trade) in empty slots, plus (dev only) sample text everywhere. The preview, the layout
  * options and fit repair all use this, so a pick is never repaired away for content the
@@ -33,9 +26,10 @@ export function usePreviewContent(site: Site | null, trade: TradeConfig | null, 
   const wantPhotos = SAMPLE_PHOTOS_WHILE_BUILDING || sampleText
   // Drawn placeholders straight away (made once, so the content stays stable), stock photos once loaded.
   const [placeholders] = useState<PagePhoto[] | null>(() => (wantPhotos && typeof document !== 'undefined' ? samplePhotos() : null))
+  // The site's own sample seed, fixed when it was created: renaming or restyling never changes the photos.
   const tradeId = site?.tradeId
-  const name = site?.business.name ?? ''
-  const set = useMemo(() => (tradeId ? stockSetFor(tradeId, sampleSeed({ tradeId, business: { name } })) : null), [tradeId, name])
+  const seed = site?.sampleSeed ?? 0
+  const set = useMemo(() => (tradeId ? stockSetFor(tradeId, seed) : null), [tradeId, seed])
   const [stock, setStock] = useState<{ set: typeof set; photos: PagePhoto[] } | null>(null)
   useEffect(() => {
     if (!wantPhotos || !set) return

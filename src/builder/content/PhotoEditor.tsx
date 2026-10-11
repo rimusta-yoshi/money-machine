@@ -8,6 +8,9 @@ import { LIMITS } from '../../site/limits'
 import type { PickState } from './usePhotoPicker'
 import { SAMPLE_PHOTOS_WHILE_BUILDING } from '../usePreviewContent'
 
+/** Below this many gallery photos, a gentle nudge to add more. */
+const GALLERY_NUDGE = 3
+
 /** Shown while an empty slot is filled with a sample in the preview. */
 const SampleNote = () => (SAMPLE_PHOTOS_WHILE_BUILDING
   ? <p className="mm-note">The preview shows a sample photo until you add your own. Samples are never published.</p>
@@ -228,6 +231,9 @@ export function GalleryEditor({ photos, max, defaultAlt, onChange, store, codec 
           />
         )}
       {photos.length === 0 && <SampleNote />}
+      {photos.length > 0 && photos.length < GALLERY_NUDGE && (
+        <p className="mm-note">Add a few more if you have them: three or more photos open up more gallery layouts.</p>
+      )}
       <Status id={statusId} state={state} />
     </div>
   )

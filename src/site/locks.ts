@@ -1,3 +1,4 @@
+import { hashString } from '../gen'
 import type { Generated, SectionKey } from '../gen'
 import { tradeById } from '../trades'
 import type { Locks, Site } from './schema'
@@ -30,6 +31,12 @@ export const isLocked = (site: Pick<Site, 'sections'>, type: SectionKey): boolea
  * point was the customer's choice, and every saved layout was one they saw and kept.
  */
 export function withInferredLocks(site: Site): Site {
+  // Older records get a fixed sample set from what they'd have shown until now.
+  const withSamples = site.sampleSeed === undefined ? { ...site, sampleSeed: hashString(`${site.tradeId}|${site.business.name.trim().toLowerCase()}`) } : site
+  return inferLocks(withSamples)
+}
+
+function inferLocks(site: Site): Site {
   if (site.locks) return site
   const trade = tradeById[site.tradeId]
   const locks: Locks = {

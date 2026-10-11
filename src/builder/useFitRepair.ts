@@ -14,7 +14,16 @@ const SETTLE_MS = 500
 
 export interface Notice { id: number; text: string }
 
-export type Change = { type: SectionKey; status: 'restored' | 'repaired' | 'fallback' }
+/** `text`: the customer's own text no longer fits their layout (rather than, say, a new look). */
+export type Change = { type: SectionKey; status: 'restored' | 'repaired' | 'fallback'; text?: boolean }
+
+/** Checks that fail when text is too long for a layout. */
+const TEXT_CHECKS = new Set(['headline-fits', 'heading-fits', 'fits-section', 'call-above-fold', 'fits-phone-width', 'no-text-overlap', 'inside-section'])
+
+/** Whether a repair was down to the customer's text being too long. */
+export const textTooLong = (failed: readonly { id: string }[]): boolean => failed.some(c => TEXT_CHECKS.has(c.id))
+
+export const TEXT_NOTE = 'Your text is a bit long for this layout, so we’re showing the closest match. Shorten it to get yours back.'
 
 /** One short, plain message for whatever changed in a pass. */
 export function noticeText(changes: readonly Change[]): string {
@@ -22,6 +31,13 @@ export function noticeText(changes: readonly Change[]): string {
   const restored = changes.filter(c => c.status === 'restored')
   const swapped = changes.filter(c => c.status !== 'restored')
   const parts: string[] = []
+  // Text that's too long: one short note, whichever sections it touched (never blocks going live).
+  if (swapped.length && swapped.every(c => c.text)) {
+    if (restored.length === 1) parts.push(`The ${label(restored[0].type)} layout you chose fits again, so it’s back.`)
+    if (restored.length > 1) parts.push(`${restored.length} layouts you chose fit again, so they’re back.`)
+    parts.push(swapped.length === 1 ? TEXT_NOTE : 'Your text is a bit long for some layouts, so we’re showing the closest matches. Shorten it to get yours back.')
+    return parts.join(' ')
+  }
   if (restored.length === 1) parts.push(`The ${label(restored[0].type)} layout you chose fits again, so it’s back.`)
   if (restored.length > 1) parts.push(`${restored.length} layouts you chose fit again, so they’re back.`)
   if (swapped.length === 1) {
@@ -79,7 +95,7 @@ export function useFitRepair(site: Site | null, trade: TradeConfig | null, onRep
             }
             if (cancelled || result.status === 'fits' || specKey(result.entry.spec) === specKey(entry.spec)) continue
             onRepair(type, result.entry)
-            changes.push({ type, status: result.status })
+            changes.push({ type, status: result.status, text: result.status !== 'restored' && textTooLong(result.failed) })
           }
         } finally {
           measurer.dispose()
