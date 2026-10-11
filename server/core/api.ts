@@ -1,8 +1,10 @@
 import { STOCK_PHOTO_FILES } from '../../src/sample/stockPhotoFiles'
 import { refund, refundStatus, requestEditLink } from './account'
+import { adminStats } from './admin'
 import { checkoutStatus, createCheckout, shopConfig } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
+import { recordEvent } from './events'
 import { corsHeaders, errorResponse, HttpError, htmlPage, json, withHeaders } from './http'
 import type { Deps } from './ports'
 import { createPreview, servePreviewHost } from './preview'
@@ -23,6 +25,8 @@ type Handler = (req: Request, deps: Deps, param: string) => Promise<Response>
 /** The builder's API, versioned so later phases can change shape without breaking old builders. */
 const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/drafts$/, createDraft],
+  ['POST', /^\/v1\/events$/, recordEvent],
+  ['GET', /^\/v1\/admin\/stats$/, adminStats],
   ['GET', /^\/v1\/draft$/, getDraft],
   ['PUT', /^\/v1\/draft$/, saveDraft],
   ['POST', /^\/v1\/draft\/photos$/, uploadPhoto],

@@ -9,10 +9,14 @@
 //
 // Payments: put Stripe test keys in server/.dev.vars (git-ignored; see server/README.md) and
 // forward webhooks with the Stripe CLI. Without them, checkout says payments aren't open.
+//
+// The admin dashboard (http://localhost:5173/admin/ with npm run dev:api) needs numbers: add
+// --sample-events to fill an empty local database with 30 made-up days (scripts/sample-events.ts).
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { STOCK_PHOTO_FILES } from '../src/sample/stockPhotoFiles.ts'
 import { startStack } from '../server/test/stack.ts'
+import { seedSampleEvents } from './sample-events.ts'
 import { stripeListenArgs } from './stripe-events.mjs'
 
 const PORT = 8787
@@ -43,6 +47,8 @@ const bucket = await stack.mf.getR2Bucket('BUCKET', 'api')
 for (const file of STOCK_PHOTO_FILES) {
   await bucket.put(`samples/${file}`, readFileSync(join(process.cwd(), 'reference', 'sample-photos', file)), { httpMetadata: { contentType: 'image/jpeg' } })
 }
+const sample = process.argv.includes('--sample-events') ? `
+${await seedSampleEvents(stack, ADMIN, BASE)}` : ''
 const payments = devVars.STRIPE_SECRET_KEY
   ? `Payments on (Stripe test mode). Forward webhooks:
   stripe ${stripeListenArgs(PORT).join(' ')}`
@@ -52,4 +58,4 @@ Previews https://preview.${BASE}/<token>/
 Sites    https://<slug>.${BASE}/
 Admin key (publishing without paying): ${ADMIN}
 ${payments}
-Builder: npm run dev:api  (Vite with VITE_API_URL=https://api.${BASE})`)
+Builder: npm run dev:api  (Vite with VITE_API_URL=https://api.${BASE})${sample}`)

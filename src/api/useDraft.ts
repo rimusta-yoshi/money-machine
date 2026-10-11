@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { parseSite } from '../site/parse'
 import type { Site } from '../site/schema'
+import type { Source } from '../analytics/source'
 import { ApiError } from './client'
 import type { Api, DraftState } from './client'
 import { clearHash, editTokenFromHash, forgetDraftKey, rememberDraftKey, storedDraftKey } from './draftKey'
@@ -22,6 +23,8 @@ interface Options {
   onLoaded: (site: Site) => void
   /** Photos went up to storage: swap data URLs for stored URLs in the record. */
   onUploaded: (urls: Record<string, string>) => void
+  /** The ad this visit came from, remembered with a new draft. */
+  source?: Source
 }
 
 /** An edit link opened in a browser that holds a different site: the two business names. */
@@ -41,7 +44,7 @@ const message = (err: unknown) => (err instanceof ApiError ? err.message : 'Your
  * reopens an edit link (#edit=…, from the welcome email), else this browser's own copy.
  * With no API configured it still keeps the site in the browser.
  */
-export function useDraft({ api, site, autosave, onLoaded, onUploaded }: Options) {
+export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: Options) {
   const [key, setKey] = useState<string | null>(null)
   const [status, setStatus] = useState<SaveStatus>({ state: 'idle' })
   const [published, setPublished] = useState<{ slug: string; url: string } | null>(null)
@@ -180,10 +183,10 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded }: Options)
   const ensureKey = useCallback(async (): Promise<string> => {
     if (keyRef.current) return keyRef.current
     if (!api) throw new ApiError(0, 'not_saved', 'Going live isn’t switched on in this version of the builder.')
-    const k = await api.createDraft()
+    const k = await api.createDraft(source)
     adoptKey(k)
     return k
-  }, [api, adoptKey])
+  }, [api, adoptKey, source])
 
   /** Runs one saving job after any already running. */
   const enqueue = useCallback(<T,>(job: () => Promise<T>): Promise<T> => {

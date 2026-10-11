@@ -282,7 +282,7 @@ Check: https://api.siteblocks.co.uk/health answers `{"ok":true}`.
 | `LAUNCHED` | API config | `false` until launch: checkouts need the tester code. `true` takes orders from everyone. |
 | `REFUND_DAYS` | API config | How long the self-serve refund link works after paying (`14`). |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | API config | Sender of every email, and the address replies and "get in touch" go to. |
-| `ADMIN_TOKEN` | API secret | Publishing without paying, for testing and support. Unset: closed. |
+| `ADMIN_TOKEN` | API secret | Publishing without paying, for testing and support, and reading the admin dashboard. Unset: both closed. |
 | `STRIPE_SECRET_KEY` | API secret | `sk_test_…`. Unset: checkout says payments aren't open. A live key (`sk_live_…`) is refused unless `STRIPE_ALLOW_LIVE=true`. |
 | `STRIPE_WEBHOOK_SECRET` | API secret | `whsec_…`, from the webhook endpoint in the Stripe dashboard. |
 | `LINK_SECRET` | API secret | Signs edit and refund links (32+ characters). Needed when payments are on. |
@@ -290,7 +290,101 @@ Check: https://api.siteblocks.co.uk/health answers `{"ok":true}`.
 | `RESEND_API_KEY` | API secret | Sends email through Resend. Unset: emails are written to the worker's log instead (fine for testing, not for customers: the log then holds their links). |
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
-then runs the cleanup above.
+deletes dashboard events older than 13 months, then runs the cleanup above.
+
+## Admin dashboard
+
+`https://siteblocks.co.uk/admin/` shows the funnel from landing on the homepage to paying, where
+people drop off, which ad sent them, money in and out, recent sites and which layouts win. It's
+for the owner only: the page sits behind **Cloudflare Access** (a one-time code to your email),
+and the numbers come from `GET /v1/admin/stats`, which needs the admin key (`X-Admin-Key`,
+the `ADMIN_TOKEN` secret). The page asks for the key once per browser tab.
+
+### What's recorded (`server/core/events.ts`, table `events`)
+
+| Step | Recorded by | When |
+|---|---|---|
+| `landed` | homepage | Page load. No id at all. |
+| `started` | builder | Opened with no site to reopen (a new visitor). |
+| `basics_done`, `look_picked` | builder | Leaving the Basics and Your look steps. |
+| `build_done` | builder | Reaching Go live. |
+| `preview_shared` | server | A preview link was made. |
+| `checkout_started` | server | A Stripe Checkout was opened. |
+| `paid`, `refunded`, `disputed` | server | The Stripe webhook (or the refund link) recorded it. |
+
+Each row holds only: the step, the time, the trade, the theme, the ad source (`src`,
+`campaign`) and the site's random id (`ref`) once the builder has one. Never names, emails,
+phone numbers, IP addresses, browser details or the draft key. Builder steps are sent only in the
+visit that started the site (once each), so a reload, a return visit or an edit link never counts
+someone twice; the server's steps are stored once per site. Layout picks (`layout_picks`: section, layout id,
+theme, trade, source) are recorded each time a layout is kept. Browsers driven by automation
+(`navigator.webdriver`) send nothing.
+
+The builder calls `POST /v1/events` fire-and-forget (`fetch` with `keepalive`, never awaited,
+errors ignored); the server answers `204` at once and writes afterwards (`ctx.waitUntil`), so a
+failed write never shows. Events are capped at 60 a minute per address by Workers rate limiting
+(`EVENT_LIMIT` binding, counted in memory at the edge, nothing stored). Everything is deleted
+after 13 months by the daily cron.
+
+**Ad source**: ad links point at the homepage with `?src=fb` (or `utm_source`, plus
+`utm_campaign`). The homepage adds it to every builder link (`/build/?src=fb`), the builder sends
+it with a new draft (`POST /v1/drafts {src, campaign}`) and with each step, and the server keeps
+it on the draft (`drafts.src`, `drafts.campaign`, set once when the draft is made), so every later
+event of that site (checkout, payment, refund, dispute) carries it, whatever link it's opened from. Tags are cleaned to lower-case letters, digits, `-` and
+`_` (40 characters); anything with an `@` or a run of 7+ digits (a phone number) is dropped.
+
+Money (sales, revenue, refunds, disputes, net) comes from the payments on `drafts`, not from
+events. Refunds and disputes count on the day they happened; Stripe's fees aren't taken off.
+
+### Try it locally
+
+```bash
+npm run dev:stack -- --sample-events
+```
+
+```bash
+npm run dev:api
+```
+
+Then open `http://localhost:5173/admin/` and enter the local admin key the first command prints.
+`--sample-events` fills an empty local database with 30 made-up days (`scripts/sample-events.ts`).
+
+### Putting /admin behind Cloudflare Access (one-off, free)
+
+1. Cloudflare dashboard → **Zero Trust**. The first time, choose a team name and the **Free**
+   plan (up to 50 users).
+2. **Settings → Authentication → Login methods**: check **One-time PIN** is listed (it is by
+   default). Nothing else is needed.
+3. **Access → Applications → Add an application → Self-hosted**.
+   - Name: `Site Blocks dashboard`. Session duration: `24 hours`.
+   - **Add public hostname**: domain `siteblocks.co.uk`, path `admin`. This covers `/admin`
+     and everything under it.
+   - Identity providers: leave **One-time PIN** on; turn on **Instant Auth** if offered (skips the
+     provider picker).
+4. **Policies → Add a policy**: name `Owner`, action **Allow**, include rule **Emails** with your
+   own email address. Save the policy, then save the application.
+5. Check it in a private window: `https://siteblocks.co.uk/admin/` should show Cloudflare's
+   sign-in page; enter your email, type the code it sends, and the dashboard asks for the admin key.
+   `https://siteblocks.co.uk/` and `/build/` must still open without signing in.
+
+No secret goes in the repo: Access lives in the Cloudflare dashboard, and `ADMIN_TOKEN` is a
+wrangler secret (step 6 above).
+
+### Deploying it
+
+```bash
+npm run cf:migrate
+```
+
+```bash
+npm run cf:deploy
+```
+
+```bash
+npm run cf:deploy:app
+```
+
+Migration `0004_events.sql` only adds tables and columns.
 
 ## Payments and email (one-off, test mode)
 

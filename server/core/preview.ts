@@ -2,6 +2,7 @@ import { homeDocument, privacyDocument, siteCss, siteFavicon } from '../../src/p
 import { tradeById } from '../../src/trades'
 import { previewOrigin } from './config'
 import { authDraft, storedRecord } from './drafts'
+import { trackSite } from './events'
 import { CACHE, htmlPage, json, pageHeaders } from './http'
 import { rateLimit } from './limits'
 import { draftPhotoKey, PHOTO_NAME } from './photos'
@@ -19,6 +20,7 @@ export async function createPreview(req: Request, deps: Deps): Promise<Response>
   const now = deps.now()
   const expiresAt = now + deps.config.previewDays * DAY
   await deps.db.createPreview({ tokenHash: await sha256Hex(token), ref: draft.ref, now, expiresAt })
+  trackSite(deps, 'preview_shared', draft)
   return json({ url: `${previewOrigin(deps.config)}/${token}/`, expiresAt: new Date(expiresAt).toISOString() }, 201)
 }
 

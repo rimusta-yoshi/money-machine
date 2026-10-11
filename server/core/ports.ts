@@ -1,3 +1,5 @@
+import type { Source } from '../../src/analytics/source'
+import type { Step } from '../../src/analytics/funnel'
 import type { Config } from './config'
 
 /**
@@ -38,6 +40,8 @@ export interface DraftRow {
   disputeLostAt: number | null
   /** Pence refunded by partial refunds so far. */
   refundedAmount: number | null
+  /** The ad or link the site came from, if known. */
+  source: Source
 }
 
 export interface CheckoutRow {
@@ -53,7 +57,7 @@ export interface CheckoutRow {
 
 /** The database: drafts, payments, preview links, claimed addresses and rate-limit counters. */
 export interface Database {
-  createDraft(d: { ref: string; keyHash: string; now: number }): Promise<void>
+  createDraft(d: { ref: string; keyHash: string; now: number; source: Source }): Promise<void>
   draftByKey(keyHash: string): Promise<DraftRow | null>
   draftByRef(ref: string): Promise<DraftRow | null>
   draftByPaymentIntent(paymentIntent: string): Promise<DraftRow | null>
@@ -113,6 +117,84 @@ export interface Database {
   sweep(now: number): Promise<void>
 }
 
+/** One funnel step reached. Anonymous: a site's random id at most, never anything about the person. */
+export interface EventRow {
+  step: Step
+  at: number
+  trade: string | null
+  theme: string | null
+  src: string | null
+  campaign: string | null
+  /** The site's random id, once the builder has one. */
+  ref: string | null
+}
+
+/** One layout kept in one section. */
+export interface PickRow {
+  at: number
+  section: string
+  layout: string
+  theme: string | null
+  trade: string | null
+  src: string | null
+  ref: string | null
+}
+
+/** A date range (ms, inclusive) and an ad source: undefined for every source, null for none (direct). */
+export interface StatsQuery {
+  from: number
+  to: number
+  src?: string | null
+}
+
+export type Dimension = 'src' | 'trade' | 'theme'
+
+export interface MoneyTotals {
+  sales: number
+  /** Pence. */
+  revenue: number
+  refunds: number
+  refundedAmount: number
+  /** Pence given back by partial refunds on sales in the range. */
+  partialRefunded: number
+  disputes: number
+  /** Pence lost to disputes the bank decided against us. */
+  lostToDisputes: number
+}
+
+export type SiteStatus = 'draft' | 'published' | 'paid' | 'disputed' | 'refunded'
+
+export interface RecentSite {
+  ref: string
+  status: SiteStatus
+  trade: string | null
+  theme: string | null
+  src: string | null
+  campaign: string | null
+  createdAt: number
+  paidAt: number | null
+  /** The live address, while it's live. */
+  slug: string | null
+}
+
+/** The dashboard's store: anonymous events in, counts out. */
+export interface Insights {
+  /** Records a step. A site's step is recorded once (the first time it's reached). */
+  addEvent(e: EventRow): Promise<void>
+  addPick(p: PickRow): Promise<void>
+  stepCounts(q: StatsQuery): Promise<Partial<Record<Step, number>>>
+  breakdown(q: StatsQuery, by: Dimension): Promise<{ key: string | null; step: Step; n: number }[]>
+  /** Counts per day; days start at local midnight, `offsetMinutes` ahead of UTC. */
+  daily(q: StatsQuery, steps: readonly Step[], offsetMinutes: number): Promise<{ day: number; step: Step; n: number }[]>
+  picks(q: StatsQuery): Promise<{ section: string; layout: string; n: number }[]>
+  money(q: StatsQuery): Promise<MoneyTotals>
+  recentSites(q: StatsQuery, limit: number): Promise<RecentSite[]>
+  /** The ad sources seen in the range (ignoring the source filter), busiest first, for the filter. */
+  sources(q: StatsQuery): Promise<string[]>
+  /** Deletes events and picks older than `before`. */
+  forgetBefore(before: number): Promise<void>
+}
+
 export interface StoredObject {
   body: ReadableStream | ArrayBuffer
   contentType: string
@@ -161,6 +243,7 @@ export interface Mailer {
 export interface Deps {
   config: Config
   db: Database
+  insights: Insights
   blobs: Blobs
   assets: Assets
   /** Null when payments are off (no Stripe keys). */
@@ -169,4 +252,8 @@ export interface Deps {
   now: () => number
   /** The caller's address, for rate limits. */
   clientIp: (req: Request) => string
+  /** Runs work after the response has gone (event recording): never awaited, failures only logged. */
+  later: (work: Promise<unknown>) => void
+  /** Whether to record a builder event from this caller (a per-address limit kept by the host, never stored). */
+  allowEvent: (req: Request) => Promise<boolean>
 }

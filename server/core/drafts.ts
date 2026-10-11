@@ -1,3 +1,6 @@
+import { z } from 'zod'
+import { cleanTag, NO_SOURCE } from '../../src/analytics/source'
+import type { Source } from '../../src/analytics/source'
 import { parseSite } from '../../src/site/parse'
 import { SiteParseError } from '../../src/site/schema'
 import type { Site } from '../../src/site/schema'
@@ -62,10 +65,20 @@ export function storedRecord(draft: DraftRow): Site | null {
   return draft.record ? parseSite(JSON.parse(draft.record)) : null
 }
 
+const sourceBody = z.object({ src: z.string().max(200).nullish(), campaign: z.string().max(200).nullish() }).strict()
+
+/** The ad source the builder sends with a new draft (optional; anything odd is simply ignored). */
+async function draftSource(req: Request): Promise<Source> {
+  if (!/^application\/json\b/i.test(req.headers.get('Content-Type') ?? '')) return NO_SOURCE
+  const parsed = sourceBody.safeParse(await readJson(req, SIZE.smallJson).catch(() => null))
+  return parsed.success ? { src: cleanTag(parsed.data.src), campaign: cleanTag(parsed.data.campaign) } : NO_SOURCE
+}
+
+/** POST /v1/drafts [{src, campaign}]: a new draft, remembering which ad it came from. */
 export async function createDraft(req: Request, deps: Deps): Promise<Response> {
   await rateLimit(deps, req, 'create')
   const key = newDraftKey()
-  await deps.db.createDraft({ ref: newRef(), keyHash: await sha256Hex(key), now: deps.now() })
+  await deps.db.createDraft({ ref: newRef(), keyHash: await sha256Hex(key), now: deps.now(), source: await draftSource(req) })
   return json({ key }, 201)
 }
 

@@ -26,8 +26,8 @@ export default defineConfig({
   define: { __PRICE_PENCE__: JSON.stringify(PRICE_PENCE) },
   build: {
     rollupOptions: {
-      // The homepage at the root, the builder at /build/.
-      input: { home: page('./index.html'), build: page('./build/index.html') },
+      // The homepage at the root, the builder at /build/, the private dashboard at /admin/.
+      input: { home: page('./index.html'), build: page('./build/index.html'), admin: page('./admin/index.html') },
     },
   },
   test: {

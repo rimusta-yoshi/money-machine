@@ -36,6 +36,10 @@ import { PaidScreen } from './builder/account/PaidScreen'
 import { RefundScreen } from './builder/account/RefundScreen'
 import { LostLinkScreen } from './builder/account/LostLinkScreen'
 import { AccountShell } from './builder/account/AccountShell'
+import { NO_SOURCE, sourceFromSearch } from './analytics/source'
+import { createTracker } from './analytics/track'
+import { storedDraftKey, editTokenFromHash } from './api/draftKey'
+import { loadLocalSite } from './api/localSite'
 import { EditLinkChoice } from './builder/account/EditLinkChoice'
 
 /** What a live site needs before changes can be published, or null. */
@@ -50,6 +54,18 @@ const api = API_BASE ? createApi(API_BASE) : null
 /** Publishing without paying, with the admin key (testing and support): dev builds, or with VITE_ADMIN_PUBLISH. */
 const ADMIN_PUBLISH = !!api && (import.meta.env.DEV || import.meta.env.VITE_ADMIN_PUBLISH === 'true')
 const DOMAIN = API_BASE ? siteDomain(API_BASE) : BRAND.domain
+/** The ad this visit came from (carried over from the homepage as ?src=): sent with a new draft and with each step. */
+const SOURCE = typeof window === 'undefined' ? NO_SOURCE : sourceFromSearch(window.location.search)
+/** Anonymous funnel steps for the admin dashboard (no cookies, nothing kept in the browser). */
+const tracker = createTracker(API_BASE, SOURCE)
+
+/**
+ * A visit with nothing to reopen: someone starting a new site. Builder steps are counted only on
+ * such visits, so a reload, a return visit or an edit link never counts the same person twice
+ * (the server counts preview, checkout and payment per site whatever the visit).
+ */
+const FRESH_VISIT = typeof window !== 'undefined' && !loadLocalSite() && !storedDraftKey() && !editTokenFromHash(window.location.hash)
+const trackStep: typeof tracker.step = (step, facts) => { if (FRESH_VISIT) tracker.step(step, facts) }
 
 /** The builder, or one of the pages around paying (Stripe's return page, a refund link, a lost edit link). */
 export default function App() {
@@ -89,7 +105,9 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     if (cancelled) window.history.replaceState(null, '', window.location.pathname)
   }, [cancelled])
   const onUploaded = useCallback((urls: Record<string, string>) => dispatch({ type: 'replacePhotoUrls', urls }), [])
-  const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded })
+  const draft = useDraft({ api, site, autosave: editing, onLoaded, onUploaded, source: SOURCE })
+  useEffect(() => { trackStep('started', { trade: tradeFromSearch(window.location.search) ?? undefined }) }, [])
+  const facts = () => ({ trade: site?.tradeId, theme: site?.style.theme, draftKey: draft.key })
   const shop = useShop(api)
 
   // Before the go-live step and before publishing, every section is measured on real screens.
@@ -130,6 +148,9 @@ function Builder({ cancelled }: { cancelled: boolean }) {
   const go = (next: Step) => {
     // Leaving the basics from the top bar still needs a name and a phone number.
     if (step === 'basics' && next !== 'basics' && basicsGaps(site).length) return
+    if (step === 'basics' && next !== 'basics') trackStep('basics_done', facts())
+    if (step === 'look' && (next === 'build' || next === 'finish')) trackStep('look_picked', facts())
+    if (next === 'finish') trackStep('build_done', facts())
     setSheetFolded(false)
     setStep(next)
   }
@@ -206,7 +227,10 @@ function Builder({ cancelled }: { cancelled: boolean }) {
             content={preview ?? undefined}
             mobile={mobile}
             initialSection={focusSection}
-            onPick={(section, value) => dispatch({ type: 'pickSection', section, value })}
+            onPick={(section, value) => {
+              dispatch({ type: 'pickSection', section, value })
+              tracker.layout(section, value.spec.archetype, facts())
+            }}
             onContentChange={patch => dispatch({ type: 'setContent', patch })}
             onBusinessChange={onBusinessChange}
             onDone={() => { void verify().then(checked => checked && go('finish')) }}
