@@ -13,7 +13,6 @@ import { withSample } from '../sample/content'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
-import { ExampleSection } from './ExampleSection'
 import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
 import { useSectionPicker } from './useSectionPicker'
@@ -262,13 +261,12 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                       {state === 'done' && <><Icon.Check size={10} /> </>}
                       {isActive ? `${label} · editing` : label}
                     </div>
-                    {waiting && (!present(sec.type) || showPlaceholder(i)) ? (
-                      <ExampleSection type={sec.type} site={site} content={content} needs={needsLine} />
-                    ) : showPlaceholder(i) ? (
+                    {/* Unvisited sections, those waiting for content too, stay blank until opened: nothing looks chosen in advance. */}
+                    {showPlaceholder(i) ? (
                       <div className="mm-band-blank">
                         <span className="mm-band-blank-name">{label}</span>
                         <span className="mm-band-blank-hint">
-                          tap to build this section
+                          {isActive && waiting ? needsLine : 'tap to build this section'}
                         </span>
                       </div>
                     ) : (() => {

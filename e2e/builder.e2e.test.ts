@@ -74,6 +74,9 @@ it('builds, previews, pays for, edits and refunds a site from the builder', asyn
   await page.getByLabel('Where do you work?').fill('Leeds')
   await page.getByRole('button', { name: 'Next: your look' }).click()
   await page.getByRole('button', { name: 'Start building' }).click()
+  // Nothing looks chosen in advance: sections not yet visited (those waiting for content too) are blank bands.
+  await page.getByRole('button', { name: 'Edit Trust bar section' }).getByText('tap to build this section').waitFor()
+  expect(await page.locator('.mm-example').count()).toBe(0)
 
   // A photo for the hero: prepared in the browser now, uploaded when the builder saves.
   const file = page.locator('input[type=file]').first()
