@@ -5,6 +5,7 @@ import type { PageContent, PagePhoto } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { head, icon, media } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import type { IconName } from '../core/markup'
 import { rollAlign, rollAsym, rollBreak, rollCrop, rollMotif, textSpan } from '../core/punch'
 import { THEMES } from '../themes'
@@ -123,6 +124,10 @@ export const whyUs = defineSection<WhyUsSpec, WhyView>({
     'friendly-local': { grid: 3, rows: 1.2, split: 1.2, numbered: 1.4, photo_points: 3 },
   },
   fallback: { v: 2, section: 'why_us', archetype: 'rows', step: 2, params: { motif: 'none', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'why_us', archetype: 'split', step: 2, params: { asym: '6/6', motif: 'none', brk: 'band' } },
+    { v: 2, section: 'why_us', archetype: 'split', step: 2, params: { asym: '7/5', motif: 'none', brk: 'band' } },
+  ],
   panel: s => s.archetype === 'checkpanel' || (s.params as { brk?: string }).brk === 'panel',
   body: (s, v, ctx) => {
     switch (s.archetype) {
@@ -131,8 +136,8 @@ export const whyUs = defineSection<WhyUsSpec, WhyView>({
         const on = ctx.motif
         const num = on && (p.motif === 'numbers' || p.motif === 'circles')
         const mark = (i: number) => (on && p.motif === 'icontile' ? `<span class="sb-icon-tile">${icon(ICONS[i % ICONS.length], 22)}</span>` : num ? '' : `<span class="sb-point-icon">${icon(ICONS[i % ICONS.length], 26)}</span>`)
-        const cls = cx('sb-grid sb-why-grid', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-why-grid--rule')
-        const li = v.points.map((pt, i) => `<li class="sb-card sb-point-cell">${point(pt, mark(i))}</li>`).join('')
+        const cls = cx('sb-grid sb-bal sb-why-grid', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-why-grid--rule')
+        const li = withRowVars(v.points.map((pt, i) => `<li class="sb-card sb-point-cell">${point(pt, mark(i))}</li>`), p.cols, 1)
         const tag = num ? 'ol' : 'ul'
         return { vars: `--sb-cols:${Math.min(p.cols, v.points.length)};--sb-cols-m:1;`, inner: `${HEAD(ctx, 'row')}<${tag} class="${cls}">${li}</${tag}>` }
       }

@@ -102,6 +102,10 @@ export const footer = defineSection<FooterSpec, FooterView>({
     'friendly-local': { simple: 2.4, columns: 2.4, split: 1.4 },
   },
   fallback: { v: 2, section: 'footer', archetype: 'simple', step: 2, params: { align: 'left', tone: 'plain' } },
+  safe: [
+    { v: 2, section: 'footer', archetype: 'columns', step: 2, params: { lists: 'services', tone: 'plain' } },
+    { v: 2, section: 'footer', archetype: 'split', step: 2, params: { size: 'medium', tone: 'plain' } },
+  ],
   body: (s, v) => {
     switch (s.archetype) {
       case 'simple': {

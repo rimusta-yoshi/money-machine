@@ -6,6 +6,7 @@ import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { head, img } from '../core/markup'
 import { rollBreak, rollCrop, rollMotif, rollRot } from '../core/punch'
+import { balancedItems, itemRowSizes } from '../core/rows'
 import { THEMES } from '../themes'
 import { BREAKS, CROPS, MOTIFS } from '../themes/types'
 
@@ -25,13 +26,42 @@ export type GallerySpec = z.infer<typeof gallerySchema>
 
 const HEAD = (ctx: BodyContext, align: 'left' | 'center' | 'row' = 'left') =>
   head('gallery', { eyebrow: ctx.biome.voice.eyebrows.gallery, title: ctx.biome.voice.titles.gallery, align })
-const cell = (p: PagePhoto, cls = '') => `<li class="sb-gal-cell${cls}">${img(p, 'sb-photo')}</li>`
+const cell = (p: PagePhoto, cls = '', style = '') => `<li class="sb-gal-cell${cls}"${style ? ` style="${style}"` : ''}>${img(p, 'sb-photo')}</li>`
+
+/** Photos in balanced rows (see core/rows.ts): no lone photo beside an empty stretch, for any count. */
+const rows = (photos: readonly PagePhoto[], max: number, maxPhone: number, item: (p: PagePhoto) => string = p => img(p, 'sb-photo'), cls = 'sb-gal-cell') =>
+  balancedItems(photos.map(item), max, maxPhone, cls)
+
+/**
+ * Mosaic spans on a 12-column grid: the big photo takes 8 columns and two rows, the next two
+ * stack beside it, and the rest fill whole rows evenly. On a phone the big photo takes the
+ * full width and the rest pair up.
+ */
+function mosaicCells(photos: readonly PagePhoto[], wide: 'first' | 'last'): string {
+  const span = (d: number, m: number) => `--sb-s:${d};--sb-sm:${m};`
+  if (wide === 'first') {
+    const [big, ...others] = photos
+    const phone = itemRowSizes(others.length, 2)
+    const desk = itemRowSizes(others.length - 2, 3)
+    return cell(big, ' sb-gal-wide', span(8, 12))
+      + others.map((p, i) => cell(p, '', span(i < 2 ? 4 : 12 / desk[i - 2], 12 / phone[i]))).join('')
+  }
+  // The big photo closes the gallery: the rest in even rows, then the big one with two beside it.
+  const big = photos[photos.length - 1]
+  const beside = photos.slice(-3, -1)
+  const rest = photos.slice(0, -3)
+  const desk = itemRowSizes(rest.length, 3)
+  const phone = itemRowSizes(rest.length, 2)
+  return rest.map((p, i) => cell(p, '', span(12 / desk[i], 12 / phone[i]))).join('')
+    + cell(big, ' sb-gal-wide', span(8, 12))
+    + beside.map(p => cell(p, '', span(4, 6))).join('')
+}
 
 /** A photo with a caption from its description. The caption repeats the alt text, so it is hidden from screen readers. */
-function figure(p: PagePhoto, extra = ''): string {
+function figure(p: PagePhoto): string {
   const src = safeImageUrl(p.url)
   if (!src) return ''
-  return `<li class="sb-gal-fig"${extra}><div class="sb-photo"><img src="${esc(src)}" alt="${esc(p.alt)}" loading="lazy" decoding="async"></div><p class="sb-cap" aria-hidden="true">${esc(p.alt)}</p></li>`
+  return `<div class="sb-photo"><img src="${esc(src)}" alt="${esc(p.alt)}" loading="lazy" decoding="async"></div><p class="sb-cap" aria-hidden="true">${esc(p.alt)}</p>`
 }
 
 export const gallery = defineSection<GallerySpec, GalleryView>({
@@ -42,9 +72,9 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
   anchor: 'work',
   archetypes: {
     grid: {
-      label: 'Grid', why: 'needs 3+ photos of your work',
-      gate: v => v.photos.length >= 3,
-      params: (r, { content: v, biome: t }) => ({ cols: v.photos.length % 3 === 0 ? 3 : pick(r, [2, 3] as const), crop: rollCrop(r, t), brk: rollBreak(r, t, ['band', 'rule', 'panel']) }),
+      label: 'Grid', why: 'needs a photo of your work',
+      gate: v => v.photos.length >= 1,
+      params: (r, { content: v, biome: t }) => ({ cols: v.photos.length % 3 === 0 || v.photos.length < 3 ? 3 : pick(r, [2, 3] as const), crop: rollCrop(r, t), brk: rollBreak(r, t, ['band', 'rule', 'panel']) }),
       features: p => [p.cols - 2, CROPS.indexOf(p.crop) / 3, BREAKS.indexOf(p.brk) / 2],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
@@ -56,8 +86,9 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
     strip: {
-      label: 'Scrolling strip', why: 'needs a photo of your work',
-      gate: v => v.photos.length >= 1,
+      label: 'Scrolling strip', why: 'needs 3+ photos of your work',
+      // Fewer than three leave the strip mostly empty.
+      gate: v => v.photos.length >= 3,
       params: r => ({ size: pick(r, ['medium', 'large'] as const) }),
       features: p => [p.size === 'large' ? 1 : 0, 0.5],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
@@ -73,7 +104,7 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
     slab: {
       label: 'Edge to edge', why: 'needs 3+ photos of your work',
       gate: v => v.photos.length >= 3,
-      params: (r, { content: v, biome: t }) => ({ cols: v.photos.length % 4 === 0 ? 4 : 3, motif: rollMotif(r, t, 'gallery', ['stripe'], 0.35) }),
+      params: (r, { content: v, biome: t }) => ({ cols: v.photos.length % 4 === 0 && v.photos.length > 4 ? 4 : 3, motif: rollMotif(r, t, 'gallery', ['stripe'], 0.35) }),
       features: p => [p.cols - 3, p.motif === 'stripe' ? 1 : 0, 1],
       focal: (_p, z) => ({ focal: z.h2, second: 17 }),
     },
@@ -100,17 +131,20 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
     'craft-heritage': { grid: 1.6, mosaic: 1, strip: 1, feature: 2, captioned: 3.5 },
     'friendly-local': { grid: 2.4, mosaic: 2.4, strip: 1.4, feature: 1, polaroids: 3.5 },
   },
-  fallback: { v: 2, section: 'gallery', archetype: 'strip', step: 2, params: { size: 'medium' } },
+  // Balanced rows of plain photos work for any count, from one to twelve.
+  fallback: { v: 2, section: 'gallery', archetype: 'grid', step: 2, params: { cols: 3, crop: '4:3', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'gallery', archetype: 'grid', step: 2, params: { cols: 2, crop: '4:3', brk: 'band' } },
+    { v: 2, section: 'gallery', archetype: 'grid', step: 2, params: { cols: 3, crop: '4:5', brk: 'band' } },
+  ],
   body: (s, v, ctx) => {
     switch (s.archetype) {
       case 'grid': {
         const p = s.params
-        return { cls: `sb-crop--${p.crop.replace(':', 'x')}`, vars: `--sb-cols:${p.cols};--sb-cols-m:2;`, inner: `${HEAD(ctx, 'row')}<ul class="sb-grid sb-gal">${v.photos.map(x => cell(x)).join('')}</ul>` }
+        return { cls: `sb-crop--${p.crop.replace(':', 'x')}`, inner: `${HEAD(ctx, 'row')}<ul class="sb-bal sb-gal">${rows(v.photos, p.cols, 2)}</ul>` }
       }
-      case 'mosaic': {
-        const wideAt = s.params.wide === 'first' ? 0 : v.photos.length - 1
-        return { inner: `${HEAD(ctx)}<ul class="sb-gal-mosaic">${v.photos.map((x, i) => cell(x, i === wideAt ? ' sb-gal-wide' : '')).join('')}</ul>` }
-      }
+      case 'mosaic':
+        return { inner: `${HEAD(ctx)}<ul class="sb-gal-mosaic">${mosaicCells(v.photos, s.params.wide)}</ul>` }
       case 'strip':
         return {
           cls: `sb-size--${s.params.size}`,
@@ -120,25 +154,27 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
         const [first, ...rest] = v.photos
         const thumbs = rest.slice(0, s.params.thumbs)
         const more = rest.slice(s.params.thumbs)
+        // Three thumbnails: the first runs across the top, so the block stays a full rectangle.
+        const thumbCells = thumbs.map((x, i) => cell(x, thumbs.length === 3 && i === 0 ? ' sb-gal-thumb-wide' : '')).join('')
         return {
           vars: '--sb-ta:5;',
-          inner: `${HEAD(ctx)}<div class="sb-cols sb-cols--top sb-gal-feature"><ul class="sb-main sb-gal-thumbs">${thumbs.map(x => cell(x)).join('')}</ul>${img(first, 'sb-photo sb-aside sb-media sb-gal-big')}</div>`
-            + (more.length ? `<ul class="sb-grid sb-gal" style="--sb-cols:4;--sb-cols-m:2">${more.map(x => cell(x)).join('')}</ul>` : ''),
+          inner: `${HEAD(ctx)}<div class="sb-cols sb-cols--top sb-gal-feature" data-fill><ul class="sb-main sb-gal-thumbs">${thumbCells}</ul>${img(first, 'sb-photo sb-aside sb-media sb-gal-big')}</div>`
+            + (more.length ? `<ul class="sb-bal sb-gal sb-gal-more">${rows(more, 4, 2)}</ul>` : ''),
         }
       }
       case 'slab': {
         const p = s.params
         const stripe = ctx.motif ? '<div class="sb-divider sb-gal-stripe" aria-hidden="true"><span></span></div>' : ''
-        return { vars: `--sb-cols:${p.cols};--sb-cols-m:2;`, inner: `${HEAD(ctx, 'row')}${stripe}<ol class="sb-gal-slab">${v.photos.map(x => cell(x)).join('')}</ol>` }
+        return { vars: `--sb-cols:${p.cols};`, inner: `${HEAD(ctx, 'row')}${stripe}<ol class="sb-bal sb-gal-slab">${rows(v.photos, p.cols, 2)}</ol>` }
       }
       case 'captioned': {
         const p = s.params
-        return { cls: cx(p.stagger && 'sb-gal-stagger'), vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx, 'center')}<ul class="sb-grid sb-gal-figs">${v.photos.slice(0, 6).map(x => figure(x)).join('')}</ul>` }
+        return { cls: cx(p.stagger && 'sb-gal-stagger'), inner: `${HEAD(ctx, 'center')}<ul class="sb-bal sb-gal-figs">${rows(v.photos, p.cols, 1, figure, 'sb-gal-fig')}</ul>` }
       }
       case 'polaroids': {
         const p = s.params
-        const pins = v.photos.slice(0, 6).map((x, i) => figure(x, ` data-over style="--sb-rot:${i % 2 === 0 ? p.rot : -p.rot}deg"`)).join('')
-        return { inner: `${HEAD(ctx, 'center')}<ul class="sb-gal-pins">${pins}</ul>` }
+        const pin = (x: PagePhoto, i: number) => `<div class="sb-gal-pin" data-over style="--sb-rot:${i % 2 === 0 ? p.rot : -p.rot}deg">${figure(x)}</div>`
+        return { inner: `${HEAD(ctx, 'center')}<ul class="sb-bal sb-gal-pins">${balancedItems(v.photos.map(pin), 3, 1)}</ul>` }
       }
     }
   },
@@ -147,38 +183,46 @@ export const gallery = defineSection<GallerySpec, GalleryView>({
 
 export const GALLERY_CSS = `
 .sb-gal-cell .sb-photo{width:100%;height:100%}
-.sb-gal .sb-gal-cell{aspect-ratio:4/3}
+.sb-gal .sb-gal-cell{aspect-ratio:4/3;max-height:520px}
 .sb-crop--1x1 .sb-gal .sb-gal-cell{aspect-ratio:1/1}
 .sb-crop--4x5 .sb-gal .sb-gal-cell{aspect-ratio:4/5}
 .sb-crop--3x2 .sb-gal .sb-gal-cell{aspect-ratio:3/2}
-.sb-gal-mosaic{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:230px;gap:calc(var(--sb-gap) * 0.9)}
-.sb-gal-wide{grid-column:span 2;grid-row:span 2}
+.sb-gal-mosaic{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-auto-rows:230px;gap:calc(var(--sb-gap) * 0.9)}
+.sb-gal-mosaic>li{grid-column:span var(--sb-s,4)}
+.sb-gal-wide{grid-row:span 2}
 .sb-gal-strip .sb-gal-cell{aspect-ratio:4/3}
 .sb-size--large .sb-gal-strip{grid-auto-columns:minmax(320px,46%)}
+.sb-sec .sb-gal-feature{align-items:stretch}
 .sb-gal-big{aspect-ratio:4/3;width:100%}
-.sb-gal-thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--sb-gap) * 0.9)}
-.sb-gal-thumbs .sb-gal-cell{aspect-ratio:4/3}
-.sb-gal-slab{display:grid;grid-template-columns:repeat(var(--sb-cols),minmax(0,1fr));gap:0;counter-reset:sb-n;margin:0 calc(-1 * (var(--sb-pad) + (100cqw - min(100cqw, 1200px)) / 2))}
-.sb-gal-slab>li{position:relative;counter-increment:sb-n;aspect-ratio:1/1}
+.sb-gal-thumbs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:calc(var(--sb-gap) * 0.9)}
+.sb-gal-thumbs .sb-gal-cell{min-height:0}
+.sb-gal-thumb-wide{grid-column:span 2}
+.sb-gal-slab{--sb-bg-gap:0px;counter-reset:sb-n;margin:0 calc(-1 * (var(--sb-pad) + (100cqw - min(100cqw, 1200px)) / 2))}
+.sb-gal-slab>li{position:relative;counter-increment:sb-n;height:calc(100cqw / var(--sb-cols))}
 .sb-gal-slab>li::after{content:counter(sb-n,decimal-leading-zero);position:absolute;left:0;top:0;z-index:2;padding:6px 12px;background:var(--sb-btn-bg);color:var(--sb-btn-fg);font-family:var(--sb-fd);font-size:28px;line-height:1}
 .sb-gal-slab .sb-photo{border-radius:0}
 .sb-gal-stripe{width:100%}
 .sb-gal-figs{row-gap:calc(var(--sb-gap) * 2.5)}
 .sb-gal-fig{display:flex;flex-direction:column;gap:12px}
-.sb-gal-fig .sb-photo{aspect-ratio:4/3}
+.sb-gal-fig .sb-photo,.sb-gal-pin .sb-photo{aspect-ratio:4/3}
 .sb-gal-stagger .sb-gal-figs>li:nth-child(even){margin-top:calc(var(--sb-gap) * 5)}
-.sb-gal-pins{display:flex;flex-wrap:wrap;justify-content:center;gap:40px 34px;padding:12px 0 20px}
-.sb-gal-pins>li{width:min(300px,42%);padding:14px 14px 18px;background:#FFFFFF;color:var(--sb-ink);box-shadow:0 12px 28px color-mix(in srgb,var(--sb-ink) 14%,transparent);transform:rotate(var(--sb-rot,0deg))}
+.sb-gal-pins{--sb-bg-gap:40px;padding:12px 0 20px}
+.sb-gal-pins>li{display:flex;justify-content:center}
+.sb-gal-pin{display:flex;flex-direction:column;gap:12px;width:min(300px,100%);padding:14px 14px 18px;background:#FFFFFF;color:var(--sb-ink);box-shadow:0 12px 28px color-mix(in srgb,var(--sb-ink) 14%,transparent);transform:rotate(var(--sb-rot,0deg))}
 .sb-gal-pins .sb-photo{border-radius:calc(var(--sb-r) * 0.4)}
 .sb-gal-pins .sb-cap{color:var(--sb-muted);font-weight:700;font-size:15px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 @container (max-width: 719px){
-  .sb-gal-mosaic{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:140px}
-  .sb-gal-wide{grid-column:span 2;grid-row:span 1}
+  .sb-gal .sb-gal-cell{max-height:none}
+  .sb-gal-mosaic{grid-auto-rows:140px}
+  .sb-gal-mosaic>li{grid-column:span var(--sb-sm,6)}
+  .sb-gal-wide{grid-row:span 1}
   .sb-size--large .sb-gal-strip{grid-auto-columns:88%}
-  .sb-gal-slab{margin:0 -20px;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sb-gal-thumbs .sb-gal-cell{aspect-ratio:4/3}
+  .sb-gal-slab{margin:0 -20px}
+  .sb-gal-slab>li{height:calc(100cqw / 2)}
   .sb-gal-slab>li::after{font-size:20px}
   .sb-gal-stagger .sb-gal-figs>li:nth-child(even){margin-top:0}
-  .sb-gal-pins{gap:24px}
-  .sb-gal-pins>li{width:78%}
+  .sb-gal-pins{--sb-bg-gap:24px}
+  .sb-gal-pin{width:78%}
 }
 `

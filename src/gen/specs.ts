@@ -53,9 +53,13 @@ export const sectionSchemas = {
 } satisfies { [K in keyof SectionSpecs]: z.ZodType<SectionSpecs[K]> }
 
 const seed = z.number().int().min(0).max(0xffffffff)
-const generated = <S extends z.ZodType>(spec: S) => z.object({ seed, spec, preferred: spec.optional() }).strict()
+const generated = <S extends z.ZodType>(spec: S) => z.object({ seed, spec, preferred: spec.optional(), locked: z.literal(true).optional() }).strict()
 
-/** How the site record stores generated sections: batch seed, resolved spec, and the customer's own pick if a repair replaced it. */
+/**
+ * How the site record stores generated sections: batch seed, resolved spec, the customer's
+ * own pick if a repair replaced it, and whether the customer chose it (locked: generation
+ * never replaces it with something else of its own accord).
+ */
 export const generatedSectionsSchema = z.object({
   hero: generated(heroSchema).optional(),
   trust_bar: generated(trustBarSchema).optional(),

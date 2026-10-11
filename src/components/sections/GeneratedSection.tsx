@@ -18,7 +18,15 @@ interface Props {
  * Safe to inject because the renderer escapes all content and only emits schema-checked values.
  */
 export function GeneratedSection({ section, style, content }: Props) {
-  const html = useMemo(() => renderPageSection(section, style, content), [section, style, content])
+  const html = useMemo(() => {
+    try {
+      return renderPageSection(section, style, content)
+    } catch (error) {
+      // Even the safe layout failed: leave this section out rather than the whole preview.
+      console.error(`Drawing the ${section.type} section failed`, section.spec, error)
+      return ''
+    }
+  }, [section, style, content])
   return (
     <>
       <GenStyles />

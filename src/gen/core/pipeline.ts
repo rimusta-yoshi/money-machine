@@ -4,7 +4,14 @@ import { THEMES } from '../themes'
 import { sizesFor } from '../themes/sizes'
 import { themeCheck } from './punch'
 import { MAX_STEP } from './types'
-import type { AnySpec, Band, Check, Generated, Measurement, Measurer, Score, SectionDef, Side, Step } from './types'
+import type { AnySpec, Band, Check, Faults, Generated, Measurement, Measurer, Score, SectionDef, Side, Step } from './types'
+
+/**
+ * How hard the pipeline had to look for a candidate: the normal batch; more rolls of the
+ * same; rolls with their decorations taken off; the section's safe layouts; or (never
+ * expected, and the stress test fails on it) a safe layout shown although it fails a check.
+ */
+export type Tier = 'batch' | 'more' | 'relaxed' | 'safe' | 'forced'
 
 export interface Candidate<S extends AnySpec = AnySpec> {
   seed: number
@@ -13,6 +20,7 @@ export interface Candidate<S extends AnySpec = AnySpec> {
   valid: boolean
   score: Score
   features: number[]
+  tier?: Tier
 }
 
 export interface Options<S extends AnySpec = AnySpec> {
@@ -34,10 +42,21 @@ export interface OptionsRequest<C> {
   measurer: Measurer
   count?: number
   show?: number
+  /** Where errors in single candidates go (default: console.error with the seed and spec). */
+  onError?: ErrorSink
 }
 
 export const BATCH_SIZE = 40
 export const SHOW = 6
+/** Every section offers at least this many options, whatever the content. */
+export const MIN_OPTIONS = 3
+/** Extra rolls when the first batch leaves too few options. */
+export const MORE_ROLLS = 80
+
+/** Something went wrong building one candidate: it's logged and rejected, never the whole section. */
+export interface GenError { section: string; seed: number; spec: AnySpec | null; error: unknown }
+export type ErrorSink = (e: GenError) => void
+const logError: ErrorSink = e => console.error(`Generating ${e.section} failed for seed ${e.seed}`, e.spec, e.error)
 
 /** Candidate i of a batch. */
 export const candidateSeed = (batchSeed: number, i: number): number => mixSeeds(batchSeed, i)
@@ -144,6 +163,14 @@ function sidesOf(def: AnyDef, spec: AnySpec): Side[] {
   return def.archetypes[spec.archetype]?.sided ? ['right', 'left'] : ['right']
 }
 
+function addFaults(a?: Faults, b?: Faults): Faults | undefined {
+  if (!a || !b) return a ?? b
+  return {
+    orphans: a.orphans + b.orphans, holes: a.holes + b.holes, textOverlap: a.textOverlap + b.textOverlap, overflow: a.overflow + b.overflow,
+    detail: [...(a.detail ?? []), ...(b.detail ?? [])],
+  }
+}
+
 /** The worst of several measurements: a layout must pass on every side it can be drawn with. */
 const worst = (ms: readonly Measurement[]): Measurement => ms.reduce((a, b) => ({
   desktop: { headlineLines: Math.max(a.desktop.headlineLines, b.desktop.headlineLines), heightPx: Math.max(a.desktop.heightPx, b.desktop.heightPx) },
@@ -154,6 +181,7 @@ const worst = (ms: readonly Measurement[]): Measurement => ms.reduce((a, b) => (
   },
   minTapPx: Math.min(a.minTapPx, b.minTapPx),
   coveredText: a.coveredText + b.coveredText,
+  faults: addFaults(a.faults, b.faults),
 }))
 
 export function measure(def: AnyDef, spec: AnySpec, content: unknown, style: SiteStyle, measurer: Measurer): Measurement {
@@ -205,40 +233,107 @@ export function pickDistinct<S extends AnySpec>(pool: readonly Candidate<S>[], s
   return picked
 }
 
+/** Decorations taken off for the relaxed tier: every value here is valid in every schema that has the key. */
+const PLAIN: Record<string, unknown> = { motif: 'none', stripe: false, blob: false, ticks: false, dot: false, stagger: false, trust: false, proof: 'none', rot: 0 }
+
+/** The same layout without its decorations (stickers, stripes, motifs, rotation), back at full size. */
+export function relaxSpec<S extends AnySpec>(spec: S): S {
+  const params = Object.fromEntries(Object.entries(spec.params).map(([k, v]) => [k, k in PLAIN ? PLAIN[k] : v]))
+  return { ...spec, step: 0, params } as S
+}
+
+const errorCheck = (error: unknown): Check =>
+  ({ id: 'error', label: 'Builds without errors', ok: false, detail: error instanceof Error ? error.message : String(error) })
+
 /**
  * The generator pipeline for any section: roll a batch, drop duplicates, reject anything
  * that breaks a hard rule (after stepping the type down to fit), then show the most
  * different survivors. Deterministic for a given batch seed, content, style and measurer.
+ *
+ * A section always offers at least MIN_OPTIONS layouts. If the batch leaves fewer, the
+ * rules are relaxed step by step: more rolls; then the same rolls without decorations;
+ * then the section's safe layouts, which fit any content. A candidate that throws is logged
+ * and rejected; it never takes the section down.
  */
 export function generateOptions<S extends AnySpec, C>(def: SectionDef<S, C>, req: OptionsRequest<C>): Options<S> {
   const count = req.count ?? BATCH_SIZE
+  const show = req.show ?? SHOW
+  const enough = Math.min(MIN_OPTIONS, show)
+  const onError = req.onError ?? logError
   const rolled = new Set<string>()
   const kept = new Set<string>()
   const candidates: Candidate<S>[] = []
-  if (isPresent(def, req.content)) {
-    for (let i = 0; i < count; i++) {
+  const validCount = () => candidates.filter(c => c.valid).length
+
+  const consider = (seed: number, spec: S, tier: Tier) => {
+    const key = specKey(spec)
+    if (rolled.has(key)) return
+    rolled.add(key)
+    let c: Candidate<S>
+    try {
+      c = { ...evaluate(def, seed, spec, req), tier }
+    } catch (error) {
+      onError({ section: def.type, seed, spec, error })
+      c = { seed, spec, checks: [errorCheck(error)], valid: false, score: { total: 0 }, features: features(def, spec), tier }
+    }
+    // Two rolls can shrink to the same spec.
+    const fitted = specKey(c.spec)
+    if (kept.has(fitted)) return
+    kept.add(fitted)
+    candidates.push(c)
+  }
+  const roll = (from: number, to: number, tier: Tier) => {
+    for (let i = from; i < to; i++) {
       const seed = candidateSeed(req.batchSeed, i)
-      const spec = generateSpec(def, seed, req.content, req.style)
-      const key = specKey(spec)
-      if (rolled.has(key)) continue
-      rolled.add(key)
-      const c = evaluate(def, seed, spec, req)
-      // Two rolls can shrink to the same spec.
-      const fitted = specKey(c.spec)
-      if (kept.has(fitted)) continue
-      kept.add(fitted)
-      candidates.push(c)
+      let spec: S
+      try {
+        spec = generateSpec(def, seed, req.content, req.style)
+      } catch (error) {
+        onError({ section: def.type, seed, spec: null, error })
+        continue
+      }
+      consider(seed, spec, tier)
+    }
+  }
+
+  const present = isPresent(def, req.content)
+  if (present) {
+    roll(0, count, 'batch')
+    if (validCount() < enough) roll(count, count + MORE_ROLLS, 'more')
+    if (validCount() < enough) {
+      for (const c of [...candidates]) if (!c.valid) consider(c.seed, relaxSpec(c.spec), 'relaxed')
+    }
+    if (validCount() < enough) {
+      for (const spec of def.safe) if (def.archetypes[spec.archetype]?.gate(req.content as never)) consider(req.batchSeed, spec, 'safe')
     }
   }
   const valid = candidates.filter(c => c.valid)
+  let shown = pickDistinct(valid, show)
+  // Last resort, never expected: a section with no passing layout still shows its safe ones.
+  if (present && shown.length < enough) {
+    const byKey = new Map(candidates.map(c => [specKey(c.spec), c]))
+    const onShow = new Set(shown.map(c => specKey(c.spec)))
+    const forced = def.safe
+      .filter(spec => def.archetypes[spec.archetype]?.gate(req.content as never) && !onShow.has(specKey(spec)))
+      .map((spec): Candidate<S> => ({ ...(byKey.get(specKey(spec)) ?? { seed: req.batchSeed, spec, checks: [], valid: false, score: { total: 0 }, features: features(def, spec) }), tier: 'forced' }))
+    shown = [...shown, ...forced].slice(0, Math.max(shown.length, enough))
+  }
   return {
     batchSeed: req.batchSeed,
     generated: count,
-    shown: pickDistinct(valid, req.show ?? SHOW),
+    shown,
     valid,
     rejected: candidates.filter(c => !c.valid),
     gated: archetypeKeys(def).filter(k => !def.archetypes[k].gate(req.content as never)).map(k => ({ archetype: k, why: def.archetypes[k].why })),
   }
+}
+
+/** Options for a section when generating failed outright or timed out: its safe layouts, unmeasured. */
+export function safeOptions<S extends AnySpec, C>(def: SectionDef<S, C>, batchSeed: number, content: C): Options<S> {
+  const shown = def.safe
+    .filter(spec => def.archetypes[spec.archetype]?.gate(content as never))
+    .map((spec, i): Candidate<S> => ({ seed: batchSeed + i, spec, checks: [], valid: true, score: { total: 0 }, features: [], tier: 'forced' }))
+  return { batchSeed, generated: 0, shown, valid: shown, rejected: [], gated: [] }
 }
 
 /** The rules a spec breaks with today's content and style (empty = it fits). */

@@ -6,6 +6,7 @@ import { facts } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { corner, head, img, media, SPOTS, stars } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import type { Spot } from '../core/markup'
 import { rollAlign, rollAsym, rollBreak, rollCrop, rollMotif, rollRot, textSpan } from '../core/punch'
 import { THEMES } from '../themes'
@@ -58,7 +59,7 @@ const titleOf = (v: AboutView, ctx: Pick<BodyContext, 'biome'>) => ctx.biome.voi
 
 function statsList(v: AboutView, cls = '') {
   return v.stats.length
-    ? `<ul class="${cx('sb-about-stats', cls)}">${v.stats.map(s => `<li><span class="sb-stat-n">${esc(s.n)}</span><span class="sb-stat-l">${esc(s.l)}</span></li>`).join('')}</ul>`
+    ? `<ul class="${cx('sb-bal sb-about-stats', cls)}">${withRowVars(v.stats.map(s => `<li><span class="sb-stat-n">${esc(s.n)}</span><span class="sb-stat-l">${esc(s.l)}</span></li>`), cls.includes('--grid') ? 2 : 3, 2)}</ul>`
     : ''
 }
 
@@ -168,6 +169,10 @@ export const about = defineSection<AboutSpec, AboutView>({
     'friendly-local': { photo_split: 3, statement: 1.4, stats_led: 1.4, banner: 1, bubble: 2.6 },
   },
   fallback: { v: 2, section: 'about', archetype: 'statement', step: 2, params: { size: 'medium', align: 'left', em: false, brk: 'band' } },
+  safe: [
+    { v: 2, section: 'about', archetype: 'statement', step: 2, params: { size: 'medium', align: 'left', em: true, brk: 'band' } },
+    { v: 2, section: 'about', archetype: 'statement', step: 2, params: { size: 'big', align: 'left', em: false, brk: 'band' } },
+  ],
   trim: (v, omit) => ({
     ...v,
     stats: omit.has('stats') ? [] : v.stats,
@@ -253,10 +258,10 @@ export const ABOUT_CSS = `
 .sb-about-statement{font-family:var(--sb-fd);font-weight:var(--sb-dw);letter-spacing:var(--sb-dtr);line-height:1.25;max-width:30ch;font-size:calc(var(--sb-h2) * 0.5)}
 .sb-size--big .sb-about-statement{font-size:calc(var(--sb-h2) * 0.62)}
 .sb-center .sb-about-statement{align-self:center;text-align:center}
-.sb-center .sb-about-stats{justify-content:center}
-.sb-about-stats{display:flex;flex-wrap:wrap;gap:var(--sb-gap) calc(var(--sb-gap) * 3.5)}
+.sb-center .sb-about-stats>li{text-align:center}
+.sb-about-stats{--sb-bg-gap:calc(var(--sb-gap) * 2)}
 .sb-about-stats .sb-stat-n{font-size:calc(var(--sb-xl) * 0.62)}
-.sb-about-stats--grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--sb-gap) * 2)}
+.sb-about-stats--grid{--sb-bg-gap:calc(var(--sb-gap) * 2)}
 .sb-about-stats--grid .sb-stat-n{font-size:var(--sb-xl)}
 .sb-about-stats--rule>li{border-top:6px solid var(--sb-accent);padding-top:18px}
 .sb-about-banner{width:100%;height:300px}
@@ -278,7 +283,7 @@ export const ABOUT_CSS = `
 @container (max-width: 719px){
   .sb-about-statement,.sb-size--big .sb-about-statement{font-size:calc(var(--sb-h2m) * 0.62)}
   .sb-about-banner,.sb-height--tall .sb-about-banner{height:220px}
-  .sb-about-stats{gap:var(--sb-gap) calc(var(--sb-gap) * 2)}
+  .sb-about-stats{--sb-bg-gap:var(--sb-gap)}
   .sb-about-stats--grid .sb-stat-n{font-size:var(--sb-xlm)}
   .sb-h2--big,.sb-about-big .sb-h2--big{font-size:var(--sb-h1m)}
   .sb-about.sb-img--right .sb-bleed--edge,.sb-about.sb-img--left .sb-bleed--edge{margin:0 -20px}

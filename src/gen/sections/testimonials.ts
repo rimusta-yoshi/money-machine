@@ -5,6 +5,7 @@ import type { PageContent, PageReview } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { head, stars } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import { rollAlign, rollBreak, rollMotif } from '../core/punch'
 import { THEMES } from '../themes'
 import { ALIGNS, BREAKS, MOTIFS } from '../themes/types'
@@ -134,6 +135,10 @@ export const testimonials = defineSection<TestimonialsSpec, ReviewsView>({
     'friendly-local': { cards: 2.6, spotlight: 1, split: 1.6, scroll: 2, list: 1, bubble: 3.5 },
   },
   fallback: { v: 2, section: 'testimonials', archetype: 'cards', step: 2, params: { count: 1, align: 'left', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'testimonials', archetype: 'cards', step: 2, params: { count: 1, align: 'split', brk: 'band' } },
+    { v: 2, section: 'testimonials', archetype: 'split', step: 2, params: { count: 1, brk: 'band' } },
+  ],
   panel: s => s.archetype === 'panel' || (s.params as { brk?: string }).brk === 'panel',
   body: (s, v, ctx) => {
     switch (s.archetype) {
@@ -154,7 +159,7 @@ export const testimonials = defineSection<TestimonialsSpec, ReviewsView>({
       case 'scroll':
         return { inner: `${HEAD(ctx, 'row')}<ul class="sb-reviews" data-scroll tabindex="0" aria-label="Customer reviews, scroll sideways for more">${v.reviews.map(r => `<li class="sb-card">${quote(r)}</li>`).join('')}</ul>` }
       case 'list':
-        return { vars: `--sb-cols:${s.params.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx)}<ul class="sb-grid sb-review-list">${v.reviews.map(r => `<li>${quote(r)}</li>`).join('')}</ul>` }
+        return { vars: `--sb-cols:${s.params.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx)}<ul class="sb-grid sb-bal sb-review-list">${withRowVars(v.reviews.map(r => `<li>${quote(r)}</li>`), s.params.cols, 1)}</ul>` }
       case 'bigquote': {
         const r = bigOne(v, 200)!
         return { inner: `${HEAD(ctx, 'left', true)}<div class="sb-bigquote"><figure class="sb-quote">${stars(r.rating)}<blockquote><p>${esc(r.text)}</p></blockquote>${who(r)}</figure></div>` }

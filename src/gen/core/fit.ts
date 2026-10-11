@@ -1,6 +1,7 @@
 import type { SiteStyle } from '../schema'
 import { THEMES } from '../themes'
 import { sizesFor, spacing } from '../themes/sizes'
+import { NO_FAULTS } from './types'
 import type { Check, Measurement, Step } from './types'
 
 /** The frames the hard checks measure against. */
@@ -38,6 +39,20 @@ export const coverCheck = (m: Measurement): Check => ({
   detail: m.coveredText === 0 ? 'no sticker, card or stripe covers any text' : `${m.coveredText} overlap${m.coveredText > 1 ? 's' : ''} with text or the call button`,
 })
 
+const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+
+/** Grid, overlap and overflow rules, from a real layout (the estimator always passes them). */
+export function layoutChecks(m: Measurement): Check[] {
+  const f = m.faults ?? NO_FAULTS
+  const why = (f.detail ?? []).slice(0, 2).join('; ')
+  return [
+    { id: 'no-orphans', label: 'No lone items on a row', ok: f.orphans === 0, detail: f.orphans ? `${plural(f.orphans, 'item')} alone on a row: ${why}` : 'every row is full or balanced' },
+    { id: 'no-holes', label: 'No big empty gaps', ok: f.holes === 0, detail: f.holes ? `${plural(f.holes, 'gap')}: ${why}` : 'no large empty areas' },
+    { id: 'no-text-overlap', label: 'Text clear of other text', ok: f.textOverlap === 0, detail: f.textOverlap ? `${plural(f.textOverlap, 'overlap')}: ${why}` : 'no text sits on text or buttons' },
+    { id: 'inside-section', label: 'Nothing spills out', ok: f.overflow === 0, detail: f.overflow ? `${plural(f.overflow, 'thing')} outside the section: ${why}` : 'everything inside its section' },
+  ]
+}
+
 /** Hard rules every non-hero section must pass once laid out. */
 export function sectionMeasuredChecks(m: Measurement): Check[] {
   return [
@@ -50,6 +65,7 @@ export function sectionMeasuredChecks(m: Measurement): Check[] {
     },
     widthCheck(m),
     coverCheck(m),
+    ...layoutChecks(m),
   ]
 }
 
@@ -74,10 +90,12 @@ export function heroMeasuredChecks(m: Measurement): Check[] {
     {
       id: 'call-above-fold',
       label: 'Call button visible on a phone',
-      ok: callBottom <= FRAME.phoneFold,
-      detail: `bottom edge at ${Math.round(callBottom)}px, fold at ${FRAME.phoneFold}px`,
+      // With no button at all (no phone number and nowhere to send enquiries) there is nothing to keep above the fold.
+      ok: !Number.isFinite(callBottom) || callBottom <= FRAME.phoneFold,
+      detail: Number.isFinite(callBottom) ? `bottom edge at ${Math.round(callBottom)}px, fold at ${FRAME.phoneFold}px` : 'no call button on this page',
     },
     coverCheck(m),
+    ...layoutChecks(m),
   ]
 }
 

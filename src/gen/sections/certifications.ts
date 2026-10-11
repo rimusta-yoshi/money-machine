@@ -5,6 +5,7 @@ import type { PageContent } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { head, icon } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import { rollAlign, rollBreak, rollMotif, rollRot } from '../core/punch'
 import { THEMES } from '../themes'
 import { ALIGNS, BREAKS, MOTIFS } from '../themes/types'
@@ -98,6 +99,10 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
     'friendly-local': { cards: 2.4, checklist: 1.4, seals: 1.6, badges: 3 },
   },
   fallback: { v: 2, section: 'certifications', archetype: 'checklist', step: 2, params: { layout: 'below', motif: 'none', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'certifications', archetype: 'checklist', step: 2, params: { layout: 'beside', motif: 'none', brk: 'band' } },
+    { v: 2, section: 'certifications', archetype: 'cards', step: 2, params: { cols: 2, mark: 'badge', motif: 'none', brk: 'band' } },
+  ],
   body: (s, v, ctx) => {
     const on = ctx.motif
     switch (s.archetype) {
@@ -105,9 +110,9 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
         const p = s.params
         const num = on && p.motif === 'numbers'
         const mark = on && p.motif === 'icontile' ? `<span class="sb-icon-tile">${icon(p.mark, 24)}</span>` : num ? '' : icon(p.mark, 30)
-        const cls = cx('sb-grid sb-cert-cards', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-cert-cards--rule')
+        const cls = cx('sb-grid sb-bal sb-cert-cards', num && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-cert-cards--rule')
         const tag = num ? 'ol' : 'ul'
-        const items = v.badges.map(b => `<li class="sb-card sb-cert">${mark}<p class="sb-h3">${esc(b)}</p></li>`).join('')
+        const items = withRowVars(v.badges.map(b => `<li class="sb-card sb-cert">${mark}<p class="sb-h3">${esc(b)}</p></li>`), p.cols, 1)
         return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${HEAD(ctx, v, 'row')}<${tag} class="${cls}">${items}</${tag}>` }
       }
       case 'checklist': {
@@ -124,12 +129,13 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
       case 'seals': {
         const p = s.params
         const center = p.align === 'center'
-        const items = v.badges.map(b => `<li class="sb-seal">${icon('badge', 28)}<span>${esc(b)}</span></li>`).join('')
-        return { cls: `sb-shape--${p.shape}`, inner: `${HEAD(ctx, v, center ? 'center' : 'left')}<ul class="sb-seals${center ? ' sb-seals--center' : ''}">${items}</ul>` }
+        // Each seal sits centred in its share of a balanced row, so no seal is left alone beside a gap.
+        const items = withRowVars(v.badges.map(b => `<li><div class="sb-seal">${icon('badge', 28)}<span>${esc(b)}</span></div></li>`), 4, 2)
+        return { cls: `sb-shape--${p.shape}`, inner: `${HEAD(ctx, v, center ? 'center' : 'left')}<ul class="sb-bal sb-seals${center ? ' sb-seals--center' : ''}">${items}</ul>` }
       }
       case 'plates': {
-        const items = v.badges.map(b => `<li class="sb-plate">${icon('shield', 26)}<span>${esc(b)}</span></li>`).join('')
-        return { cls: on ? 'sb-plates--stripe' : '', inner: `${HEAD(ctx, v, 'row')}<ul class="sb-plates">${items}</ul>` }
+        const items = withRowVars(v.badges.map(b => `<li class="sb-plate">${icon('shield', 26)}<span>${esc(b)}</span></li>`), 4, 1)
+        return { cls: on ? 'sb-plates--stripe' : '', inner: `${HEAD(ctx, v, 'row')}<ul class="sb-bal sb-plates">${items}</ul>` }
       }
       case 'certificate': {
         const p = s.params
@@ -141,8 +147,8 @@ export const certifications = defineSection<CertificationsSpec, CertsView>({
         const p = s.params
         // Over the page's sticker quota, the badges sit straight.
         const rot = ctx.motif ? p.rot : 0
-        const items = v.badges.map((b, i) => `<li class="sb-rbadge${i % 3 === 1 ? ' sb-rbadge--ink' : ''}" data-over style="--sb-rot:${i % 2 === 0 ? rot : -rot}deg">${icon('badge', 26)}<span>${esc(b)}</span></li>`).join('')
-        return { inner: `${HEAD(ctx, v, p.align === 'center' ? 'center' : 'left')}<ul class="sb-rbadges${p.align === 'center' ? ' sb-rbadges--center' : ''}">${items}</ul>` }
+        const items = withRowVars(v.badges.map((b, i) => `<li><div class="sb-rbadge${i % 3 === 1 ? ' sb-rbadge--ink' : ''}" data-over style="--sb-rot:${i % 2 === 0 ? rot : -rot}deg">${icon('badge', 26)}<span>${esc(b)}</span></div></li>`), 4, 2)
+        return { inner: `${HEAD(ctx, v, p.align === 'center' ? 'center' : 'left')}<ul class="sb-bal sb-rbadges${p.align === 'center' ? ' sb-rbadges--center' : ''}">${items}</ul>` }
       }
     }
   },
@@ -156,13 +162,14 @@ export const CERTIFICATIONS_CSS = `
 .sb-checks--2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:calc(var(--sb-gap) * 3)}
 .sb-checks--2>li:nth-last-child(2){border-bottom:1px solid var(--sb-hair)}
 .sb-checks .sb-icon{color:var(--sb-link)}
-.sb-seals{display:flex;flex-wrap:wrap;gap:22px}
-.sb-seals--center{justify-content:center}
+.sb-seals{--sb-bg-gap:22px}
+.sb-seals>li{display:flex;justify-content:flex-start}
+.sb-seals--center>li{justify-content:center}
 .sb-seal{width:176px;min-height:176px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;font-weight:700;font-size:15px;line-height:1.3;border:2px solid currentColor;overflow-wrap:break-word}
 .sb-seal .sb-icon{color:currentColor}
 .sb-shape--circle .sb-seal{border-radius:50%}
 .sb-shape--rounded .sb-seal{border-radius:calc(var(--sb-r) + 8px)}
-.sb-plates{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:calc(var(--sb-gap) * 1.2)}
+.sb-plates{--sb-bg-gap:calc(var(--sb-gap) * 1.2)}
 .sb-plate{display:flex;align-items:center;gap:14px;min-height:88px;padding:18px 22px;border:2px solid var(--sb-fg);font-family:var(--sb-fl);font-weight:var(--sb-lw);font-size:20px;letter-spacing:var(--sb-ltr);text-transform:var(--sb-lup);line-height:1.15}
 .sb-plate .sb-icon{color:var(--sb-link)}
 .sb-plates--stripe .sb-plate{position:relative;padding-top:30px}
@@ -171,19 +178,22 @@ export const CERTIFICATIONS_CSS = `
 .sb-cert-frame--double .sb-cert-frame{outline:1px solid var(--sb-fg);outline-offset:5px}
 .sb-cert-list{display:flex;flex-wrap:wrap;justify-content:center;gap:12px 0;font-family:var(--sb-fl);font-weight:var(--sb-lw);font-size:15px;letter-spacing:var(--sb-ltr);text-transform:var(--sb-lup)}
 .sb-cert-list>li+li::before{content:"";display:inline-block;width:7px;height:7px;margin:0 20px;transform:translateY(-2px) rotate(45deg);background:var(--sb-link)}
-.sb-rbadges{display:flex;flex-wrap:wrap;gap:26px;padding:10px 0}
-.sb-rbadges--center{justify-content:center}
+.sb-rbadges{--sb-bg-gap:26px;padding:10px 0}
+.sb-rbadges>li{display:flex;justify-content:flex-start}
+.sb-rbadges--center>li{justify-content:center}
 .sb-rbadge{width:168px;height:168px;border-radius:50%;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;background:#FFFFFF;color:var(--sb-ink);box-shadow:0 10px 26px color-mix(in srgb,var(--sb-ink) 12%,transparent);font-weight:800;font-size:15px;line-height:1.25;overflow-wrap:break-word;transform:rotate(var(--sb-rot,0deg))}
 .sb-rbadge .sb-icon{color:var(--sb-brand-text)}
 .sb-rbadge--ink{background:var(--sb-ink);color:var(--sb-ground)}
 .sb-rbadge--ink .sb-icon{color:var(--sb-ground)}
 @container (max-width: 719px){
   .sb-checks--2{grid-template-columns:1fr}
-  .sb-seals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .sb-seal{width:auto;min-height:150px}
+  .sb-seals{--sb-bg-gap:12px}
+  .sb-seals>li{justify-content:center}
+  .sb-seal{width:100%;max-width:200px;min-height:150px}
   .sb-cert-list{flex-direction:column;align-items:center}
   .sb-cert-list>li+li::before{display:none}
-  .sb-rbadges{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;justify-items:center}
+  .sb-rbadges{--sb-bg-gap:18px}
+  .sb-rbadges>li{justify-content:center}
   .sb-rbadge{width:140px;height:140px;font-size:14px}
 }
 `

@@ -14,13 +14,19 @@ export async function launchBrowser() {
   throw new Error('No local Chrome or Edge found for playwright-core')
 }
 
-/** Serves the repo with Vite and opens sheet.html with the given query. */
-export async function openSheet(query) {
+/** Serves the repo with Vite (for sheet.html). */
+export async function startSheetServer() {
   const server = await createServer({ root, server: { port: 5199, strictPort: false }, logLevel: 'error' })
   await server.listen()
+  return { url: server.resolvedUrls.local[0], close: () => server.close() }
+}
+
+/** Serves the repo with Vite and opens sheet.html with the given query. */
+export async function openSheet(query) {
+  const server = await startSheetServer()
   const browser = await launchBrowser()
   const page = await browser.newPage({ viewport: { width: 1400, height: 1000 } })
   page.on('pageerror', err => console.error('page error:', err.message))
-  await page.goto(`${server.resolvedUrls.local[0]}sheet.html?${query}`)
+  await page.goto(`${server.url}sheet.html?${query}`)
   return { page, close: async () => { await browser.close(); await server.close() } }
 }

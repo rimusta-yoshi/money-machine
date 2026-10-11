@@ -5,6 +5,7 @@ import type { PageContent } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { head, icon, link } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import { rollAlign, rollAsym, rollBreak, rollMotif, textSpan } from '../core/punch'
 import { THEMES } from '../themes'
 import { ALIGNS, ASYMS, BREAKS, MOTIFS } from '../themes/types'
@@ -102,6 +103,10 @@ export const areas = defineSection<AreasSpec, AreasView>({
     'friendly-local': { chips: 3.4, columns: 1.2, split: 1.2, sentence: 2 },
   },
   fallback: { v: 2, section: 'areas', archetype: 'split', step: 2, params: { asym: '6/6', motif: 'none', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'areas', archetype: 'split', step: 2, params: { asym: '7/5', motif: 'none', brk: 'band' } },
+    { v: 2, section: 'areas', archetype: 'split', step: 2, params: { asym: '5/7', motif: 'none', brk: 'band' } },
+  ],
   body: (s, v, ctx) => {
     const call = v.call ? link(ctx.biome.voice.cta.call(v.call.number), v.call.href) : ''
     const on = ctx.motif
@@ -115,9 +120,9 @@ export const areas = defineSection<AreasSpec, AreasView>({
       case 'columns': {
         const p = s.params
         const m = on ? p.motif : 'none'
-        const cls = cx('sb-grid sb-area-cols', (m === 'numbers' || m === 'circles') && 'sb-list--num', m === 'ticks' && 'sb-list--tick')
+        const cls = cx('sb-grid sb-bal sb-area-cols', (m === 'numbers' || m === 'circles') && 'sb-list--num', m === 'ticks' && 'sb-list--tick')
         const tag = m === 'numbers' || m === 'circles' ? 'ol' : 'ul'
-        return { vars: `--sb-cols:${p.cols};--sb-cols-m:2;`, inner: `${HEAD(v, ctx, 'row')}<${tag} class="${cls}">${v.areas.map(a => `<li>${m === 'none' ? icon('pin', 16) : ''}<span>${esc(a)}</span></li>`).join('')}</${tag}>` }
+        return { vars: `--sb-cols:${p.cols};--sb-cols-m:2;`, inner: `${HEAD(v, ctx, 'row')}<${tag} class="${cls}">${withRowVars(v.areas.map(a => `<li>${m === 'none' ? icon('pin', 16) : ''}<span>${esc(a)}</span></li>`), p.cols, 2)}</${tag}>` }
       }
       case 'split': {
         const p = s.params

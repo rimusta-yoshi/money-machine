@@ -95,7 +95,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     try {
       let checked: Site = current
       for (const v of await verifySite(current, tradeById[current.tradeId])) {
-        const action: SiteAction = v.status === 'chosen' ? { type: 'pickSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry }
+        const action: SiteAction = v.status === 'chosen' ? { type: 'acceptSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry }
         dispatch(action)
         checked = siteReducer(checked, action) ?? checked
       }

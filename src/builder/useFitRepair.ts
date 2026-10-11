@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { repairSection, SECTIONS, sectionPresent, specKey, viewOf } from '../gen'
 import type { Generated, PageContent, SectionKey } from '../gen'
-import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
+import { createDomMeasurer } from '../gen/dom/measure'
 import type { TradeConfig } from '../types'
 import { SECTION_LABELS } from '../site/labels'
 import { pageOrder } from '../site/page'
@@ -63,13 +63,20 @@ export function useFitRepair(site: Site | null, trade: TradeConfig | null, onRep
     let cancelled = false
     const timer = setTimeout(async () => {
       try {
-        await loadStyleFonts(document, input.style)
-        if (cancelled) return
         const measurer = createDomMeasurer(document)
         const changes: Change[] = []
         try {
+          await measurer.prepare(input.style, input.content)
+          if (cancelled) return
           for (const { type, entry } of input.saved) {
-            const result = repairSection(SECTIONS[type], entry, viewOf(type, input.content), input.style, measurer)
+            // One section failing to check never stops the others.
+            let result
+            try {
+              result = repairSection(SECTIONS[type], entry, viewOf(type, input.content), input.style, measurer)
+            } catch (err) {
+              console.error(`Fit check failed for the ${type} section`, { seed: entry.seed, spec: entry.spec, err })
+              continue
+            }
             if (cancelled || result.status === 'fits' || specKey(result.entry.spec) === specKey(entry.spec)) continue
             onRepair(type, result.entry)
             changes.push({ type, status: result.status })
