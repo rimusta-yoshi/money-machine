@@ -96,6 +96,10 @@ export interface Database {
   /** Closes the open dispute: won clears it (true if this call did), lost records it and the site stays down. */
   endDispute(ref: string, won: boolean, now: number): Promise<boolean>
   recordPartialRefund(ref: string, amountRefunded: number): Promise<void>
+  /** Stripe's fee on the site's payment (pence). */
+  recordFee(ref: string, fee: number): Promise<void>
+  /** Paid sites whose Stripe fee isn't known yet, oldest first. */
+  paidWithoutFee(limit: number): Promise<{ ref: string; paymentIntent: string }[]>
   /** Frees the addresses of sites refunded, or whose dispute was lost, before `before`; returns them. */
   releaseEndedSlugs(before: number): Promise<string[]>
   /** Drops this draft's other address holds: one open checkout's address at a time. */
@@ -160,6 +164,10 @@ export interface MoneyTotals {
   disputes: number
   /** Pence lost to disputes the bank decided against us. */
   lostToDisputes: number
+  /** Stripe's fees on sales in the range (pence), as far as known. */
+  stripeFees: number
+  /** Sales in the range whose fee isn't known yet. */
+  feesUnknown: number
 }
 
 export type SiteStatus = 'draft' | 'published' | 'paid' | 'disputed' | 'refunded'
@@ -226,6 +234,8 @@ export interface Payments {
   refund(paymentIntent: string, idempotencyKey: string): Promise<{ id: string }>
   /** Stripe's receipt page for a payment, if it has one. */
   receiptUrl(paymentIntent: string): Promise<string | null>
+  /** Stripe's fee on a payment (pence), or null if Stripe hasn't settled it yet. */
+  fee(paymentIntent: string): Promise<number | null>
 }
 
 export interface Email {

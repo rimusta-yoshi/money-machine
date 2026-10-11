@@ -22,6 +22,8 @@ export function fakeStripe() {
   const refunds = new Map<string, { id: string; paymentIntent: string }>()
   const emails: SentEmail[] = []
   let failRefunds = false
+  /** Stripe's fee on each payment; null: not settled yet. */
+  let fee: number | null = 169
   let failEmails = false
 
   async function handle(req: Request): Promise<Response> {
@@ -53,7 +55,11 @@ export function fakeStripe() {
       return reply({ id: refunds.get(key)!.id, status: 'succeeded' })
     }
     const pi = /^\/v1\/payment_intents\/([^/]+)$/.exec(url.pathname)?.[1]
-    if (req.method === 'GET' && pi) return reply({ id: pi, latest_charge: { id: `ch_${pi}`, receipt_url: `https://pay.stripe.test/receipts/${pi}` } })
+    if (req.method === 'GET' && pi) {
+      const bt = url.searchParams.getAll('expand[]').includes('latest_charge.balance_transaction')
+        ? { balance_transaction: fee === null ? null : { id: `txn_${pi}`, fee } } : {}
+      return reply({ id: pi, latest_charge: { id: `ch_${pi}`, receipt_url: `https://pay.stripe.test/receipts/${pi}`, ...bt } })
+    }
     return reply({ error: { type: 'invalid_request_error', message: `no such route ${req.method} ${url.pathname}` } }, 404)
   }
 
@@ -89,6 +95,8 @@ export function fakeStripe() {
     handle, webhook, completed, chargeRefunded, dispute, sessions, refunds, emails,
     failRefunds: (on: boolean) => { failRefunds = on },
     failEmails: (on: boolean) => { failEmails = on },
+    /** Stripe's fee on payments from now on; null: not settled yet. */
+    setFee: (pence: number | null) => { fee = pence },
     lastSession: () => [...sessions.values()].at(-1)!,
     emailsTo: (to: string) => emails.filter(e => e.to.includes(to)),
   }

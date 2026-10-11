@@ -11,9 +11,11 @@ export function MoneyPanel({ money: m }: { money: Money }) {
     { label: 'Disputes', value: count(m.disputes), detail: m.lostToDisputes ? `${money(m.lostToDisputes)} lost` : undefined },
     { label: 'Net', value: money(m.net) },
     { label: 'Refund rate', value: pct(m.refundRate) },
+    { label: 'Stripe fees', value: money(m.stripeFees), detail: m.feesUnknown ? `${count(m.feesUnknown)} not known yet` : undefined },
+    { label: 'Net after fees', value: money(m.netAfterFees) },
   ]
   return (
-    <Panel title="Money" note="Full refunds and disputes count on the day they happened; partial refunds count with their sale. Before Stripe’s fees.">
+    <Panel title="Money" note="Full refunds and disputes count on the day they happened; partial refunds and Stripe’s fees count with their sale (Stripe keeps its fee on a refund).">
       <dl className="ad-tiles">
         {tiles.map(t => (
           <div key={t.label} className="ad-tile">

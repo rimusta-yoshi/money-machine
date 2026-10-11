@@ -1,8 +1,8 @@
 /**
  * Where a visitor came from, for judging ads: `?src=` (our own ad links) or the standard
  * utm_source / utm_campaign. Shared by the homepage, the builder and the server, so all three
- * clean it the same way. Only short tags are kept, never anything that looks like an email or a
- * phone number.
+ * clean it the same way. Sources come from a short allowlist (anything else is "other"); campaigns
+ * are short tags, never anything that looks like an email or a phone number.
  */
 
 export interface Source {
@@ -21,10 +21,25 @@ export function cleanTag(value: unknown): string | null {
   return tag || null
 }
 
+/** The ad sources the dashboard tracks. Anything else is counted as OTHER_SOURCE; none (or "direct") as direct. */
+export const KNOWN_SOURCES = ['fb', 'ig', 'google', 'tiktok', 'leaflet'] as const
+export const OTHER_SOURCE = 'other'
+/** Common spellings of the known sources. */
+const ALIASES: Record<string, string> = { facebook: 'fb', instagram: 'ig' }
+
+/** A source tag from the allowlist, OTHER_SOURCE for any other value, or null (direct) for none. */
+export function cleanSource(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null
+  const tag = cleanTag(value)
+  if (tag === 'direct') return null
+  const known = tag ? ALIASES[tag] ?? tag : null
+  return known && (KNOWN_SOURCES as readonly string[]).includes(known) ? known : OTHER_SOURCE
+}
+
 /** The source in an address's query string (?src= wins over utm_source). */
 export function sourceFromSearch(search: string): Source {
   const q = new URLSearchParams(search)
-  return { src: cleanTag(q.get('src')) ?? cleanTag(q.get('utm_source')), campaign: cleanTag(q.get('utm_campaign')) }
+  return { src: cleanSource(q.get('src') ?? q.get('utm_source')), campaign: cleanTag(q.get('utm_campaign')) }
 }
 
 /** A builder link that carries the source on (as ?src= and ?utm_campaign=). */
