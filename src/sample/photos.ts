@@ -73,7 +73,7 @@ function draw(scene: Scene, i: number, w = 1200, h = 900): string {
   g.putImageData(img, 0, 0)
   g.font = '600 26px system-ui, sans-serif'
   g.fillStyle = 'rgba(255,255,255,0.85)'
-  g.fillText(`SAMPLE PHOTO · ${scene.label.toUpperCase()}`, 36, h - 36)
+  g.fillText('SAMPLE PHOTO', 36, h - 36)
   return canvas.toDataURL('image/jpeg', 0.72)
 }
 
@@ -81,6 +81,6 @@ let cache: PagePhoto[] | null = null
 
 /** Eight placeholder photos: hero, about, then gallery shots. */
 export function samplePhotos(): PagePhoto[] {
-  cache ??= SCENES.map((s, i) => ({ url: draw(s, i), alt: s.alt }))
+  cache ??= SCENES.map((s, i) => ({ url: draw(s, i), alt: `Sample photo ${i + 1}` }))
   return cache
 }

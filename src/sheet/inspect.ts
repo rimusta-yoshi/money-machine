@@ -1,5 +1,9 @@
-import { generateOptions, resolveSiteStyle, sectionBatch, SECTIONS, viewOf } from '../gen'
-import type { Candidate, PageContent, SectionKey, SiteStyle, ThemeKey } from '../gen'
+import { generateOptions, resolveSiteStyle, sectionBatch, SECTIONS, specKey, viewOf } from '../gen'
+import type { AnySpec, Candidate, PageContent, PagePhoto, SectionKey, SiteStyle, ThemeKey } from '../gen'
+import type { DebugInfo } from '../builder/debugInfo'
+import { withSamplePhotos } from '../sample/content'
+import { parseSite } from '../site/parse'
+import { pageContent } from '../site/pageContent'
 import { createDomMeasurer, loadStyleFonts } from '../gen/dom/measure'
 import { esc } from '../gen/html'
 import { tradeById } from '../trades'
@@ -19,17 +23,38 @@ export interface InspectCase {
   content: PageContent
   section: SectionKey
   batchSeed: number
+  /** The options the builder showed, when reproducing a pasted case. */
+  expected?: readonly AnySpec[]
+}
+
+declare global { interface Window { __debugCase?: DebugInfo; __inspect?: { done: boolean; shown: string[]; matches: boolean | null; rejected: Record<string, number>; error?: string } } }
+
+/** A case pasted from the builder's "Copy debug info": its stand-in photos become placeholders. */
+export function debugInspectCase(info: DebugInfo, photos: readonly PagePhoto[]): InspectCase {
+  const site = parseSite(info.site)
+  const own = pageContent(site, tradeById[site.tradeId])
+  let i = 0
+  const swap = <P extends PagePhoto | null>(p: P): P => (p && p.url.startsWith('https://photo.invalid/') ? { ...p, url: photos[i++ % photos.length].url } : p)
+  const content = { ...own, photos: { hero: swap(own.photos.hero), about: swap(own.photos.about), gallery: own.photos.gallery.map(swap) } }
+  const section = info.build?.section ?? 'hero'
+  return {
+    style: site.style.resolved,
+    content: info.build?.samples ? withSamplePhotos(content, photos) : content,
+    section,
+    batchSeed: info.build?.batchSeed ?? sectionBatch(site.style.seed, section),
+    expected: info.build?.shown,
+  }
 }
 
 /** A stress-test case (trade, theme, shape, seed) as an inspect case. */
-export function stressInspectCase(q: URLSearchParams): InspectCase {
+export function stressInspectCase(q: URLSearchParams, pool?: readonly PagePhoto[]): InspectCase {
   const trade = tradeById[(q.get('trade') ?? 'plumber') as TradeId]
   const theme = (q.get('theme') ?? 'workwear') as ThemeKey
   const seed = Number(q.get('seed') ?? 1)
   const section = (q.get('section') ?? 'hero') as SectionKey
   return {
     style: resolveSiteStyle(theme, q.get('brand') ?? stressBrand(seed), seed),
-    content: shapeContent(trade, theme, (q.get('shape') ?? 'photos-7') as Shape, seed),
+    content: shapeContent(trade, theme, (q.get('shape') ?? 'photos-7') as Shape, seed, pool),
     section,
     batchSeed: q.get('batch') ? Number(q.get('batch')) : sectionBatch(seed, section),
   }
@@ -55,6 +80,13 @@ export async function runInspect(root: HTMLElement, k: InspectCase, onlyCheck: s
     const rejected = o.rejected.filter(c => !onlyCheck || c.checks.some(x => !x.ok && x.id === onlyCheck))
     root.insertAdjacentHTML('beforeend', `<header class="cs-top"><h1>${esc(def.label)}: ${o.shown.length} shown, ${o.valid.length} valid, ${o.rejected.length} rejected</h1><p>${esc(k.style.theme)} · batch ${k.batchSeed}${onlyCheck ? ` · only ${esc(onlyCheck)}` : ''}</p></header>`)
     root.insertAdjacentHTML('beforeend', o.shown.map(c => card(c, render(c), true)).join('') + rejected.slice(0, 24).map(c => card(c, render(c), false)).join(''))
+    const shown = o.shown.map(c => specKey(c.spec))
+    const counts: Record<string, number> = {}
+    for (const c of o.rejected) for (const x of c.checks) if (!x.ok) counts[x.id] = (counts[x.id] ?? 0) + 1
+    window.__inspect = { done: true, shown, rejected: counts, matches: k.expected ? JSON.stringify(k.expected.map(specKey)) === JSON.stringify(shown) : null }
+  } catch (err) {
+    window.__inspect = { done: true, shown: [], rejected: {}, matches: null, error: String((err as Error)?.stack ?? err) }
+    throw err
   } finally {
     measurer.dispose()
   }

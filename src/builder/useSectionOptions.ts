@@ -29,9 +29,11 @@ export function useSectionOptions(type: SectionKey, view: unknown, style: SiteSt
     const settle = (options: Options<AnySpec>) => {
       if (cancelled || settled) return
       settled = true
+      clearTimeout(giveUp)
       setResult({ key, options })
     }
     const fallBack = (why: string, error?: unknown) => {
+      if (cancelled || settled) return
       console.error(`${why}: showing the ${type} section's safe layouts`, { section: type, batchSeed, theme: style.theme, error })
       settle(safeOptions(def, batchSeed, view))
     }

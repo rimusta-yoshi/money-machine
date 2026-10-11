@@ -209,7 +209,7 @@ Everything below happens once. Steps 1 to 4 are clicks in the dashboard; 5 to 7 
 3. Leave **Public access** off and add no CORS rules. Nothing is served from the bucket
    directly: the workers serve everything, and the API's `BUILDER_ORIGINS` setting is what
    allows the builder to fetch the sample photos.
-4. The 8 sample photos (see `reference/sample-photos/LICENCE.md`) are uploaded in step 6 by a script.
+4. The sample photos (50, matched to trades; see `reference/sample-photos/LICENCE.md`) are uploaded in step 6 by a script. Run it again whenever photos are added: the API only serves the files the builder lists.
 
 ### 4. Wildcard DNS record
 

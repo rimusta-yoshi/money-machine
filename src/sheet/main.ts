@@ -8,8 +8,8 @@ import { tradeById } from '../trades'
 import type { TradeId } from '../types'
 import { batchFor, resolveSiteStyle, sampleFor, samplePage, sectionOptions, styleSummary, THEME_BRANDS } from './build'
 import { A11Y_BRANDS, runA11y } from './a11y'
-import { runStress, stressCases } from './stress'
-import { runInspect, stressInspectCase } from './inspect'
+import { photoPool, runStress, stressCases } from './stress'
+import { debugInspectCase, runInspect, stressInspectCase } from './inspect'
 import { SHEET_CSS } from './css'
 
 /**
@@ -106,7 +106,11 @@ async function run() {
 }
 
 if (q.get('mode') === 'inspect') {
-  runInspect(root, stressInspectCase(q), q.get('check'))
+  // A case pasted from the builder (npm run repro), or a stress-test case from the query.
+  const pasted = window.__debugCase
+  const trade = tradeById[(q.get('trade') ?? 'plumber') as TradeId]
+  void (pasted ? Promise.resolve(debugInspectCase(pasted, samplePhotos())) : photoPool(trade).then(pool => stressInspectCase(q, pool)))
+    .then(k => runInspect(root, k, q.get('check')))
 } else if (q.get('mode') === 'stress') {
   root.appendChild(status)
   status.textContent = 'Stress test running…'

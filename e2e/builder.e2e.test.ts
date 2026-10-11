@@ -138,19 +138,20 @@ it('builds, previews, pays for, edits and refunds a site from the builder', asyn
   const welcome = stripe.emailsTo('hello@riverside.example').find(e => e.subject.startsWith('Your site is live'))!
   const link = (kind: string) => new RegExp(`${BUILDER}/build/#${kind}=[\\w.-]+`).exec(welcome.text)![0]
 
-  // The edit link on another device: the site opens, and a change goes live for free.
+  // The edit link on another device: the site opens straight on Build, every step opens from
+  // the top bar, the look step is "Change look", and Publish changes works from any step.
   const other = await browser.newContext({ viewport: { width: 1360, height: 900 }, ignoreHTTPSErrors: true })
   const edit = await other.newPage()
   edit.on('pageerror', e => errors.push(e.message))
   await edit.goto(link('edit'))
   await edit.getByRole('heading', { name: 'Hero' }).waitFor({ timeout: 30_000 })
-  await edit.getByRole('button', { name: /^Basics/ }).click()
+  await edit.getByRole('button', { name: 'Publish changes' }).waitFor()
+  await edit.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: /Change look/ }).click()
+  await edit.getByRole('heading', { name: 'Change look', level: 1 }).waitFor()
+  await edit.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: /^Basics/ }).click()
   await edit.getByLabel('Business name').fill('Riverside Heating')
-  await edit.getByRole('button', { name: 'Next: your look' }).click()
-  await edit.getByRole('button', { name: 'Start building' }).click()
-  await throughSections(edit)
   await edit.getByRole('button', { name: 'Publish changes' }).click()
-  await edit.getByText('It’s live.').waitFor({ timeout: 60_000 })
+  await edit.getByText('Your changes are live.').waitFor({ timeout: 60_000 })
   await shot(edit, '7-edit-link-published')
   expect(await (await stack.fetch(`https://riverside-plumbing.${BASE}/`)).text()).toContain('Riverside Heating')
 

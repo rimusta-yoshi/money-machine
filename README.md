@@ -21,6 +21,18 @@ npm test
 npm run e2e
 ```
 
+The builder stress test (also in CI): every trade, theme, content shape and 50 seeds, each section generated in real Chrome exactly as the builder does it. Every section must offer at least three layouts that pass every hard check (fit, contrast, no lone grid items, no gaps, no overlapping text, nothing spilling out).
+
+```bash
+npm run stress
+```
+
+A broken case from the builder: in a dev build press Alt+Shift+D ("Copy debug info"), paste it into a file, then reproduce it in real Chrome, with every candidate layout and the checks it failed:
+
+```bash
+npm run repro -- debug.json
+```
+
 ---
 
 # React + TypeScript + Vite

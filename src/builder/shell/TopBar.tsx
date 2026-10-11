@@ -5,16 +5,18 @@ import type { Step } from '../steps'
 
 interface Props {
   step: Step
-  /** Opens an earlier step. */
+  /** Opens a step: an earlier one, or any one for a site that's already live. */
   onGoStep: (step: Step) => void
   /** Right-hand slot: save status, or the preview size switch while building. */
   right?: ReactNode
+  /** A paid, live site: every step opens in any direction, and the look step is "Change look". */
+  live?: boolean
 }
 
 const BLOCK: Record<Step, string> = { basics: 'brick', look: 'yellow', build: 'blue', finish: 'brick' }
 
 /** Logo, the four steps (done ones in lawn, the current one in night) and a status slot. */
-export function TopBar({ step, onGoStep, right }: Props) {
+export function TopBar({ step, onGoStep, right, live = false }: Props) {
   const current = stepIndex(step)
   return (
     <header className="bt-bar">
@@ -24,11 +26,13 @@ export function TopBar({ step, onGoStep, right }: Props) {
           {STEPS.map((s, i) => {
             const state = i === current ? 'now' : i < current ? 'done' : 'todo'
             const block = state === 'now' ? BLOCK[s.id] : state
-            const label = <><span className={`bt-step-block bt-step-block--${block}`} aria-hidden="true" />{s.label}</>
+            const name = live && s.id === 'look' ? 'Change look' : s.label
+            const label = <><span className={`bt-step-block bt-step-block--${block}`} aria-hidden="true" />{name}</>
+            const open = state === 'done' || (live && state === 'todo')
             return (
               <li key={s.id} className={`bt-step bt-step--${state}`} aria-current={state === 'now' ? 'step' : undefined}>
-                {state === 'done'
-                  ? <button type="button" className="bt-step-btn" onClick={() => onGoStep(s.id)}>{label}<span className="sb-sr-only"> (done)</span></button>
+                {open
+                  ? <button type="button" className="bt-step-btn" onClick={() => onGoStep(s.id)}>{label}{state === 'done' && <span className="sb-sr-only"> (done)</span>}</button>
                   : <span className="bt-step-btn">{label}</span>}
               </li>
             )

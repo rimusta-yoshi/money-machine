@@ -24,6 +24,17 @@ button.bt-step-btn:hover { background: var(--sb-mist); color: var(--sb-night); }
 .bt-step-block--yellow { background: var(--sb-hard-hat); }
 .bt-step-block--blue { background: var(--sb-pipe); }
 .bt-right { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+/* "Publish changes" for a live site, on every step; its result shows just under it. */
+.bt-publish { position: relative; }
+.bt-publish-btn { min-height: 44px; padding: 8px 18px; font-size: 15px; }
+.bt-publish-btn[aria-disabled="true"] { opacity: 0.7; cursor: progress; }
+.bt-publish-status {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 30; width: max-content; max-width: 300px; margin: 0;
+  padding: 10px 14px; border-radius: 10px; background: var(--sb-night); color: var(--sb-white); font-size: 15px; line-height: 1.4;
+}
+.bt-publish-status:empty { padding: 0; background: transparent; }
+.bt-publish-status.is-error { background: #8A1C1C; }
+.bt-publish-status a { color: var(--sb-white); text-decoration: underline; font-weight: 700; }
 .bt-size { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--sb-mist); }
 .bt-size button { min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent; font-weight: 700; font-size: 15px; color: var(--sb-muted-mist); }
 .bt-size button[aria-pressed="true"] { background: var(--sb-white); color: var(--sb-night); box-shadow: 0 1px 2px rgba(28, 26, 36, 0.12); }
@@ -84,11 +95,21 @@ button.bt-step-btn:hover { background: var(--sb-mist); color: var(--sb-night); }
 /* A faded, labelled example of a section waiting for content (never published) */
 .mm-example { position: relative; }
 .mm-example-label {
-  position: absolute; z-index: 5; top: 16px; left: 50%; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 12px;
+  /* Below the section's name pill (.mm-band-tag), never under it. */
+  position: absolute; z-index: 5; top: calc(56px / var(--zoom, 1)); left: 50%; transform: translateX(-50%); margin: 0; padding: 8px 16px; border-radius: 12px;
   background: var(--sb-night); color: var(--sb-white); font-size: 22px; font-weight: 500; text-align: center; max-width: calc(100% - 32px);
 }
 .mm-example-body { opacity: 0.38; filter: saturate(0.55); pointer-events: none; }
-.mm-example-label.mm-example-label--picked { position: static; transform: none; max-width: none; border-radius: 0; padding: 34px 24px 12px; font-size: 18px; }
+.mm-example-label.mm-example-label--picked { position: static; transform: none; max-width: none; border-radius: 0; padding: calc(56px / var(--zoom, 1)) 24px 12px; font-size: 18px; }
+
+/* "Sample · replace" on each sample photo in the preview (see SampleTags.tsx). */
+.mm-sample-tag {
+  position: absolute; left: calc(10px / var(--zoom, 1)); bottom: calc(10px / var(--zoom, 1)); z-index: 8; pointer-events: auto; cursor: pointer;
+  margin: 0; padding: calc(5px / var(--zoom, 1)) calc(10px / var(--zoom, 1)); border: 0; border-radius: 999px;
+  background: rgba(17, 17, 17, 0.82); color: #FFFFFF; font-family: var(--sb-font-body); font-weight: 700; font-size: calc(13px / var(--zoom, 1)); line-height: 1.2;
+}
+button.mm-sample-tag:hover { background: #111111; }
+button.mm-sample-tag:focus-visible { outline: calc(3px / var(--zoom, 1)) solid var(--sb-pipe); outline-offset: calc(2px / var(--zoom, 1)); }
 
 /* ---- Desktop controls ---- */
 .bd-rail { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 18px; position: sticky; top: 16px; }

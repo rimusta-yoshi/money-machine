@@ -2,6 +2,8 @@ import { generateOptions, resolveSiteStyle, sectionBatch, sectionPresent, SECTIO
 import type { PageContent, PagePhoto, SectionKey, ThemeKey } from '../gen'
 import { createDomMeasurer } from '../gen/dom/measure'
 import { samplePhotos } from '../sample/photos'
+import { loadStockPhotos } from '../sample/stockPhotos'
+import { STOCK_PHOTOS } from '../sample/stockPhotoFiles'
 import { trades } from '../trades'
 import type { TradeConfig } from '../types'
 import { sampleFor, tradeContent } from './build'
@@ -27,18 +29,27 @@ const BRANDS = ['#1E88E5', '#FFE500', '#0B2545', '#E8743B', '#777777', '#FFFFFF'
 const LONG_NAME = 'Wolstenholme-Fitzpatrick Property Repairs'.slice(0, 40)
 const LONG_PLACE = 'Bradford-on-Avon and Trowbridge'
 
-function photos(n: number): PagePhoto[] {
-  const base = samplePhotos()
-  return Array.from({ length: n }, (_, i) => ({ url: base[i % base.length].url, alt: `Finished job number ${i + 1}` }))
+/** `n` photos from the pool (turned by the seed, so different photos land in each slot), with plain alt text. */
+function photos(pool: readonly PagePhoto[], n: number, seed: number): PagePhoto[] {
+  return Array.from({ length: n }, (_, i) => ({ url: pool[(i + seed) % pool.length].url, alt: `Finished job number ${i + 1}` }))
+}
+
+/**
+ * The trade's real sample photos (landscape and portrait), as the builder shows them; drawn
+ * placeholders where they can't be loaded.
+ */
+export async function photoPool(trade: TradeConfig): Promise<PagePhoto[]> {
+  const own = await loadStockPhotos(STOCK_PHOTOS.filter(p => p.trade === trade.id || p.trade === 'any'))
+  return own ?? samplePhotos()
 }
 
 /** A page after the basics step (name, phone, place), shaped for one edge case. */
-export function shapeContent(trade: TradeConfig, theme: ThemeKey, shape: Shape, seed = 1): PageContent {
+export function shapeContent(trade: TradeConfig, theme: ThemeKey, shape: Shape, seed = 1, pool: readonly PagePhoto[] = samplePhotos()): PageContent {
   const basics: PageContent = {
     ...tradeContent(trade),
     business: { name: 'Hartley & Sons', phone: '01632 960 123', tel: 'tel:01632960123', email: '', location: 'Harrogate', about: '', years: '' },
   }
-  const withPhotos = (n: number): PageContent => ({ ...basics, photos: { hero: photos(1)[0], about: photos(2)[1], gallery: photos(n) } })
+  const withPhotos = (n: number): PageContent => ({ ...basics, photos: { hero: photos(pool, 1, seed)[0], about: photos(pool, 2, seed)[1], gallery: photos(pool, n, seed + 2) } })
   switch (shape) {
     case 'no-photo': return basics
     case 'photos-1': return withPhotos(1)
@@ -46,7 +57,7 @@ export function shapeContent(trade: TradeConfig, theme: ThemeKey, shape: Shape, 
     case 'photos-12': return withPhotos(12)
     case 'long-name': return { ...withPhotos(7), business: { ...basics.business, name: LONG_NAME, location: LONG_PLACE } }
     case 'empty-optional': return { ...basics, business: { ...basics.business, location: '' } }
-    case 'rich': return richContent(sampleFor(trade, photos(8), theme), seed)
+    case 'rich': return richContent(sampleFor(trade, photos(pool, 8, seed), theme), seed, pool)
   }
 }
 
@@ -57,7 +68,7 @@ const cycle = <T>(items: readonly T[], n: number): T[] => Array.from({ length: n
  * builder allows: 1–8 services and credentials, 1–12 reviews, 1–6 why-us lines, 1–16 areas,
  * 0–12 gallery photos. Where grids leave a lone item, this finds it.
  */
-function richContent(c: PageContent, seed: number): PageContent {
+function richContent(c: PageContent, seed: number, pool: readonly PagePhoto[]): PageContent {
   const n = (max: number, salt: number) => 1 + ((seed * 7 + salt * 13) % max)
   const reviews = cycle(c.reviews, n(12, 1)).map((r, i) => ({ ...r, author: `${r.author} ${i + 1}` }))
   const services = cycle(['Leak repairs', 'Boiler servicing', 'Bathroom fitting', 'Radiators', 'Tap repairs', 'Power flushing', 'Outside taps', 'Emergency call-outs'], n(8, 2))
@@ -69,7 +80,7 @@ function richContent(c: PageContent, seed: number): PageContent {
     rating: { score: 4.8, count: reviews.length * 7 },
     whyUs: cycle(c.whyUs, n(6, 4)),
     areas: cycle(['Harrogate', 'Knaresborough', 'Ripon', 'Pannal', 'Wetherby', 'Boroughbridge', 'Pateley Bridge', 'Killinghall'], n(16, 5)).map((a, i) => (i < 8 ? a : `${a} North`)),
-    photos: { ...c.photos, gallery: photos((seed * 5) % 13) },
+    photos: { ...c.photos, gallery: photos(pool, (seed * 5) % 13, seed + 2) },
   }
 }
 
@@ -117,12 +128,14 @@ export async function runStress(cases: readonly StressCase[], sections: readonly
   const state: StressState = { done: false, progress: '', cases: 0, sections: 0, failures: [], slowest: [], tiers: {}, rejects: {}, errors: [] }
   window.__stress = state
   const measurer = createDomMeasurer(document)
+  const pools = new Map<string, PagePhoto[]>()
   try {
     for (const c of cases) {
       const trade = trades.find(t => t.id === c.trade)!
+      if (!pools.has(trade.id)) pools.set(trade.id, await photoPool(trade))
       const brand = stressBrand(c.seed)
       const style = resolveSiteStyle(c.theme, brand, c.seed)
-      const content = shapeContent(trade, c.theme, c.shape, c.seed)
+      const content = shapeContent(trade, c.theme, c.shape, c.seed, pools.get(trade.id))
       await measurer.prepare(style, content)
       for (const type of sections) {
         if (!sectionPresent(type, content)) continue
