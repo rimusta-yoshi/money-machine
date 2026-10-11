@@ -6,6 +6,7 @@ import { offerLine } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { button, head, icon, link } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import { rollAlign, rollBreak, rollMotif } from '../core/punch'
 import { THEMES } from '../themes'
 import { ALIGNS, BREAKS, MOTIFS } from '../themes/types'
@@ -140,6 +141,10 @@ export const contact = defineSection<ContactSpec, ContactView>({
     'friendly-local': { band: 3.5, details: 2, hours: 2, form: 2, inline: 1 },
   },
   fallback: { v: 2, section: 'contact', archetype: 'details', step: 2, params: { brk: 'band' } },
+  safe: [
+    { v: 2, section: 'contact', archetype: 'band', step: 2, params: { align: 'left', brk: 'band' } },
+    { v: 2, section: 'contact', archetype: 'band', step: 2, params: { align: 'split', brk: 'band' } },
+  ],
   contrast: (_s, style) => ({ button: style.button }),
   trim: (v, omit) => (omit.has('areas') ? { ...v, areas: [] } : v),
   body: (s, v, ctx) => {
@@ -164,7 +169,7 @@ export const contact = defineSection<ContactSpec, ContactView>({
           v.hours.length ? `<li class="sb-card"><p class="sb-detail-l">${icon('clock', 18)} Hours</p>${hoursTable(v)}</li>` : '',
           v.areas.length ? `<li class="sb-card"><p class="sb-detail-l">${icon('pin', 18)} Areas</p><p>${esc(v.areas.slice(0, 6).join(', '))}${v.areas.length > 6 ? ' and more' : ''}</p></li>` : '',
         ].filter(Boolean)
-        return { vars: `--sb-cols:${Math.min(items.length, 4)};--sb-cols-m:1;`, inner: `${h('row')}${ctas(v, ctx, false)}<ul class="sb-grid sb-details">${items.join('')}</ul>` }
+        return { vars: `--sb-cols:${Math.min(items.length, 4)};--sb-cols-m:1;`, inner: `${h('row')}${ctas(v, ctx, false)}<ul class="sb-grid sb-bal sb-details">${withRowVars(items, 4, 1)}</ul>` }
       }
       case 'hours': {
         const p = s.params

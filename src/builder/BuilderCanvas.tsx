@@ -18,6 +18,12 @@ import { MobileSheet } from './MobileSheet'
 import type { LayoutState, SectionNavProps } from './sectionNav'
 import { useSectionPicker } from './useSectionPicker'
 import { useNarrow } from './useNarrow'
+import { SampleTagged } from './SampleTags'
+import { sampleSlots } from './sampleSlots'
+import { buildDebug } from './debugInfo'
+import { usePhotoPicker } from './content/usePhotoPicker'
+import { defaultAlt } from '../site/photoAlt'
+import type { PhotoSlotId } from '../site/photoAlt'
 
 interface Props {
   trade: TradeConfig
@@ -52,7 +58,15 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
   // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
-  const content = useMemo(() => preview ?? pageContent(site, trade), [preview, site, trade])
+  const own = useMemo(() => pageContent(site, trade), [site, trade])
+  const content = useMemo(() => preview ?? own, [preview, own])
+  const samples = useMemo(() => sampleSlots(own, content), [own, content])
+  // "Sample · replace" on a preview photo opens the upload for its slot.
+  const upload = usePhotoPicker()
+  const uploadRef = useRef<HTMLInputElement | null>(null)
+  const uploadFor = useRef<PhotoSlotId | null>(null)
+  const latestSite = useRef(site)
+  useEffect(() => { latestSite.current = site })
   // Sections still waiting for the customer's content are laid out on sample content, so
   // their layouts can be browsed and picked in advance. The pick goes live with real content.
   const sampled = useMemo(() => withSample(content, [], THEMES[site.style.theme].voice.why), [content, site.style.theme])
@@ -70,6 +84,11 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     [site, trade, activeType, picker.shown, content, sampled, waitingTypes],
   )
   const byType = useMemo(() => new Map<SectionKey, ResolvedSection>(page.map(s => [s.type, s])), [page])
+  // Dev builds: what's on screen, for "Copy debug info" (Alt+Shift+D).
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    buildDebug.current = { section: activeType, batchSeed: picker.batchSeed, index: picker.index, shown: picker.specs, loading: picker.loading, samples: samples.size > 0 }
+  })
 
   const effectiveMobile = mobile || isNarrowDevice
 
@@ -173,6 +192,32 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     onChangeLook,
   }
 
+  const openUpload = (slot: PhotoSlotId, sIdx: number) => {
+    if (sIdx !== activeIdx) navigateTo(sIdx)
+    uploadFor.current = slot
+    uploadRef.current?.click()
+  }
+  const onUploadFile = async (file: File | undefined) => {
+    const slot = uploadFor.current
+    const url = await upload.pick(file)
+    if (!url || !slot) return
+    const now = latestSite.current
+    const photos = now.content.photos
+    const alt = defaultAlt(slot, now, trade, slot === 'gallery' ? photos.gallery.length : 0)
+    onContentChange({ photos: slot === 'gallery' ? { ...photos, gallery: [...photos.gallery, { url, alt }] } : { ...photos, [slot]: { url, alt } } })
+  }
+  /** A click on a band: its sample tag opens the upload; anywhere else opens the section. */
+  const onBandClick = (e: React.MouseEvent, sIdx: number) => {
+    const tag = (e.target as Element).closest?.('.mm-sample-tag')
+    const slot = tag?.getAttribute('data-slot') as PhotoSlotId | null | undefined
+    if (slot) {
+      e.stopPropagation()
+      openUpload(slot, sIdx)
+      return
+    }
+    if (sIdx !== activeIdx) navigateTo(sIdx)
+  }
+
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return
@@ -205,7 +250,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                     key={sec.type}
                     className={`mm-band ${state}${showPlaceholder(i) ? ' blank' : ''}`}
                     ref={el => { bandRefs.current[i] = el }}
-                    onClick={() => !isActive && navigateTo(i)}
+                    onClick={e => onBandClick(e, i)}
                     role={isActive ? undefined : 'button'}
                     tabIndex={isActive ? undefined : 0}
                     onKeyDown={isActive ? undefined : e => {
@@ -235,7 +280,9 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                               <b>Example content</b> · {needsLine.replace(/ to show this\.$/, '')} to put this on your site. Your layout is kept for it.
                             </p>
                           )}
-                          <div style={{ pointerEvents: 'none' }}>{node}</div>
+                          <div style={{ pointerEvents: 'none' }}>
+                            <SampleTagged slots={samples} interactive={isActive}>{node}</SampleTagged>
+                          </div>
                         </div>
                       )
                     })()}
@@ -248,6 +295,22 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
       </section>
 
       {isNarrowDevice ? <MobileSheet {...navProps} folded={sheetFolded} /> : <ControlRail {...navProps} />}
+      <input
+        ref={uploadRef}
+        type="file"
+        className="sb-sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/avif"
+        onChange={e => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          void onUploadFile(file)
+        }}
+      />
+      <p className="sb-sr-only" role="status" aria-live="polite">
+        {upload.state.status === 'working' ? 'Preparing your photo…' : upload.state.status === 'error' ? upload.state.message : ''}
+      </p>
     </div>
   )
 }

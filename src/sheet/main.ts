@@ -8,6 +8,8 @@ import { tradeById } from '../trades'
 import type { TradeId } from '../types'
 import { batchFor, resolveSiteStyle, sampleFor, samplePage, sectionOptions, styleSummary, THEME_BRANDS } from './build'
 import { A11Y_BRANDS, runA11y } from './a11y'
+import { photoPool, runStress, stressCases } from './stress'
+import { debugInspectCase, runInspect, stressInspectCase } from './inspect'
 import { SHEET_CSS } from './css'
 
 /**
@@ -57,6 +59,7 @@ async function run() {
       const siteStyle = resolveSiteStyle(theme, brand, baseSeed)
       const content = sampleFor(trade, photos, theme)
       await loadStyleFonts(document, siteStyle)
+      await measurer.prepare(siteStyle, content)
       const block = document.createElement('section')
       block.className = 'cs-theme'
       block.id = `t-${theme}`
@@ -81,6 +84,7 @@ async function run() {
         const seed = baseSeed * 101 + i * 7919 + 1
         const pageStyle = resolveSiteStyle(theme, brand, seed)
         await loadStyleFonts(document, pageStyle)
+        await measurer.prepare(pageStyle, content)
         say(`${t.label}: sample page ${i + 1}…`)
         await tick()
         const html = samplePage(pageStyle, seed, content, measurer)
@@ -101,7 +105,20 @@ async function run() {
   }
 }
 
-if (q.get('mode') === 'a11y') {
+if (q.get('mode') === 'inspect') {
+  // A case pasted from the builder (npm run repro), or a stress-test case from the query.
+  const pasted = window.__debugCase
+  const trade = tradeById[(q.get('trade') ?? 'plumber') as TradeId]
+  void (pasted ? Promise.resolve(debugInspectCase(pasted, samplePhotos())) : photoPool(trade).then(pool => stressInspectCase(q, pool)))
+    .then(k => runInspect(root, k, q.get('check')))
+} else if (q.get('mode') === 'stress') {
+  root.appendChild(status)
+  status.textContent = 'Stress test running…'
+  const all = stressCases(Number(q.get('seeds') ?? 50), { trade: q.get('trade') ?? undefined, theme: q.get('theme') ?? undefined, shape: q.get('shape') ?? undefined })
+  const shard = Number(q.get('shard') ?? 0)
+  const of = Number(q.get('of') ?? 1)
+  runStress(all.filter((_, i) => i % of === shard), q.get('section') ? sections : undefined)
+} else if (q.get('mode') === 'a11y') {
   root.appendChild(status)
   status.textContent = 'Checking accessibility…'
   runA11y(root, themes, q.get('brands')?.split(',') ?? A11Y_BRANDS, Number(q.get('options') ?? 6))

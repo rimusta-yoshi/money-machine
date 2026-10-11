@@ -41,6 +41,7 @@ export async function runA11y(root: HTMLElement, themes: readonly ThemeKey[] = T
       const style = resolveSiteStyle(theme, brand, 11)
       const content = sampleFor(tradeById.plumber, photos, theme)
       await loadStyleFonts(document, style)
+      await measurer.prepare(style, content)
       state.progress = `${theme} ${brand}`
       const items: [string, string][] = [['page', samplePage(style, 11, content, measurer)]]
       for (const type of SECTION_KEYS) {

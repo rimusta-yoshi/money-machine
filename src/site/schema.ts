@@ -138,6 +138,13 @@ export const siteSchemaV3 = z.object({
 })
 export type SiteV3 = z.infer<typeof siteSchemaV3>
 
+/**
+ * Look choices the customer made themselves. A locked choice is never changed by anything
+ * but them (switching trade, re-rolling, generating). Absent in records saved before locks
+ * existed; parseSite works them out (see site/locks.ts).
+ */
+export const locksSchema = z.object({ brandColor: z.literal(true).optional(), theme: z.literal(true).optional() }).strict()
+
 const rhythmSchema = z.partialRecord(
   z.enum(SECTION_KEYS),
   z.object({ band: z.enum(BANDS), side: z.enum(['left', 'right']), motif: z.boolean(), omit: z.array(z.enum(FACETS)).optional() }).strict(),
@@ -156,9 +163,11 @@ export const siteSchema = z.object({
   style: styleSchema,
   sections: generatedSectionsSchema,
   rhythm: rhythmSchema,
+  locks: locksSchema.optional(),
 })
 
 export type Site = z.infer<typeof siteSchema>
+export type Locks = z.infer<typeof locksSchema>
 export type SiteStyleRecord = Site['style']
 export type SiteContent = Site['content']
 export type Review = SiteContent['reviews'] extends (infer R)[] | null ? R : never

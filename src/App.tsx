@@ -11,12 +11,15 @@ import { BasicsStep } from './builder/basics/BasicsStep'
 import { LookStep } from './builder/look/LookStep'
 import { BuilderCanvas } from './builder/BuilderCanvas'
 import { TopBar } from './builder/shell/TopBar'
+import { PublishChanges } from './builder/shell/PublishChanges'
 import { FinishStep } from './builder/finish/FinishStep'
 import { useFitRepair } from './builder/useFitRepair'
 import { usePreviewContent } from './builder/usePreviewContent'
 import { FitNotice } from './builder/FitNotice'
 import { verifySite } from './builder/verifySite'
-import { tradeFromSearch } from './builder/steps'
+import { buildDebug, debugInfo, useDebugShortcut } from './builder/debugInfo'
+import { basicsGaps, tradeFromSearch } from './builder/steps'
+import { isReadyToPublish } from './site/checklist'
 import type { Step } from './builder/steps'
 import { useNarrow } from './builder/useNarrow'
 import { randomSeed } from './gen'
@@ -34,6 +37,12 @@ import { RefundScreen } from './builder/account/RefundScreen'
 import { LostLinkScreen } from './builder/account/LostLinkScreen'
 import { AccountShell } from './builder/account/AccountShell'
 import { EditLinkChoice } from './builder/account/EditLinkChoice'
+
+/** What a live site needs before changes can be published, or null. */
+function publishGap(site: Site | null): string | null {
+  if (!site || basicsGaps(site).length) return 'Add your business name and phone number first.'
+  return isReadyToPublish(site) ? null : 'Add your email address first: it’s where your receipts and edit links go.'
+}
 
 /** The server, when this build has one (VITE_API_URL). Without it nothing is saved, as before. */
 const API_BASE = apiBase()
@@ -95,7 +104,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     try {
       let checked: Site = current
       for (const v of await verifySite(current, tradeById[current.tradeId])) {
-        const action: SiteAction = v.status === 'chosen' ? { type: 'pickSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry }
+        const action: SiteAction = v.status === 'chosen' ? { type: 'acceptSection', section: v.type, value: v.entry } : { type: 'repairSection', section: v.type, value: v.entry }
         dispatch(action)
         checked = siteReducer(checked, action) ?? checked
       }
@@ -108,10 +117,19 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     }
   }, [])
 
+  // Dev builds: Alt+Shift+D copies what's needed to reproduce the current screen.
+  const [debugNotice, setDebugNotice] = useState<{ id: number; text: string } | null>(null)
+  const getDebug = useCallback(() => (siteRef.current ? debugInfo(siteRef.current, step, buildDebug.current) : null), [step])
+  const onDebugCopied = useCallback((ok: boolean) => setDebugNotice(n => ({ id: (n?.id ?? 0) + 1, text: ok ? 'Debug info copied. Paste it into a file and run npm run repro -- <file>.' : 'Couldn’t copy the debug info.' })), [])
+  useDebugShortcut(getDebug, onDebugCopied)
+  const dismissDebug = useCallback(() => setDebugNotice(null), [])
+
   // Each step starts at the top.
   useEffect(() => { window.scrollTo({ top: 0 }) }, [step])
 
   const go = (next: Step) => {
+    // Leaving the basics from the top bar still needs a name and a phone number.
+    if (step === 'basics' && next !== 'basics' && basicsGaps(site).length) return
     setSheetFolded(false)
     setStep(next)
   }
@@ -128,12 +146,18 @@ function Builder({ cancelled }: { cancelled: boolean }) {
   }
 
   const status = draft.enabled ? <SaveStatusChip status={draft.status} onRetry={draft.retry} /> : null
+  // A paid site that's live: edits are published from the top bar on any step.
+  const live = draft.enabled && draft.account.paid && !draft.account.refunded && !!draft.published
+  const publishChanges = live
+    ? <PublishChanges verify={verify} publish={async checked => (await draft.publish(undefined, undefined, checked)).url} missing={() => publishGap(siteRef.current)} />
+    : null
   if (draft.conflict) return <EditLinkChoice conflict={draft.conflict} onChoose={draft.resolveConflict} />
   if (step === 'basics' || !site || !trade) {
     return (
       <BasicsStep
         // A saved draft that failed to reopen is said here, with Retry, before anything new is typed.
-        status={draft.status.state === 'error' ? status : null}
+        // A live site's Publish changes is here too, as on every step.
+        status={draft.status.state === 'error' || publishChanges ? <>{draft.status.state === 'error' && status}{publishChanges}</> : null}
         trade={trade}
         site={site}
         onPickTrade={pickTrade}
@@ -155,7 +179,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
 
   return (
     <div className={`bt-root sb-ui bt-root--${step}`}>
-      <TopBar step={step} onGoStep={go} right={<>{status}{step === 'build' && buildRight}</>} />
+      <TopBar step={step} onGoStep={go} live={live} right={<>{status}{step === 'build' && buildRight}{step !== 'finish' && publishChanges}</>} />
 
       {step === 'look' && preview && (
         <LookStep
@@ -168,6 +192,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
           onToggleReviews={() => dispatch({ type: 'toggleExtra', extra: 'reviews' })}
           onBack={() => go('basics')}
           onNext={() => go('build')}
+          live={live}
           sample={import.meta.env.DEV ? { on: sample, set: setSample } : undefined}
         />
       )}
@@ -209,7 +234,10 @@ function Builder({ cancelled }: { cancelled: boolean }) {
         />
       )}
 
-      <FitNotice notice={draft.notice ?? (editing ? fit.notice : null)} onDismiss={draft.notice ? draft.dismissNotice : dismissFit} />
+      <FitNotice
+        notice={draft.notice ?? debugNotice ?? (editing ? fit.notice : null)}
+        onDismiss={draft.notice ? draft.dismissNotice : debugNotice ? dismissDebug : dismissFit}
+      />
       {verifying && (
         <div className="mm-verify" role="status" aria-live="polite">
           <span className="mm-verify-spin" aria-hidden="true" /> Checking every section on a phone and a desktop screen…

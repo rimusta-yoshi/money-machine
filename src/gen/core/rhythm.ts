@@ -44,8 +44,9 @@ function motifsOf(def: SectionDef, spec: AnySpec): Motif[] {
  * Changing one section's pick re-solves this, never other sections' picks.
  *
  * With `settle`, sections the customer has already settled keep the loud band they had
- * (if it still passes), and only unsettled sections can take a free slot. So browsing one
- * section's options never turns an earlier pick's brand band on or off.
+ * (if it still passes), their plain background and their photo side, and only unsettled
+ * sections can take a free slot. So browsing or picking one section never recolours or
+ * flips an earlier pick.
  */
 export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey, SectionDef>, style: SiteStyle, settle?: Settle): Rhythm {
   const theme = THEMES[style.theme]
@@ -65,7 +66,11 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
     const turn: Band = prev === 'ground' ? 'surface' : prev === 'surface' ? 'ground' : lastNeutral === 'ground' ? 'surface' : 'ground'
     // Look ahead: never take the same background as a neighbour whose band is fixed (a plain footer).
     const alternate: Band = nextFixed === turn && prev !== (turn === 'ground' ? 'surface' : 'ground') ? (turn === 'ground' ? 'surface' : 'ground') : turn
-    let band: Band = fixed ?? (loud.has(e.type) ? 'brand' : alternate)
+    // A section the customer settled keeps the background it had when they chose it, so
+    // finishing another section never recolours an earlier pick; the page alternates around it.
+    const kept = settle?.settled.has(e.type) ? settle.prior[e.type]?.band : undefined
+    const keep = !fixed && !panel && !loud.has(e.type) && (kept === 'ground' || kept === 'surface') ? kept : null
+    let band: Band = fixed ?? (loud.has(e.type) ? 'brand' : keep ?? alternate)
     if (panel && band === 'ground') band = 'surface'
     if (!panel && (band === 'ground' || band === 'surface')) lastNeutral = band
     // A panel sits on the page ground, so the next section alternates from ground.
@@ -77,7 +82,9 @@ export function solveRhythm(page: readonly PageEntry[], defs: Record<SectionKey,
       const own = heroSide(e.spec)
       if (own) { side = own; lastSide = own }
     } else if (def.archetypes[e.spec.archetype]?.sided) {
-      side = lastSide ? flip(lastSide) : 'right'
+      // Settled sections keep their photo side too; the zig-zag carries on from it.
+      const keptSide = settle?.settled.has(e.type) ? settle.prior[e.type]?.side : undefined
+      side = keptSide ?? (lastSide ? flip(lastSide) : 'right')
       lastSide = side
     }
 

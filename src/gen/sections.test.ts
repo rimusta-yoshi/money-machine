@@ -52,6 +52,19 @@ describe.each(SECTION_KEYS)('%s', type => {
     for (const { spec } of shown) expect(schema.parse(JSON.parse(JSON.stringify(spec)))).toEqual(spec)
   })
 
+  it('has at least three safe layouts, each valid, inside every theme, and allowed whenever the section is present', () => {
+    expect(def.safe.length).toBeGreaterThanOrEqual(3)
+    expect(def.safe[0]).toEqual(def.fallback)
+    expect(new Set(def.safe.map(specKey)).size).toBe(def.safe.length)
+    for (const spec of def.safe) {
+      expect(() => sectionSchemas[type].parse(spec)).not.toThrow()
+      for (const theme of THEME_KEYS) expect(outsideTheme(def, spec, resolveSiteStyle(theme, '#1E88E5', 1)), `${spec.archetype} in ${theme}`).toBeNull()
+    }
+    for (const c of [RICH_PAGE, BARE_PAGE]) {
+      if (isPresent(def, view(type, c))) expect(def.safe.some(s => def.archetypes[s.archetype].gate(view(type, c)))).toBe(true)
+    }
+  })
+
   it('has a fallback that is valid, fits every theme, and is allowed whenever the section is present', () => {
     expect(() => sectionSchemas[type].parse(def.fallback)).not.toThrow()
     for (const theme of THEME_KEYS) expect(outsideTheme(def, def.fallback, resolveSiteStyle(theme, '#1E88E5', 1))).toBeNull()

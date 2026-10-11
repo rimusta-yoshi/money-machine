@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { distance, generateOptions, punchScore, repairSection, specKey } from './core/pipeline'
+import { distance, generateOptions, MAX_EVALUATIONS, MIN_OPTIONS, punchScore, relaxSpec, repairSection, safeOptions, specKey } from './core/pipeline'
+import type { GenError } from './core/pipeline'
 import { features } from './core/pipeline'
 import { estimateMeasurer, resolveSiteStyle, sectionSchemas, SECTIONS, viewOf } from '.'
 import type { AnySpec, Generated, Measurement, Measurer, SectionKey } from '.'
@@ -29,9 +30,12 @@ describe('shrinking to fit', () => {
     expect(rejected.filter(c => c.checks.some(x => x.id === 'call-above-fold' && !x.ok))).toEqual([])
   })
 
-  it('rejects a candidate that doesn’t fit even at its smallest step', () => {
-    const { shown } = generateOptions(SECTIONS.hero, { batchSeed: 3, content: view('hero'), style, measurer: { measure: () => TOO_TALL } })
-    expect(shown).toEqual([])
+  it('rejects a candidate that doesn’t fit even at its smallest step, but never leaves the section empty', () => {
+    const { shown, valid } = generateOptions(SECTIONS.hero, { batchSeed: 3, content: view('hero'), style, measurer: { measure: () => TOO_TALL } })
+    expect(valid).toEqual([])
+    // Nothing fits at all: the safe layouts are still shown, marked as forced (the stress test fails on these).
+    expect(shown.map(c => c.tier)).toEqual(['forced', 'forced', 'forced'])
+    expect(shown.map(c => c.spec.archetype)).toEqual(SECTIONS.hero.safe.map(s => s.archetype))
   })
 
   it('stores the step, so a saved section keeps its size', () => {
@@ -126,8 +130,66 @@ describe('repairSection', () => {
 describe('overlapping decorations', () => {
   it('rejects any option whose sticker, card or stripe covers text', () => {
     const covered: Measurer = { measure: () => ({ ...FITS, coveredText: 1 }) }
-    const { shown, rejected } = generateOptions(SECTIONS.hero, { batchSeed: 2, content: view('hero'), style, measurer: covered })
-    expect(shown).toEqual([])
+    const { shown, rejected, valid } = generateOptions(SECTIONS.hero, { batchSeed: 2, content: view('hero'), style, measurer: covered })
+    expect(valid).toEqual([])
+    expect(shown.every(c => c.tier === 'forced')).toBe(true)
     expect(rejected.every(c => c.checks.some(x => x.id === 'no-covered-text' && !x.ok) || c.checks.some(x => !x.ok))).toBe(true)
+  })
+})
+
+describe('always enough options', () => {
+  const tallBy = (archetypes: readonly string[]): Measurer => ({ measure: i => (archetypes.includes(i.spec.archetype) ? TOO_TALL : FITS) })
+
+  it('offers at least three when the batch has fewer, by rolling more and then relaxing', () => {
+    // Only the plain stacked hero fits: everything else is too tall.
+    const all = Object.keys(SECTIONS.hero.archetypes).filter(k => k !== 'stacked')
+    const { shown } = generateOptions(SECTIONS.hero, { batchSeed: 3, content: view('hero'), style, measurer: tallBy(all) })
+    expect(shown.length).toBeGreaterThanOrEqual(MIN_OPTIONS)
+    for (const c of shown) expect(c.checks.filter(x => !x.ok)).toEqual([])
+    expect(shown.some(c => c.tier !== 'batch')).toBe(true)
+  })
+
+  it('takes decorations off before giving up on a layout', () => {
+    // Every decoration covers text; only plain layouts that aren't the safe ones fit.
+    const plain = (p: Record<string, unknown>) => Object.entries(p).every(([k, v]) => !['motif', 'stripe', 'blob', 'ticks', 'dot', 'trust'].includes(k) || v === 'none' || v === false)
+    const decorated: Measurer = { measure: i => (plain(i.spec.params as Record<string, unknown>) && i.spec.archetype !== 'stacked' ? FITS : { ...FITS, coveredText: 1 }) }
+    const { shown } = generateOptions(SECTIONS.hero, { batchSeed: 3, content: view('hero'), style, count: 6, measurer: decorated })
+    expect(shown.length).toBeGreaterThanOrEqual(MIN_OPTIONS)
+    for (const c of shown) expect(c.valid).toBe(true)
+  })
+
+  it('relaxes a layout by taking off its decorations only', () => {
+    const sticker = { v: 2, section: 'hero', archetype: 'sticker', step: 1, params: { asym: '6/6', side: 'left', crop: '4:5', rot: 4, count: 2, motif: 'sticker', blob: true, em: true } } as const
+    expect(relaxSpec(sticker)).toEqual({ ...sticker, step: 0, params: { ...sticker.params, rot: 0, motif: 'none', blob: false } })
+    expect(() => sectionSchemas.hero.parse(relaxSpec(sticker))).not.toThrow()
+  })
+
+  it('logs a candidate that throws and carries on without it', () => {
+    const errors: GenError[] = []
+    let calls = 0
+    const flaky: Measurer = { measure: () => { if (calls++ % 3 === 0) throw new Error('boom'); return FITS } }
+    const { shown, rejected } = generateOptions(SECTIONS.hero, { batchSeed: 3, content: view('hero'), style, measurer: flaky, onError: e => errors.push(e) })
+    expect(shown.length).toBeGreaterThanOrEqual(MIN_OPTIONS)
+    expect(errors.length).toBeGreaterThan(0)
+    expect(errors[0]).toMatchObject({ section: 'hero', seed: expect.any(Number) })
+    expect(errors[0].spec).not.toBeNull()
+    expect(rejected.some(c => c.checks.some(x => x.id === 'error'))).toBe(true)
+  })
+
+  it('has safe options for a section that couldn’t be generated at all', () => {
+    const o = safeOptions(SECTIONS.gallery, 9, viewOf('gallery', RICH_PAGE))
+    expect(o.shown.map(c => c.spec)).toEqual(SECTIONS.gallery.safe)
+  })
+})
+
+describe('bounded work', () => {
+  it('stops evaluating at the cap when nothing fits, so the browser never freezes', () => {
+    const specs = new Set<string>()
+    const counting: Measurer = { measure: i => { specs.add(specKey(i.spec)); return TOO_TALL } }
+    const { shown, rejected } = generateOptions(SECTIONS.hero, { batchSeed: 11, content: view('hero'), style, measurer: counting })
+    expect(rejected.length).toBeLessThanOrEqual(MAX_EVALUATIONS + SECTIONS.hero.safe.length)
+    expect(shown.length).toBeGreaterThanOrEqual(MIN_OPTIONS)
+    // The safe layouts are always tried, past the cap.
+    for (const s of SECTIONS.hero.safe) expect([...specs].some(k => k.startsWith(`hero:${s.archetype}:`))).toBe(true)
   })
 })

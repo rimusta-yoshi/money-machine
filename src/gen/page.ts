@@ -1,4 +1,5 @@
 import { BASE_CSS } from './core/css'
+import { ROWS_CSS } from './core/rows'
 import { estimateMeasurer } from './core/estimate'
 import { defaultSpec, isPresent, specKey, staticChecksAll } from './core/pipeline'
 import { solveRhythm } from './core/rhythm'
@@ -38,7 +39,7 @@ export const SECTIONS = {
 } as unknown as Record<SectionKey, SectionDef>
 
 /** Everything a generated page needs. Include once per page. */
-export const GEN_CSS = [PAGE_CSS, BASE_CSS, HERO_CSS, TRUST_BAR_CSS, SERVICES_CSS, ABOUT_CSS, WHY_US_CSS, GALLERY_CSS, CERTIFICATIONS_CSS, TESTIMONIALS_CSS, AREAS_CSS, CONTACT_CSS, FOOTER_CSS, THEME_CSS].join('\n')
+export const GEN_CSS = [PAGE_CSS, BASE_CSS, ROWS_CSS, HERO_CSS, TRUST_BAR_CSS, SERVICES_CSS, ABOUT_CSS, WHY_US_CSS, GALLERY_CSS, CERTIFICATIONS_CSS, TESTIMONIALS_CSS, AREAS_CSS, CONTACT_CSS, FOOTER_CSS, THEME_CSS].join('\n')
 
 /** A section's first batch seed, derived from the site's style seed (the hero's matches firstHeroBatch). */
 export const sectionBatch = (styleSeed: number, type: SectionKey): number => mixSeeds(styleSeed, hashString(type))
@@ -141,7 +142,12 @@ export function renderPageSection(s: Pick<ResolvedSection, 'type' | 'spec' | 'rh
   }
   const passes = (spec: AnySpec) => staticChecksAll(def, spec, style, [bandFor(spec)]).every(c => c.ok)
   const view = viewOf(s.type, content)
-  if (passes(s.spec)) return def.render(s.spec, style, view, { ...s.rhythm, band: bandFor(s.spec) })
+  try {
+    if (passes(s.spec)) return def.render(s.spec, style, view, { ...s.rhythm, band: bandFor(s.spec) })
+  } catch (error) {
+    // One broken layout never takes the page down: it's logged and the safe layout is drawn instead.
+    console.error(`Rendering the ${s.type} section failed; using its safe layout`, s.spec, error)
+  }
   if (passes(def.fallback)) return def.render(def.fallback, style, view, { ...s.rhythm, band: bandFor(def.fallback) })
   return def.render(def.fallback, style, view, { ...s.rhythm, band: 'ground', motif: false })
 }

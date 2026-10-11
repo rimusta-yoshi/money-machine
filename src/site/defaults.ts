@@ -18,6 +18,7 @@ export function createSite(trade: TradeConfig, styleSeed: number = randomSeed())
     style: styleRecord(DEFAULT_THEME[trade.id], trade.colorScheme.accent, styleSeed),
     sections: {},
     rhythm: {},
+    locks: {},
     content: {
       badges: null,
       areas: null,

@@ -5,6 +5,7 @@ import type { PageContent } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
 import { button, head, icon, link } from '../core/markup'
+import { itemRowSizes, withRowVars } from '../core/rows'
 import type { HeadAlign, IconName } from '../core/markup'
 import { rollAlign, rollAsym, rollBreak, rollMotif, textSpan } from '../core/punch'
 import { THEMES } from '../themes'
@@ -53,6 +54,19 @@ export const servicesSchema = specSchema('services', {
   bento: { lead: z.enum(['emergency', 'first']), brk: z.enum(BREAKS) },
 })
 export type ServicesSpec = z.infer<typeof servicesSchema>
+
+/**
+ * Bento spans on a 12-column grid, so the block is always a full rectangle: the featured card
+ * (4 columns, two rows) with up to four cards in pairs beside it (a lone fifth runs across
+ * both), then the rest in even rows of up to three.
+ */
+function bentoSpans(n: number): { lead: string; cards: string[] } {
+  if (n <= 2) return { lead: `--sb-s:${n === 1 ? 6 : 4};--sb-r:1;`, cards: Array.from({ length: n }, () => `--sb-s:${n === 1 ? 6 : 4};`) }
+  const beside = Math.min(n, 4)
+  const besideSpans = Array.from({ length: beside }, (_, i) => (beside === 3 && i === 2 ? 8 : 4))
+  const rest = itemRowSizes(n - beside, 3).map(k => 12 / k)
+  return { lead: '--sb-s:4;--sb-r:2;', cards: [...besideSpans, ...rest].map(x => `--sb-s:${x};`) }
+}
 
 const headAlign = (a: Align): HeadAlign => (a === 'split' ? 'row' : a)
 const alignF = (a: Align) => ALIGNS.indexOf(a) / 2
@@ -164,6 +178,10 @@ export const services = defineSection<ServicesSpec, ServicesView>({
     'friendly-local': { cards: 3.5, list: 1.2, split: 1.2, feature: 1.2, chips: 2 },
   },
   fallback: { v: 2, section: 'services', archetype: 'list', step: 2, params: { cols: 1, align: 'left', motif: 'none', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'services', archetype: 'list', step: 2, params: { cols: 2, align: 'left', motif: 'none', brk: 'band' } },
+    { v: 2, section: 'services', archetype: 'list', step: 2, params: { cols: 1, align: 'split', motif: 'none', brk: 'band' } },
+  ],
   body: (s, v, ctx) => {
     const items = all(v)
     const on = ctx.motif
@@ -171,8 +189,8 @@ export const services = defineSection<ServicesSpec, ServicesView>({
       case 'cards': {
         const p = s.params
         const numbered = on && p.motif === 'numbers'
-        const cls = cx('sb-grid sb-svc-cards', numbered && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-svc-cards--rule')
-        const li = items.map(t => `<li class="sb-card sb-svc">${mark(t, p.motif, on)}<h3 class="sb-h3">${esc(t)}</h3></li>`).join('')
+        const cls = cx('sb-grid sb-bal sb-svc-cards', numbered && 'sb-list--num', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-svc-cards--rule')
+        const li = withRowVars(items.map(t => `<li class="sb-card sb-svc">${mark(t, p.motif, on)}<h3 class="sb-h3">${esc(t)}</h3></li>`), p.cols, 1)
         const tag = numbered ? 'ol' : 'ul'
         return { vars: `--sb-cols:${p.cols};--sb-cols-m:1;`, inner: `${headOf(v, ctx, headAlign(p.align))}<${tag} class="${cls}">${li}</${tag}>` }
       }
@@ -222,8 +240,9 @@ export const services = defineSection<ServicesSpec, ServicesView>({
         const [lead, ...rest] = p.lead === 'emergency' && v.emergency ? [EMERGENCY, ...v.services] : [...v.services]
         const blurb = lead === EMERGENCY ? 'Something urgent? Call and we’ll prioritise it.' : 'Our most requested job, quoted clearly before we start.'
         const call = v.phone ? button(ctx.style, ctx.biome.voice.cta.call(v.phone.number), v.phone.href) : ''
-        const big = `<li class="sb-svc-bento-lead"><span class="sb-icon-tile">${icon(serviceIcon(lead), 26)}</span><h3 class="sb-h2 sb-svc-bento-h">${esc(lead)}</h3><p>${blurb}</p>${call}</li>`
-        const small = rest.map(t => `<li class="sb-card sb-svc"><span class="sb-icon-tile">${icon(serviceIcon(t), 22)}</span><h3 class="sb-h3">${esc(t)}</h3></li>`).join('')
+        const spans = bentoSpans(rest.length)
+        const big = `<li class="sb-svc-bento-lead" style="${spans.lead}"><span class="sb-icon-tile">${icon(serviceIcon(lead), 26)}</span><h3 class="sb-h2 sb-svc-bento-h">${esc(lead)}</h3><p>${blurb}</p>${call}</li>`
+        const small = rest.map((t, i) => `<li class="sb-card sb-svc" style="${spans.cards[i]}"><span class="sb-icon-tile">${icon(serviceIcon(t), 22)}</span><h3 class="sb-h3">${esc(t)}</h3></li>`).join('')
         return { inner: `${headOf(v, ctx)}<ul class="sb-svc-bento">${big}${small}</ul>` }
       }
     }
@@ -252,8 +271,9 @@ export const SERVICES_CSS = `
 .sb-svc-poster>li{align-items:baseline;padding:14px 0}
 .sb-svc-poster-h{margin:0;font-family:var(--sb-fd);font-weight:var(--sb-dw);font-size:calc(var(--sb-h2) * 0.78);line-height:1;letter-spacing:var(--sb-dtr);text-transform:var(--sb-dup);overflow-wrap:break-word;min-width:0}
 .sb-svc-poster.sb-list--num>li::before{font-size:calc(var(--sb-h2) * 0.78);line-height:1}
-.sb-svc-bento{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--sb-gap) * 1.25)}
-.sb-svc-bento-lead{grid-row:span 2;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:16px;padding:32px;border-radius:calc(var(--sb-r) + 4px);background:var(--sb-brand-fill);box-shadow:inset 0 0 0 2px var(--sb-brand-edge);color:var(--sb-brand-ink);--sb-fg:var(--sb-brand-ink);--sb-btn-bg:var(--sb-brand-ink);--sb-btn-fg:var(--sb-brand-fill);--sb-btn-edge:var(--sb-brand-ink)}
+.sb-svc-bento{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:calc(var(--sb-gap) * 1.25)}
+.sb-svc-bento>li{grid-column:span var(--sb-s,4)}
+.sb-svc-bento-lead{grid-row:span var(--sb-r,2);display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;gap:16px;padding:32px;border-radius:calc(var(--sb-r) + 4px);background:var(--sb-brand-fill);box-shadow:inset 0 0 0 2px var(--sb-brand-edge);color:var(--sb-brand-ink);--sb-fg:var(--sb-brand-ink);--sb-btn-bg:var(--sb-brand-ink);--sb-btn-fg:var(--sb-brand-fill);--sb-btn-edge:var(--sb-brand-ink)}
 .sb-svc-bento-lead .sb-icon-tile{background:color-mix(in srgb,var(--sb-brand-ink) 16%,transparent)}
 .sb-svc-bento-lead .sb-icon-tile .sb-icon{color:var(--sb-brand-ink)}
 .sb-svc-bento-h{font-size:calc(var(--sb-h2) * 0.8)}
@@ -269,6 +289,7 @@ export const SERVICES_CSS = `
   .sb-svc-prices .sb-end{width:100%}
   .sb-svc-poster-h,.sb-svc-poster.sb-list--num>li::before{font-size:calc(var(--sb-h2m) * 0.8)}
   .sb-svc-bento{grid-template-columns:1fr}
+  .sb-svc-bento>li{grid-column:auto}
   .sb-svc-bento-lead{grid-row:auto;padding:26px}
   .sb-svc-bento-h{font-size:var(--sb-h2m)}
 }

@@ -18,6 +18,7 @@ body{margin:0;background:#E7E7E4;color:#1A1A1A;font-family:Inter,system-ui,sans-
 .cs-section-h{margin:0 0 12px;font-size:20px}
 .cs-section-h span{font-size:13px;font-weight:500;color:#555}
 .cs-opt{margin:0 0 26px}
+.cs-why{margin:4px 0 8px;padding-left:18px;font-size:13px;color:#8A1C1C}
 .cs-tag{margin:0 0 6px;font-size:13px;color:#333}
 .cs-tag code{font-size:13px;font-weight:700;background:#fff;padding:1px 5px;border-radius:4px}
 .cs-params{display:block;color:#777;font:11px/1.4 'JetBrains Mono',monospace;margin-top:2px;word-break:break-all}

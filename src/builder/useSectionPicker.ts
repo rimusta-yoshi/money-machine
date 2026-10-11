@@ -42,6 +42,8 @@ export function useSectionPicker(site: Site, content: PageContent, type: Section
   return {
     shown,
     index,
+    batchSeed,
+    specs,
     count: specs.length,
     label: shown ? def.archetypes[shown.archetype]?.label ?? '' : 'Generating layouts',
     loading: options === null || pending,

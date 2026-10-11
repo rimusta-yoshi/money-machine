@@ -42,6 +42,31 @@ describe('browsing one section never flips an earlier pick’s band', () => {
     })
   }
 
+  it('picked sections anywhere on the page keep their background and photo side while another is browsed', () => {
+    for (const theme of Object.keys(THEMES) as ThemeKey[]) for (let seed = 1; seed <= 3; seed++) {
+      const content = withSample(pageContent(site, electrician), [1, 2, 3, 4, 5].map(photo), why(theme))
+      const style = resolveSiteStyle(theme, '#0F766E', seed)
+      const base = { order: pageOrder(electrician, site), content, style, styleSeed: seed, measurer: estimateMeasurer }
+      const first = resolvePage({ ...base, saved: {} })
+      const saved: SavedSections = Object.fromEntries(first.map(s => [s.type, { seed: s.seed, spec: s.spec }]))
+      const prior = rhythmOf(first)
+      first.forEach((browsed, at) => {
+        const { shown } = generateOptions(SECTIONS[browsed.type], { batchSeed: browsed.seed + 1, content: viewOf(browsed.type, content), style, measurer: estimateMeasurer, show: 4 })
+        for (const option of shown) {
+          const page = resolvePage({ ...base, saved, prior, overrides: { [browsed.type]: option.spec } })
+          page.forEach((s, i) => {
+            const was = prior[s.type]!
+            // Loud bands make way for a loud neighbour; everything else stays exactly as picked.
+            if (i === at || isLoud(s.type, was.band) || isLoud(s.type, s.rhythm.band) || SECTIONS[s.type].fixedBand) return
+            const where = `${theme} ${seed}: browsing ${browsed.type} (${option.spec.archetype}) changed ${s.type}`
+            if (!SECTIONS[s.type].panel?.(s.spec)) expect(s.rhythm.band, where).toBe(was.band)
+            expect(s.rhythm.side, where).toBe(was.side)
+          })
+        }
+      })
+    }
+  })
+
   it('the saved rhythm matches what the builder showed once the pick is made', () => {
     let s = siteReducer(null, { type: 'pickTrade', trade: electrician })!
     for (const type of pageOrder(electrician, s)) {

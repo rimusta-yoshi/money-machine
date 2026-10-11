@@ -20,7 +20,9 @@
     "cf:migrate": "wrangler d1 migrations apply siteblocks --remote -c server/wrangler.api.jsonc",
     "cf:deploy": "wrangler deploy -c server/wrangler.api.jsonc && wrangler deploy -c server/wrangler.site.jsonc",
     "cf:samples": "node scripts/upload-samples.mjs",
-    "cf:deploy:app": "npm run build && wrangler deploy -c server/wrangler.app.jsonc"
+    "cf:deploy:app": "npm run build && wrangler deploy -c server/wrangler.app.jsonc",
+    "stress": "node scripts/stress-browser.mjs",
+    "repro": "node scripts/repro.mjs"
   },
   "dependencies": {
     "react": "^19.2.6",

@@ -31,19 +31,66 @@ describe('siteReducer', () => {
     expect(s.brandColor).toBe(plumber.colorScheme.accent)
   })
 
-  it('keeps business details but resets layouts and trade content when switching trade', () => {
+  it('keeps business details, content and every locked choice when switching trade', () => {
     let s = start()
     s = siteReducer(s, { type: 'setBusiness', patch: { name: 'Joe', email: 'joe@example.com' } })!
     s = siteReducer(s, { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
     s = siteReducer(s, { type: 'pickSection', section: 'hero', value: PICKED_HERO })!
     s = siteReducer(s, { type: 'setContent', patch: { badges: ['Gas Safe'] } })!
+    s = siteReducer(s, { type: 'setBrandColor', color: '#6D28D9' })!
+    s = siteReducer(s, { type: 'setTheme', theme: 'workwear' })!
     const switched = siteReducer(s, { type: 'pickTrade', trade: painter })!
     expect(switched.tradeId).toBe('painter')
     expect(switched.business.name).toBe('Joe')
     expect(switched.business.email).toBe('joe@example.com')
-    expect(switched.sections).toEqual({})
-    expect(switched.content.badges).toBeNull()
+    expect(switched.content.badges).toEqual(['Gas Safe'])
+    expect(switched.brandColor).toBe('#6D28D9')
+    expect(switched.style.theme).toBe('workwear')
+    expect(switched.style.seed).toBe(s.style.seed)
+    expect(switched.sections.hero).toEqual(s.sections.hero)
+    expect(switched.sections.contact).toEqual(s.sections.contact)
+  })
+
+  it('resets only what the customer never chose when switching trade', () => {
+    let s = start()
+    s = siteReducer(s, { type: 'acceptSection', section: 'hero', value: PICKED_HERO })!
+    const switched = siteReducer(s, { type: 'pickTrade', trade: painter })!
     expect(switched.brandColor).toBe(painter.colorScheme.accent)
+    expect(switched.style.theme).toBe('craft-heritage')
+    expect(switched.sections).toEqual({})
+  })
+
+  it('locks the colour and style once the customer chooses them, and every layout they pick', () => {
+    let s = start()
+    expect(s.locks).toEqual({})
+    s = siteReducer(s, { type: 'setBrandColor', color: '#0F766E' })!
+    expect(s.locks).toEqual({ brandColor: true })
+    s = siteReducer(s, { type: 'rerollStyle', seed: 5 })!
+    expect(s.locks).toEqual({ brandColor: true, theme: true })
+    s = siteReducer(s, { type: 'pickSection', section: 'hero', value: PICKED_HERO })!
+    expect(s.sections.hero?.locked).toBe(true)
+    s = siteReducer(s, { type: 'acceptSection', section: 'contact', value: PICKED_CONTACT })!
+    expect(s.sections.contact?.locked).toBeUndefined()
+  })
+
+  it('keeps a pick locked through a repair', () => {
+    let s = siteReducer(start(), { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
+    const repaired: Generated = { seed: 7, spec: { v: 2, section: 'contact', archetype: 'details', step: 0, params: { brk: 'band' } }, preferred: PICKED_CONTACT.spec }
+    s = siteReducer(s, { type: 'repairSection', section: 'contact', value: repaired })!
+    expect(s.sections.contact).toEqual({ ...repaired, locked: true })
+  })
+
+  it('never changes the colour, style or a locked layout while building', () => {
+    let s = siteReducer(start(), { type: 'setBusiness', patch: { phone: '0113 496 0000' } })!
+    s = siteReducer(s, { type: 'setBrandColor', color: '#D93A1F' })!
+    s = siteReducer(s, { type: 'pickSection', section: 'hero', value: PICKED_HERO })!
+    const before = { brand: s.brandColor, style: s.style, hero: s.sections.hero }
+    // Everything the build step does after a colour is picked: other picks, content, extras.
+    s = siteReducer(s, { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
+    s = siteReducer(s, { type: 'acceptSection', section: 'footer', value: { seed: 1, spec: { v: 2, section: 'footer', archetype: 'simple', step: 0, params: { align: 'left', tone: 'plain' } } } })!
+    s = siteReducer(s, { type: 'setContent', patch: { badges: ['Gas Safe registered'] } })!
+    s = siteReducer(s, { type: 'toggleExtra', extra: 'reviews' })!
+    expect({ brand: s.brandColor, style: s.style, hero: s.sections.hero }).toEqual(before)
   })
 
   it('keeps everything when the same trade is picked again', () => {
@@ -65,7 +112,7 @@ describe('siteReducer', () => {
 
   it('records layout picks per section', () => {
     const s = siteReducer(start(), { type: 'pickSection', section: 'contact', value: PICKED_CONTACT })!
-    expect(s.sections.contact).toEqual(PICKED_CONTACT)
+    expect(s.sections.contact).toEqual({ ...PICKED_CONTACT, locked: true })
   })
 
   it('never mutates the previous state', () => {
@@ -84,7 +131,7 @@ describe('siteReducer', () => {
 
   it('stores a generated hero as its batch seed plus the resolved spec', () => {
     const s = siteReducer(start(), { type: 'pickSection', section: 'hero', value: PICKED_HERO })!
-    expect(s.sections.hero).toEqual(PICKED_HERO)
+    expect(s.sections.hero).toEqual({ ...PICKED_HERO, locked: true })
   })
 
   it('re-resolves the site style when the brand colour changes, keeping its seed', () => {
@@ -135,7 +182,7 @@ describe('siteReducer', () => {
     const next = siteReducer(s, { type: 'pickSection', section: 'hero', value: brandHero })!
     // Only the hero changed; the contact pick is untouched, but its band moved off the brand colour.
     expect(next.sections.contact).toEqual(s.sections.contact)
-    expect(JSON.stringify({ ...next.sections, hero: PICKED_HERO })).toBe(picks)
+    expect(JSON.stringify({ ...next.sections, hero: { ...PICKED_HERO, locked: true } })).toBe(picks)
     expect(s.rhythm.contact?.band).toBe('brand')
     expect(next.rhythm.hero?.band).toBe('brand')
     expect(next.rhythm.contact?.band).not.toBe('brand')

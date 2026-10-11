@@ -53,6 +53,8 @@ interface SectionOpts<S extends AnySpec, C> {
   weights: Record<ThemeKey, Partial<Record<S['archetype'], number>>>
   schema: z.ZodType<S>
   fallback: S
+  /** More plain layouts besides the fallback (same archetype, harmless variations), for the options ladder. */
+  safe?: readonly S[]
   /** Page anchor for in-page links. */
   anchor?: string
   tag?: 'section' | 'footer'
@@ -80,6 +82,7 @@ export function defineSection<S extends AnySpec, C>(o: SectionOpts<S, C>): Secti
     weights: o.weights as Record<ThemeKey, Record<string, number>>,
     schema: o.schema,
     fallback: o.fallback,
+    safe: [o.fallback, ...(o.safe ?? [])],
     checkBands: o.checkBands ?? ['ground', 'surface'],
     fixedBand: o.fixedBand,
     panel: o.panel ?? (spec => (spec.params as { brk?: Break }).brk === 'panel'),

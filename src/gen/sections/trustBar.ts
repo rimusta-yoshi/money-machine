@@ -5,6 +5,7 @@ import { businessName } from '../content'
 import type { PageContent } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import { head, icon } from '../core/markup'
+import { withRowVars } from '../core/rows'
 import type { IconName } from '../core/markup'
 import { rollAlign, rollBreak, rollMotif, rollRot } from '../core/punch'
 import { ALIGNS, BREAKS, MOTIFS } from '../themes/types'
@@ -106,20 +107,24 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
     'friendly-local': { strip: 1, tiles: 2.4, stats: 1.6, stickers: 3.5 },
   },
   fallback: { v: 2, section: 'trust_bar', archetype: 'strip', step: 2, params: { align: 'left', divider: 'none', brk: 'band' } },
+  safe: [
+    { v: 2, section: 'trust_bar', archetype: 'strip', step: 2, params: { align: 'left', divider: 'dot', brk: 'band' } },
+    { v: 2, section: 'trust_bar', archetype: 'strip', step: 2, params: { align: 'split', divider: 'none', brk: 'band' } },
+  ],
   body: (s, v, ctx) => {
     const title = head('trust_bar', { title: `Why choose ${v.name}`, hidden: true })
     switch (s.archetype) {
       case 'strip': {
         const p = s.params
         const items = v.items.map(i => `<li>${icon(i.icon, 20)}<span>${esc(i.text)}</span></li>`).join('')
-        return { cls: `sb-align--${p.align} sb-div--${p.divider}`, inner: `${title}<ul class="sb-trust-strip">${items}</ul>` }
+        return { cls: `sb-align--${p.align} sb-div--${p.divider}`, inner: `${title}<ul class="sb-trust-strip" data-flow>${items}</ul>` }
       }
       case 'tiles': {
         const p = s.params
         const on = ctx.motif
         const mark = (i: TrustView['items'][number]) => (on && p.motif === 'icontile' ? `<span class="sb-icon-tile">${icon(i.icon, 22)}</span>` : icon(i.icon, 24))
-        const cls = cx('sb-grid sb-trust-tiles', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-trust-tiles--rule')
-        const items = v.items.map(i => `<li class="sb-card">${mark(i)}<span>${esc(i.text)}</span></li>`).join('')
+        const cls = cx('sb-grid sb-bal sb-trust-tiles', on && p.motif === 'pastel' && 'sb-pastel', on && p.motif === 'toprule' && 'sb-trust-tiles--rule')
+        const items = withRowVars(v.items.map(i => `<li class="sb-card">${mark(i)}<span>${esc(i.text)}</span></li>`), 4, 1)
         return { vars: `--sb-cols:${Math.min(4, v.items.length)};--sb-cols-m:1;`, inner: `${title}<ul class="${cls}">${items}</ul>` }
       }
       case 'stats': {
@@ -137,7 +142,7 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
           return { cls: p.align === 'center' ? 'sb-align--center' : '', inner: `${title}<ul class="sb-row sb-trust-stickers">${chips}</ul>` }
         }
         const items = v.items.map((i, n) => `<li class="sb-sticker sb-trust-sticker${n % 3 === 1 ? ' sb-sticker--ink' : ''}" data-over style="--sb-rot:${n % 2 === 0 ? p.rot : -p.rot}deg">${esc(i.text)}</li>`).join('')
-        return { cls: p.align === 'center' ? 'sb-align--center' : '', inner: `${title}<ul class="sb-trust-stickers">${items}</ul>` }
+        return { cls: p.align === 'center' ? 'sb-align--center' : '', inner: `${title}<ul class="sb-trust-stickers" data-flow>${items}</ul>` }
       }
       case 'ledger': {
         const items = v.items.map(i => `<li>${esc(i.text)}</li>`).join('')
@@ -145,7 +150,7 @@ export const trustBar = defineSection<TrustBarSpec, TrustView>({
       }
       case 'ticks': {
         const items = v.items.map(i => `<li>${esc(i.text)}</li>`).join('')
-        return { inner: `${title}<ul class="sb-trust-ticks">${items}</ul>` }
+        return { inner: `${title}<ul class="sb-trust-ticks" data-flow>${items}</ul>` }
       }
     }
   },

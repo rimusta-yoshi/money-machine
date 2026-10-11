@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { withInferredLocks } from './locks'
 import { hashString, SECTIONS } from '../gen'
 import type { SectionKey } from '../gen'
 import { painter } from '../trades/painter'
@@ -232,7 +233,9 @@ describe('parseSite', () => {
     const parsed = parseSite(JSON.parse(JSON.stringify(old)))
     expect(parsed.version).toBe(4)
     expect(Object.keys(parsed.sections)).toEqual(['contact'])
-    expect(parsed).toEqual(migrateV3(old))
+    // Records from before locks: anything that differs from the trade's start, and every saved layout, counts as chosen.
+    expect(parsed).toEqual(withInferredLocks(migrateV3(old)))
+    expect(parsed.sections.contact?.locked).toBe(true)
   })
 
   it('still validates older input before migrating it', () => {

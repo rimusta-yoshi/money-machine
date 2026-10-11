@@ -92,7 +92,7 @@ const rating = (c: HeroContent) =>
   c.rating ? `<p class="sb-rating">${stars(c.rating.score)}<span>${esc(c.rating.score)} from ${esc(c.rating.count)} reviews</span></p>` : ''
 
 const trust = (items: readonly string[], cls = 'sb-trust') =>
-  items.length ? `<ul class="${cls}" aria-label="Credentials">${items.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : ''
+  items.length ? `<ul class="${cls}" aria-label="Credentials" data-flow>${items.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : ''
 
 const ticks = (c: HeroContent) => trust(c.badges.slice(0, 3), 'sb-ticks')
 
@@ -283,6 +283,10 @@ export const hero = defineSection<HeroSpec, HeroContent>({
     'friendly-local': { split: 2.6, stacked: 0.7, typeled: 0.6, proof: 1.2, contact: 1, sticker: 5.5 },
   },
   fallback: { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'ground', em: false } },
+  safe: [
+    { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'surface', em: false } },
+    { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'ground', em: true } },
+  ],
   fixedBand: spec => {
     if (spec.archetype === 'overlay') return 'photo'
     if (spec.archetype === 'offset' || spec.archetype === 'floatcard' || spec.archetype === 'editorial' || spec.archetype === 'sticker') return 'ground'

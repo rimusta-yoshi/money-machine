@@ -1,8 +1,9 @@
 import { GEN_CSS } from '../page'
 import { FRAME } from '../core/fit'
 import type { Measurement, MeasureInput, Measurer } from '../core/types'
-import { siteFontFaces } from '../fonts'
+import { fontFileName, SITE_FONT_FILES, siteFontFaces } from '../fonts'
 import type { SiteStyle } from '../schema'
+import { layoutFaults } from './faults'
 
 /**
  * The generator's only DOM code: lays a section out off-screen at desktop and phone width
@@ -29,9 +30,12 @@ export async function loadStyleFonts(doc: Document, style: SiteStyle): Promise<v
   await doc.fonts.ready
 }
 
+/** Computed style in the element's own document (sections are measured in a frame). */
+export const styleOf = (el: Element): CSSStyleDeclaration => (el.ownerDocument.defaultView ?? window).getComputedStyle(el)
+
 function lineCount(el: Element | null): number {
   if (!el) return 0
-  const cs = getComputedStyle(el)
+  const cs = styleOf(el)
   const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.06
   return Math.max(1, Math.round(el.getBoundingClientRect().height / lh))
 }
@@ -95,26 +99,95 @@ function firstView(section: HTMLElement): number {
   const top = section.getBoundingClientRect().top
   const fold = section.querySelector('[data-fold]')
   if (!fold) return section.getBoundingClientRect().height
-  const pad = parseFloat(getComputedStyle(section.querySelector('.sb-wrap') ?? section).paddingTop) || 0
+  const pad = parseFloat(styleOf(section.querySelector('.sb-wrap') ?? section).paddingTop) || 0
   return fold.getBoundingClientRect().bottom - top + pad
 }
 
+/** Fonts and photos get this long to load before sections are measured anyway. */
+export const PREPARE_MS = 4000
+
 export interface DomMeasurer extends Measurer {
+  /**
+   * Loads a style's fonts, and any photos in `content`, where sections are measured, so
+   * options are the same on every visit (a photo's shape can size its box). Never waits
+   * longer than `timeoutMs`: resolves to false if something was still loading by then.
+   */
+  prepare(style: SiteStyle, content?: unknown, timeoutMs?: number): Promise<boolean>
   dispose(): void
 }
 
+/** Every photo URL in some content (data URLs and https links), wherever it sits. */
+function photoUrls(content: unknown, out = new Set<string>()): Set<string> {
+  if (Array.isArray(content)) content.forEach(c => photoUrls(c, out))
+  else if (content && typeof content === 'object') {
+    for (const [k, v] of Object.entries(content)) {
+      // Only photos ({ url, alt }): links in text are never fetched.
+      if (k === 'url' && typeof v === 'string' && (v.startsWith('data:image/') || v.startsWith('https://'))) out.add(v)
+      else photoUrls(v, out)
+    }
+  }
+  return out
+}
+
+function dataUrlBlob(url: string): Blob | null {
+  const m = /^data:(image\/[a-z+]+);base64,(.*)$/.exec(url)
+  if (!m) return null
+  const bin = atob(m[2])
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type: m[1] })
+}
+
+/** Every self-hosted face a site style may use, as @font-face rules with absolute URLs. */
+function allFontFaces(base: string): string {
+  return Object.entries(SITE_FONT_FILES).flatMap(([family, faces]) => faces.map(face => {
+    const [weight, italic] = face.split('-')
+    const file = fontFileName({ family, weight: Number(weight), italic: italic === 'italic' })
+    return `@font-face{font-family:'${family}';font-style:${italic ? 'italic' : 'normal'};font-weight:${weight};font-display:block;src:url('${base}/${file}') format('woff2')}`
+  })).join('\n')
+}
+
+/**
+ * Sections are measured in a hidden same-origin frame holding only what a published page
+ * has (the generator's CSS and the site fonts), so the host page's own styles (the
+ * builder's reset, the contact sheet's chrome) can never change a measurement. The
+ * builder, the stress test and publishing all see the same layout.
+ */
+function measuringFrame(doc: Document): { frame: HTMLIFrameElement; inner: Document } {
+  const frame = doc.createElement('iframe')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.tabIndex = -1
+  frame.title = 'Layout measuring (hidden)'
+  frame.style.cssText = 'position:absolute;left:-20000px;top:0;width:1600px;height:1200px;border:0;visibility:hidden;pointer-events:none;'
+  doc.body.appendChild(frame)
+  const inner = frame.contentDocument!
+  const base = new URL('/fonts', doc.baseURI).href
+  inner.open()
+  inner.write(`<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><style>${allFontFaces(base)}
+${GEN_CSS}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}body{margin:0}</style></head><body class="sb-page"></body></html>`)
+  inner.close()
+  return { frame, inner }
+}
+
 export function createDomMeasurer(doc: Document): DomMeasurer {
-  ensureGenStyles(doc)
-  const host = doc.createElement('div')
-  host.setAttribute('aria-hidden', 'true')
-  host.setAttribute('inert', '')
-  host.style.cssText = 'position:absolute;left:-20000px;top:0;visibility:hidden;pointer-events:none;'
-  doc.body.appendChild(host)
+  const { frame: iframe, inner } = measuringFrame(doc)
+  const host = inner.body
+  // Photos kept decoded in the frame, and data URLs swapped for short blob URLs so each
+  // measurement parses a few KB of markup instead of megabytes of base64.
+  const kept = inner.createElement('div')
+  kept.hidden = true
+  inner.documentElement.appendChild(kept)
+  const blobs = new Map<string, string>()
+  const loaded = new Set<string>()
+  // Lazy images in an off-screen frame might never load; measuring copies load straight away.
+  const short = (html: string) => (blobs.size ? html.replace(/src="(data:image\/[^"]+)"/g, (m, u: string) => (blobs.has(u) ? `src="${blobs.get(u)}"` : m)) : html)
+    .replace(/loading="lazy"/g, 'loading="eager"')
 
   const frame = (width: number, html: string): HTMLElement => {
-    const f = doc.createElement('div')
+    const f = inner.createElement('div')
     f.style.width = `${width}px`
-    // Ids are dropped so the measuring copies never clash with the visible page.
+    // Ids are dropped so the measuring copies never clash with each other.
     f.innerHTML = html.replace(/\s(id|aria-labelledby|for)="[^"]*"/g, '')
     host.appendChild(f)
     return f.firstElementChild as HTMLElement
@@ -122,11 +195,14 @@ export function createDomMeasurer(doc: Document): DomMeasurer {
 
   return {
     measure(input: MeasureInput): Measurement {
-      const html = input.render()
+      const html = short(input.render())
       host.replaceChildren()
       const desk = frame(FRAME.desktopWidth, html)
       const phone = frame(FRAME.phoneWidth, html)
-      const call = phone.querySelector('[data-call]')
+      // The call button, or failing that the first call to action (no phone number: the quote link).
+      const call = phone.querySelector('[data-call]') ?? phone.querySelector('.sb-ctas .sb-btn, .sb-ctas a')
+      const df = layoutFaults(desk)
+      const pf = layoutFaults(phone)
       const result: Measurement = {
         desktop: { headlineLines: lineCount(visibleHeading(desk)), heightPx: firstView(desk) },
         phone: {
@@ -136,10 +212,50 @@ export function createDomMeasurer(doc: Document): DomMeasurer {
         },
         minTapPx: Math.min(minTap(desk), minTap(phone)),
         coveredText: coveredText(desk) + coveredText(phone),
+        faults: {
+          orphans: df.orphans + pf.orphans,
+          holes: df.holes + pf.holes,
+          textOverlap: df.textOverlap + pf.textOverlap,
+          overflow: df.overflow + pf.overflow,
+          detail: [...(df.detail ?? []).map(d => `desktop: ${d}`), ...(pf.detail ?? []).map(d => `phone: ${d}`)],
+        },
       }
       host.replaceChildren()
       return result
     },
-    dispose: () => host.remove(),
+    prepare: async (style, content, timeoutMs = PREPARE_MS) => {
+      const loads: Promise<unknown>[] = [loadStyleFonts(inner, style)]
+      for (const url of photoUrls(content)) {
+        if (loaded.has(url)) continue
+        loaded.add(url)
+        let src = url
+        if (url.startsWith('data:')) {
+          let blob: Blob | null = null
+          try {
+            blob = dataUrlBlob(url)
+          } catch {
+            // Not valid base64: measured with the original URL instead.
+          }
+          if (blob) {
+            src = URL.createObjectURL(blob)
+            blobs.set(url, src)
+          }
+        }
+        const im = inner.createElement('img')
+        im.src = src
+        kept.appendChild(im)
+        loads.push(im.decode().catch(() => undefined))
+      }
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const late = new Promise<false>(resolve => { timer = setTimeout(() => resolve(false), timeoutMs) })
+      const ready = await Promise.race([Promise.all(loads).then(() => true), late])
+      clearTimeout(timer)
+      if (!ready) console.warn('Fonts or photos are slow to load; measuring without waiting for them')
+      return ready
+    },
+    dispose: () => {
+      for (const u of blobs.values()) URL.revokeObjectURL(u)
+      iframe.remove()
+    },
   }
 }

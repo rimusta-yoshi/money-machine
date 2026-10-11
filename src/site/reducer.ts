@@ -5,6 +5,8 @@ import { createSite } from './defaults'
 import { withRhythm } from './page'
 import type { ExtraId, Site, SiteContent } from './schema'
 import { styleRecord } from './style'
+import { defaultEntry, lockedEntry } from './locks'
+import { siteSections } from './sections'
 
 export type SiteAction =
   | { type: 'pickTrade'; trade: TradeConfig }
@@ -14,8 +16,10 @@ export type SiteAction =
   | { type: 'setTheme'; theme: ThemeKey }
   /** "Re-roll site style": the same theme and brand colour, a new style seed. The seed comes in so the reducer stays pure. */
   | { type: 'rerollStyle'; seed: number }
-  /** The customer picked a layout: it replaces any earlier pick and any remembered preference. */
+  /** The customer picked a layout: it replaces any earlier pick and any remembered preference, and is locked. */
   | { type: 'pickSection'; section: SectionKey; value: Generated }
+  /** The builder chose a layout for a section the customer never visited (before going live). Not locked. */
+  | { type: 'acceptSection'; section: SectionKey; value: Generated }
   /** Fit repair swapped (or restored) a layout; `value.preferred` keeps the customer's own pick. */
   | { type: 'repairSection'; section: SectionKey; value: Generated }
   | { type: 'setContent'; patch: Partial<SiteContent> }
@@ -35,8 +39,31 @@ export function siteReducer(site: Site | null, action: SiteAction): Site | null 
   if (!next || next === site) return next
   // A new look starts the rhythm afresh; any other edit keeps settled sections' loud bands.
   const fresh = action.type === 'setTheme' || action.type === 'rerollStyle' || action.type === 'pickTrade'
-  const changed = action.type === 'pickSection' || action.type === 'repairSection' ? action.section : undefined
+  const changed = action.type === 'pickSection' || action.type === 'acceptSection' || action.type === 'repairSection' ? action.section : undefined
   return withRhythm(next, tradeById[next.tradeId], fresh ? { prior: null } : { changed })
+}
+
+/**
+ * A new trade starts from that trade's defaults, except for everything the customer chose:
+ * business details, extras, content, a locked colour and style, and locked layouts for
+ * sections the new trade's page also has.
+ */
+function switchTrade(site: Site, fresh: Site, trade: TradeConfig): Site {
+  const locks = site.locks ?? {}
+  const brandColor = locks.brandColor ? site.brandColor : fresh.brandColor
+  const theme = locks.theme ? site.style.theme : fresh.style.theme
+  const onPage = new Set(siteSections(trade, site).map(s => s.type))
+  const sections = Object.fromEntries(Object.entries(site.sections).filter(([type, entry]) => entry?.locked && onPage.has(type as SectionKey)))
+  return {
+    ...fresh,
+    business: site.business,
+    extras: site.extras,
+    content: site.content,
+    brandColor,
+    style: styleRecord(theme, brandColor, site.style.seed),
+    sections,
+    locks,
+  }
 }
 
 const swapUrl = (urls: Readonly<Record<string, string>>) => <P extends { url: string } | null>(p: P): P =>
@@ -47,8 +74,7 @@ function edit(site: Site | null, action: Exclude<SiteAction, { type: 'load' }>):
   if (action.type === 'pickTrade') {
     if (site?.tradeId === action.trade.id) return site
     const fresh = createSite(action.trade)
-    // Business details are about the person, not the trade, so they survive a switch.
-    return site ? { ...fresh, business: site.business, extras: site.extras } : fresh
+    return site ? switchTrade(site, fresh, action.trade) : fresh
   }
   if (!site) return null
 
@@ -57,12 +83,13 @@ function edit(site: Site | null, action: Exclude<SiteAction, { type: 'load' }>):
       return { ...site, business: { ...site.business, ...action.patch } }
     case 'setBrandColor':
       if (!/^#[0-9a-fA-F]{6}$/.test(action.color)) return site
-      return { ...site, brandColor: action.color, style: styleRecord(site.style.theme, action.color, site.style.seed) }
+      return { ...site, brandColor: action.color, style: styleRecord(site.style.theme, action.color, site.style.seed), locks: { ...site.locks, brandColor: true } }
     case 'setTheme':
       if (action.theme === site.style.theme) return site
-      return { ...site, style: styleRecord(action.theme, site.brandColor, site.style.seed) }
+      return { ...site, style: styleRecord(action.theme, site.brandColor, site.style.seed), locks: { ...site.locks, theme: true } }
     case 'rerollStyle':
-      return { ...site, style: styleRecord(site.style.theme, site.brandColor, action.seed) }
+      // Shuffling is choosing this style too.
+      return { ...site, style: styleRecord(site.style.theme, site.brandColor, action.seed), locks: { ...site.locks, theme: true } }
     case 'toggleExtra':
       return {
         ...site,
@@ -71,9 +98,14 @@ function edit(site: Site | null, action: Exclude<SiteAction, { type: 'load' }>):
           : [...site.extras, action.extra],
       }
     case 'pickSection':
-      return { ...site, sections: { ...site.sections, [action.section]: { seed: action.value.seed, spec: action.value.spec } } }
-    case 'repairSection':
-      return { ...site, sections: { ...site.sections, [action.section]: action.value } }
+      return { ...site, sections: { ...site.sections, [action.section]: lockedEntry(action.value) } }
+    case 'acceptSection':
+      return { ...site, sections: { ...site.sections, [action.section]: defaultEntry(action.value) } }
+    case 'repairSection': {
+      // A repair swaps what's shown, never whose choice it was: the customer's pick stays locked (as `preferred`).
+      const locked = (site.sections[action.section] as Generated | undefined)?.locked
+      return { ...site, sections: { ...site.sections, [action.section]: locked ? { ...action.value, locked } : action.value } }
+    }
     case 'setContent':
       return { ...site, content: { ...site.content, ...action.patch } }
     case 'replacePhotoUrls': {

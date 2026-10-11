@@ -40,12 +40,28 @@ export interface Check {
   detail: string
 }
 
+/** Layout faults only a real browser can see (see dom/faults.ts); the estimator reports none. */
+export interface Faults {
+  /** Items alone on a grid row that don't fill it, while other rows hold several. */
+  orphans: number
+  /** Large empty stretches: a row ending well short, or side-by-side blocks of very different heights. */
+  holes: number
+  /** Text on other text, or on a button or link. */
+  textOverlap: number
+  /** Text or controls reaching outside the section. */
+  overflow: number
+  /** Plain descriptions, for debugging and the stress test's report. */
+  detail?: string[]
+}
+
+export const NO_FAULTS: Faults = { orphans: 0, holes: 0, textOverlap: 0, overflow: 0 }
+
 /** Layout facts the hard checks need. Only a measurer produces these. */
 export interface Measurement {
   desktop: { headlineLines: number; heightPx: number }
   phone: {
     headlineLines: number
-    /** Bottom of the call button from the top of the section; Infinity when there is none. */
+    /** Bottom of the call button (or the first call to action) from the top of the section; Infinity when there is none. */
     callBottomPx: number
     /** Anything wider than the phone (clipped or scrolling sideways by accident). */
     overflowsWidth: boolean
@@ -54,6 +70,8 @@ export interface Measurement {
   minTapPx: number
   /** Overlapping or rotated decorations that cover text or the call button, across both frames. */
   coveredText: number
+  /** Grid, overlap and overflow faults across both frames (absent: none found, e.g. the estimator). */
+  faults?: Faults
 }
 
 export interface Score { total: number; [part: string]: number }
@@ -128,6 +146,11 @@ export interface SectionDef<S extends AnySpec = AnySpec, C = unknown> {
   schema: z.ZodType<S>
   /** Used when a saved spec no longer fits and nothing else does. Allowed in every theme; its gate is the section's presence gate. */
   fallback: S
+  /**
+   * Plain layouts that fit any content and every theme, fallback first: the last step of
+   * the options ladder, so a section always has something to offer.
+   */
+  safe: readonly S[]
   /** Backgrounds a candidate must pass on (the rhythm may give it any of these). */
   checkBands: readonly Band[]
   /** A band the section always has, whatever the rhythm (hero tone, footer). */
@@ -159,4 +182,6 @@ export interface Generated<S extends AnySpec = AnySpec> {
   seed: number
   spec: S
   preferred?: S
+  /** The customer chose this layout; only they change it (see site/locks.ts). */
+  locked?: true
 }

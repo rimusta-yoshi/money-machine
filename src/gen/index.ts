@@ -13,12 +13,12 @@ export { sizesFor } from './themes/sizes'
 
 // Sections
 export { SECTION_KEYS, BANDS, FACETS, MAX_STEP } from './core/types'
-export type { Facet, Shows, SectionKey, Band, Side, SectionRhythm, SectionDef, AnySpec, Generated, Measurer, Measurement, Check, MeasureInput, Step } from './core/types'
+export type { Facet, Shows, SectionKey, Band, Side, SectionRhythm, SectionDef, AnySpec, Generated, Measurer, Measurement, Check, MeasureInput, Step, Faults } from './core/types'
 export {
   generateOptions, generateSpec, repairSection, fitFailures as sectionFitFailures, defaultSpec, specKey, isPresent,
-  candidateSeed, nextBatchSeed, pickDistinct, features, staticChecksAll, punchScore, BATCH_SIZE, SHOW,
+  candidateSeed, nextBatchSeed, pickDistinct, features, staticChecksAll, punchScore, BATCH_SIZE, SHOW, MIN_OPTIONS, safeOptions, relaxSpec,
 } from './core/pipeline'
-export type { Candidate, Options, FitResult as SectionFitResult } from './core/pipeline'
+export type { Candidate, Options, Tier, GenError, FitResult as SectionFitResult } from './core/pipeline'
 export { outsideTheme } from './core/punch'
 export { solveRhythm } from './core/rhythm'
 export type { Rhythm, PageEntry, Settle } from './core/rhythm'
