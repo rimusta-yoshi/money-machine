@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { funnel, ratio } from '../../src/analytics/funnel'
 import type { Step } from '../../src/analytics/funnel'
-import { cleanTag } from '../../src/analytics/source'
+import { cleanSource } from '../../src/analytics/source'
 import { SECTION_KEYS } from '../../src/gen/core/types'
 import { SECTIONS } from '../../src/gen/page'
 import { siteOrigin } from './config'
@@ -42,7 +42,7 @@ export function statsQuery(url: URL): StatsQuery & { tz: number } {
   const parsed = queryShape.safeParse(Object.fromEntries(url.searchParams))
   if (!parsed.success || parsed.data.from > parsed.data.to) throw new HttpError(422, 'invalid_range', 'Choose a date range.')
   const { from, to, src, tz } = parsed.data
-  return { from, to, tz, src: !src ? undefined : src === DIRECT ? null : cleanTag(src) ?? undefined }
+  return { from, to, tz, src: !src ? undefined : src === DIRECT ? null : cleanSource(src) ?? undefined }
 }
 
 export interface BreakdownRow { key: string | null; counts: Partial<Record<Step, number>>; base: number; paid: number; conversion: number | null }
@@ -59,7 +59,9 @@ export function breakdownRows(rows: { key: string | null; step: Step; n: number 
 
 export function moneySummary(m: MoneyTotals) {
   const refunded = m.refundedAmount + m.partialRefunded
-  return { ...m, refunded, net: m.revenue - refunded - m.lostToDisputes, refundRate: ratio(m.refunds, m.sales) }
+  const net = m.revenue - refunded - m.lostToDisputes
+  // Stripe keeps its fee when a payment is refunded, so fees come off whatever happened next.
+  return { ...m, refunded, net, netAfterFees: net - m.stripeFees, refundRate: ratio(m.refunds, m.sales) }
 }
 
 export interface LayoutRow { section: string; label: string; total: number; layouts: { id: string; label: string; n: number; share: number | null }[] }

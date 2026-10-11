@@ -61,6 +61,12 @@ export function stripePayments(secretKey: string, fetcher: typeof fetch = (...a)
       const refund = await call<{ id: string }>('POST', '/v1/refunds', { payment_intent: paymentIntent, reason: 'requested_by_customer' }, idempotencyKey)
       return { id: refund.id }
     },
+    async fee(paymentIntent) {
+      type Charge = { balance_transaction?: { fee?: number } | string | null }
+      const pi = await call<{ latest_charge?: Charge | string | null }>('GET', `/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge.balance_transaction`)
+      const bt = typeof pi.latest_charge === 'object' ? pi.latest_charge?.balance_transaction : null
+      return typeof bt === 'object' && typeof bt?.fee === 'number' ? bt.fee : null
+    },
     async receiptUrl(paymentIntent) {
       const pi = await call<{ latest_charge?: { receipt_url?: string } | string | null }>('GET', `/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge`)
       return typeof pi.latest_charge === 'object' ? pi.latest_charge?.receipt_url ?? null : null

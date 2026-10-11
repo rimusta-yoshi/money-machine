@@ -330,11 +330,16 @@ after 13 months by the daily cron.
 `utm_campaign`). The homepage adds it to every builder link (`/build/?src=fb`), the builder sends
 it with a new draft (`POST /v1/drafts {src, campaign}`) and with each step, and the server keeps
 it on the draft (`drafts.src`, `drafts.campaign`, set once when the draft is made), so every later
-event of that site (checkout, payment, refund, dispute) carries it, whatever link it's opened from. Tags are cleaned to lower-case letters, digits, `-` and
-`_` (40 characters); anything with an `@` or a run of 7+ digits (a phone number) is dropped.
+event of that site (checkout, payment, refund, dispute) carries it, whatever link it's opened from. Sources are kept to a list: `fb`, `ig`, `google`, `tiktok`, `leaflet`
+(`facebook` and `instagram` count as `fb` and `ig`). Any other value is stored as `other`, and none
+(or `direct`) as direct. Campaigns are cleaned to lower-case letters, digits, `-` and `_` (40
+characters); anything with an `@` or a run of 7+ digits (a phone number) is dropped.
 
 Money (sales, revenue, refunds, disputes, net) comes from the payments on `drafts`, not from
-events. Refunds and disputes count on the day they happened; Stripe's fees aren't taken off.
+events. Full refunds and disputes count on the day they happened. Stripe's fee on each sale is
+read from its balance transaction just after the payment (`drafts.stripe_fee`, migration 0005),
+and the daily cron fills in any Stripe hadn't settled yet; the dashboard shows fees and net after
+fees (Stripe keeps its fee on a refund).
 
 ### Try it locally
 

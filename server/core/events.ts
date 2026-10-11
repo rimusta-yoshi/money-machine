@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { CLIENT_STEPS } from '../../src/analytics/funnel'
 import type { Step } from '../../src/analytics/funnel'
-import { cleanTag } from '../../src/analytics/source'
+import { cleanSource, cleanTag } from '../../src/analytics/source'
 import type { Source } from '../../src/analytics/source'
 import { SECTION_KEYS } from '../../src/gen/core/types'
 import { SECTIONS } from '../../src/gen/page'
@@ -82,7 +82,7 @@ async function saveEvent(e: EventBody, req: Request, deps: Deps): Promise<void> 
   const draft = e.kind === 'step' && e.step === 'landed' ? null : await callerDraft(req, deps)
   // A site's source is set once, when its draft is made; its events always carry that one, so a
   // later link (?src=...) never splits one site across two sources.
-  const source: Source = draft ? draft.source : { src: cleanTag(e.src), campaign: cleanTag(e.campaign) }
+  const source: Source = draft ? draft.source : { src: cleanSource(e.src), campaign: cleanTag(e.campaign) }
   const at = deps.now()
   const facts = { trade: e.trade ?? null, theme: e.theme ?? null, src: source.src, ref: draft?.ref ?? null }
   if (e.kind === 'layout') await deps.insights.addPick({ at, section: e.section, layout: e.layout, ...facts })

@@ -132,6 +132,15 @@ export function d1Database(db: D1Database): Database {
     async recordPartialRefund(ref, amountRefunded) {
       await db.prepare('UPDATE drafts SET refunded_amount = MAX(COALESCE(refunded_amount, 0), ?2) WHERE ref = ?1').bind(ref, amountRefunded).run()
     },
+    async recordFee(ref, fee) {
+      await db.prepare('UPDATE drafts SET stripe_fee = ?2 WHERE ref = ?1').bind(ref, fee).run()
+    },
+    async paidWithoutFee(limit) {
+      const rows = await db.prepare(
+        'SELECT ref, stripe_payment_intent AS pi FROM drafts WHERE paid_at IS NOT NULL AND stripe_fee IS NULL AND stripe_payment_intent IS NOT NULL ORDER BY paid_at LIMIT ?1',
+      ).bind(limit).all<{ ref: string; pi: string }>()
+      return rows.results.map(r => ({ ref: r.ref, paymentIntent: r.pi }))
+    },
     async releaseEndedSlugs(before) {
       const rows = await db.prepare('DELETE FROM slugs WHERE ref IN (SELECT ref FROM drafts WHERE refunded_at < ?1 OR dispute_lost_at < ?1) RETURNING slug').bind(before).all<{ slug: string }>()
       return rows.results.map(r => r.slug)

@@ -6,6 +6,7 @@ export interface BreakdownRow { key: string | null; counts: Partial<Record<Step,
 
 export interface Money {
   sales: number; revenue: number; refunds: number; refunded: number; disputes: number; lostToDisputes: number; net: number; refundRate: number | null
+  stripeFees: number; feesUnknown: number; netAfterFees: number
 }
 
 export type SiteStatus = 'draft' | 'published' | 'paid' | 'disputed' | 'refunded'

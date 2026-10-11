@@ -89,9 +89,11 @@ export function d1Insights(db: D1Database): Insights {
       const disputed = filter(q, 'at')
       const lost = filter(q, 'dispute_lost_at')
       const [sales, refunds, disputes, lostTo] = await Promise.all([
-        one<{ sales: number; revenue: number; partial: number }>(
+        one<{ sales: number; revenue: number; partial: number; fees: number; unknown: number }>(
           `SELECT COUNT(*) AS sales, COALESCE(SUM(amount), 0) AS revenue,
-           COALESCE(SUM(CASE WHEN refunded_at IS NULL THEN refunded_amount END), 0) AS partial FROM drafts WHERE ${paid.sql}`, paid.values),
+           COALESCE(SUM(CASE WHEN refunded_at IS NULL THEN refunded_amount END), 0) AS partial,
+           COALESCE(SUM(stripe_fee), 0) AS fees, SUM(CASE WHEN stripe_fee IS NULL THEN 1 ELSE 0 END) AS unknown
+           FROM drafts WHERE ${paid.sql}`, paid.values),
         one<{ n: number; amount: number }>(`SELECT COUNT(*) AS n, COALESCE(SUM(amount), 0) AS amount FROM drafts WHERE ${refunded.sql}`, refunded.values),
         one<{ n: number }>(`SELECT COUNT(*) AS n FROM events WHERE step = 'disputed' AND ${disputed.sql}`, disputed.values),
         // What a lost dispute took, less any partial refund already given back (counted above).
@@ -100,6 +102,7 @@ export function d1Insights(db: D1Database): Insights {
       return {
         sales: sales.sales, revenue: sales.revenue, partialRefunded: sales.partial,
         refunds: refunds.n, refundedAmount: refunds.amount, disputes: disputes.n, lostToDisputes: lostTo.amount,
+        stripeFees: sales.fees, feesUnknown: sales.unknown ?? 0,
       }
     },
     async recentSites(q, limit) {

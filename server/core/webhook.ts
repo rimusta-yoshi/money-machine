@@ -9,6 +9,7 @@ import { sendQuietly } from './email'
 import { disputeOpenedEmail, disputeWonEmail } from './emails'
 import { siteOrigin } from './config'
 import { trackSite } from './events'
+import { recordFeeLater } from './fees'
 import { putLive, suggestion, takeDownOwn } from './publish'
 import { verifyStripeSignature } from './stripe'
 
@@ -94,7 +95,10 @@ async function paid(deps: Deps, session: Session): Promise<void> {
     sessionId: session.id, paymentIntent: session.payment_intent, amount: session.amount_total ?? 0,
     currency: session.currency ?? deps.config.currency, email: checkout.email, paidAt,
   })
-  if (first) trackSite(deps, 'paid', { ...before, record: checkout.record })
+  if (first) {
+    trackSite(deps, 'paid', { ...before, record: checkout.record })
+    recordFeeLater(deps, checkout.ref, session.payment_intent)
+  }
   const draft = (await deps.db.draftByRef(checkout.ref))!
   if (draft.payment!.sessionId !== session.id) {
     // Paid twice for one site (two tabs): the second payment goes straight back.

@@ -1,6 +1,7 @@
 import { handleApi } from '../core/api'
 import { cleanup } from '../core/cleanup'
 import { forgetOldEvents } from '../core/events'
+import { backfillFees } from '../core/fees'
 import { depsFrom } from './env'
 import type { Env } from './env'
 
@@ -16,6 +17,7 @@ export default {
     await deps.db.sweep(deps.now())
     // Never in the way of the cleanup below.
     await forgetOldEvents(deps).catch(err => console.warn('Forgetting old dashboard events failed', err))
+    await backfillFees(deps).catch(err => console.warn('Filling in Stripe fees failed', err))
     const done = await cleanup(deps)
     console.log(`Cleanup: ${done.drafts} unpaid drafts and ${done.orphanPhotos} orphan photos removed, ${done.freedAddresses} refunded addresses freed`)
   },
