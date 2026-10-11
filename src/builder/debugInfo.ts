@@ -21,7 +21,7 @@ export interface BuildDebug {
 }
 
 export interface DebugInfo {
-  kind: 'siteblocks-debug'
+  kind: 'localblocks-debug'
   v: 1
   at: string
   step: string
@@ -41,7 +41,7 @@ function standIns(site: Site): Site {
 }
 
 export function debugInfo(site: Site, step: string, build: BuildDebug | null, now = new Date()): DebugInfo {
-  return { kind: 'siteblocks-debug', v: 1, at: now.toISOString(), step, site: standIns(site), build: step === 'build' ? build : null }
+  return { kind: 'localblocks-debug', v: 1, at: now.toISOString(), step, site: standIns(site), build: step === 'build' ? build : null }
 }
 
 /** Alt+Shift+D copies the debug info (dev builds only). */

@@ -10,7 +10,7 @@ import { finishedSite } from './test/sites'
 
 const plumber = tradeById.plumber
 const opts: DocumentOptions = {
-  origin: 'https://joes-plumbing.siteblocks.co.uk', base: '', cssHref: '/site-abc.css', noindex: true, date: new Date('2026-10-02T12:00:00Z'),
+  origin: 'https://joes-plumbing.localblocks.co.uk', base: '', cssHref: '/site-abc.css', noindex: true, date: new Date('2026-10-02T12:00:00Z'),
 }
 const dom = (html: string) => new DOMParser().parseFromString(html, 'text/html')
 
@@ -37,9 +37,9 @@ describe('homeDocument', () => {
   it('carries Open Graph tags with absolute URLs, the icon and the stylesheet', () => {
     const og = (p: string) => doc.querySelector(`meta[property="${p}"]`)?.getAttribute('content')
     expect(og('og:title')).toBe("Joe's Plumbing — Plumber in Leeds")
-    expect(og('og:url')).toBe('https://joes-plumbing.siteblocks.co.uk/')
-    expect(og('og:image')).toBe('https://joes-plumbing.siteblocks.co.uk/photos/abc123.webp')
-    expect(doc.querySelector('link[rel=canonical]')?.getAttribute('href')).toBe('https://joes-plumbing.siteblocks.co.uk/')
+    expect(og('og:url')).toBe('https://joes-plumbing.localblocks.co.uk/')
+    expect(og('og:image')).toBe('https://joes-plumbing.localblocks.co.uk/photos/abc123.webp')
+    expect(doc.querySelector('link[rel=canonical]')?.getAttribute('href')).toBe('https://joes-plumbing.localblocks.co.uk/')
     expect(doc.querySelector('link[rel=icon]')?.getAttribute('href')).toBe('/favicon.svg')
     expect(doc.querySelector('link[rel=stylesheet]')?.getAttribute('href')).toBe('/site-abc.css')
   })
@@ -86,7 +86,7 @@ describe('privacyDocument', () => {
     expect(doc.querySelector('header')).not.toBeNull()
     expect(doc.querySelector('footer')).not.toBeNull()
     expect([...doc.querySelectorAll('h1')].map(h => h.textContent)).toEqual(['Privacy notice'])
-    expect(doc.querySelector('link[rel=canonical]')?.getAttribute('href')).toBe('https://joes-plumbing.siteblocks.co.uk/privacy')
+    expect(doc.querySelector('link[rel=canonical]')?.getAttribute('href')).toBe('https://joes-plumbing.localblocks.co.uk/privacy')
   })
 
   it('names the business, how to reach it, and the date', () => {
@@ -114,10 +114,10 @@ describe('site extras', () => {
   })
 
   it('writes a sitemap and robots rules', () => {
-    const xml = sitemapXml('https://a.siteblocks.co.uk', ['/', '/privacy'], '2026-10-02')
-    expect(xml).toContain('<loc>https://a.siteblocks.co.uk/privacy</loc>')
-    expect(robotsTxt('https://a.siteblocks.co.uk', true)).toBe('User-agent: *\nDisallow: /\n')
-    expect(robotsTxt('https://a.siteblocks.co.uk', false)).toContain('Sitemap: https://a.siteblocks.co.uk/sitemap.xml')
+    const xml = sitemapXml('https://a.localblocks.co.uk', ['/', '/privacy'], '2026-10-02')
+    expect(xml).toContain('<loc>https://a.localblocks.co.uk/privacy</loc>')
+    expect(robotsTxt('https://a.localblocks.co.uk', true)).toBe('User-agent: *\nDisallow: /\n')
+    expect(robotsTxt('https://a.localblocks.co.uk', false)).toContain('Sitemap: https://a.localblocks.co.uk/sitemap.xml')
   })
 
   it('formats dates and clips descriptions at a word', () => {

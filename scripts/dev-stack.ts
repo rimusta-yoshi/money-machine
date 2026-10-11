@@ -2,9 +2,9 @@
 //
 //   npm run dev:stack          (then, in another terminal: npm run dev:api)
 //
-// Serves https://api.siteblocks.localhost:8787, https://preview.siteblocks.localhost:8787 and
-// https://<slug>.siteblocks.localhost:8787 (Chrome sends *.localhost to this machine). The
-// certificate is self-signed: open https://api.siteblocks.localhost:8787/health once and
+// Serves https://api.localblocks.localhost:8787, https://preview.localblocks.localhost:8787 and
+// https://<slug>.localblocks.localhost:8787 (Chrome sends *.localhost to this machine). The
+// certificate is self-signed: open https://api.localblocks.localhost:8787/health once and
 // accept it (and the same for preview. and each site address). Data is kept in .wrangler/dev-stack.
 //
 // Payments: put Stripe test keys in server/.dev.vars (git-ignored; see server/README.md) and
@@ -20,7 +20,7 @@ import { seedSampleEvents } from './sample-events.ts'
 import { stripeListenArgs } from './stripe-events.mjs'
 
 const PORT = 8787
-const BASE = `siteblocks.localhost:${PORT}`
+const BASE = `localblocks.localhost:${PORT}`
 /** Local only. The real one is a wrangler secret. */
 const ADMIN = 'local-admin-key-0123456789abcdef'
 const DEV_VARS = join(process.cwd(), 'server', '.dev.vars')
@@ -41,7 +41,7 @@ const stack = await startStack({
   baseDomain: BASE, port: PORT, https: true, adminToken: ADMIN, builderOrigins: 'http://localhost:5173',
   persistTo: join(process.cwd(), '.wrangler', 'dev-stack'),
   // Stripe sends people back to the local builder; emails are logged unless RESEND_API_KEY is set.
-  vars: { APP_URL: 'http://localhost:5173', BRAND_NAME: 'Site Blocks', ...devVars },
+  vars: { APP_URL: 'http://localhost:5173', ...devVars },
 })
 const bucket = await stack.mf.getR2Bucket('BUCKET', 'api')
 for (const file of STOCK_PHOTO_FILES) {

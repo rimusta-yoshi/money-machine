@@ -7,29 +7,28 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "preview_urls": false,
-  // More specific than the site worker's *.siteblocks.co.uk/*, so these hosts come here.
+  // More specific than the site worker's *.localblocks.co.uk/*, so these hosts come here.
   "routes": [
-    { "pattern": "api.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" },
-    { "pattern": "preview.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" }
+    { "pattern": "api.localblocks.co.uk/*", "zone_name": "localblocks.co.uk" },
+    { "pattern": "preview.localblocks.co.uk/*", "zone_name": "localblocks.co.uk" }
   ],
+  // The product's name (emails, Stripe's page) comes from src/brand/config.ts, like everything else.
   "vars": {
-    "BASE_DOMAIN": "siteblocks.co.uk",
+    "BASE_DOMAIN": "localblocks.co.uk",
     // Where the builder runs. Comma-separated origins, no trailing slash.
-    "BUILDER_ORIGINS": "https://siteblocks.co.uk,https://www.siteblocks.co.uk,http://localhost:5173",
+    "BUILDER_ORIGINS": "https://localblocks.co.uk,https://www.localblocks.co.uk,http://localhost:5173",
     // Staging: noindex on everything until launch.
     "NOINDEX": "true",
     "PREVIEW_DAYS": "30",
-    // The product's name in emails and on Stripe's page. Changes here with the rename.
-    "BRAND_NAME": "Site Blocks",
     // Where the homepage and builder live: links in emails, Stripe's return pages.
-    "APP_URL": "https://siteblocks.co.uk",
+    "APP_URL": "https://localblocks.co.uk",
     // The one price, in pence. The builder never sends an amount.
     "PRICE_PENCE": "9900",
     "REFUND_DAYS": "14",
     // "true" opens orders to everyone. Until then a checkout needs the TESTER_CODE secret.
     "LAUNCHED": "false",
-    "EMAIL_FROM": "Site Blocks <hello@siteblocks.co.uk>",
-    "SUPPORT_EMAIL": "help@siteblocks.co.uk"
+    "EMAIL_FROM": "Local Blocks <hello@localblocks.co.uk>",
+    "SUPPORT_EMAIL": "hello@localblocks.co.uk"
     // Secrets (never in this file): see server/README.md "Payments and email".
     //   ADMIN_TOKEN, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, LINK_SECRET, RESEND_API_KEY, TESTER_CODE
   },

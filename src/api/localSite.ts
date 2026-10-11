@@ -9,7 +9,7 @@ import type { Photo, Site } from '../site/schema'
  * is then simply not kept).
  */
 
-const STORAGE_KEY = 'siteblocks.site'
+const STORAGE_KEY = 'localblocks.site'
 
 export function loadLocalSite(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): Site | null {
   try {

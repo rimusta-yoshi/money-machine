@@ -11,7 +11,7 @@ describe('debug info', () => {
     const base = createSite(plumber, 5)
     const site = { ...base, content: { ...base.content, photos: { hero: photo(1), about: null, gallery: [photo(2), photo(3)] } } }
     const info = debugInfo(site, 'build', { section: 'gallery', batchSeed: 9, index: 1, shown: [], loading: false, samples: true }, new Date('2026-10-11T10:00:00Z'))
-    expect(info).toMatchObject({ kind: 'siteblocks-debug', v: 1, at: '2026-10-11T10:00:00.000Z', step: 'build', build: { section: 'gallery', batchSeed: 9 } })
+    expect(info).toMatchObject({ kind: 'localblocks-debug', v: 1, at: '2026-10-11T10:00:00.000Z', step: 'build', build: { section: 'gallery', batchSeed: 9 } })
     expect(info.site.content.photos.hero?.url).toBe('https://photo.invalid/own-1.jpg')
     expect(info.site.content.photos.gallery.map(p => p.url)).toEqual(['https://photo.invalid/own-2.jpg', 'https://photo.invalid/own-3.jpg'])
     expect(info.site.content.photos.gallery[1].alt).toBe('Job 3')

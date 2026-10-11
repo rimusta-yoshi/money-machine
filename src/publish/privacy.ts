@@ -1,3 +1,4 @@
+import { BRAND } from '../brand/config'
 import { businessName } from '../gen'
 import type { PageContent, SiteStyle } from '../gen'
 import { esc, safeUrl } from '../gen/html'
@@ -26,7 +27,7 @@ export function privacyNotice(c: PageContent, updated: string): string {
     h2('When you phone or email us'),
     p('If you contact us, we use your details only to reply to you and to arrange and carry out the work you ask for. We keep them for as long as we need them for that work and for our business records (for example, tax records), and then delete them. We never sell your details or share them for marketing.'),
     h2('Hosting'),
-    p('This website is built and hosted by Site Blocks, using Cloudflare. Like any website, the servers that deliver it briefly process technical information such as your IP address and browser type, to send you the pages and to keep the service secure. It is not used to identify you or to follow you across other websites.'),
+    p(`This website is built and hosted by ${esc(BRAND.name)}, using Cloudflare. Like any website, the servers that deliver it briefly process technical information such as your IP address and browser type, to send you the pages and to keep the service secure. It is not used to identify you or to follow you across other websites.`),
     h2('Your rights'),
     p('Under UK data protection law you can ask for a copy of the personal information we hold about you, and ask us to correct or delete it. Contact us using the details above.'),
     p('If you are unhappy with how we have handled your information, you can complain to the Information Commissioner’s Office (ICO) at <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a> or on 0303 123 1113.'),

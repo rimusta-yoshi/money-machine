@@ -25,7 +25,7 @@ describe('draft key', () => {
     expect(storedDraftKey()).toBe(KEY)
     forgetDraftKey()
     expect(storedDraftKey()).toBeNull()
-    localStorage.setItem('siteblocks.draft', '<script>')
+    localStorage.setItem('localblocks.draft', '<script>')
     expect(storedDraftKey()).toBeNull()
   })
 
@@ -56,7 +56,7 @@ describe('the site kept in this browser', () => {
     const site = finishedSite()
     expect(saveLocalSite(site)).toBe(true)
     expect(loadLocalSite()).toEqual(site)
-    localStorage.setItem('siteblocks.site', '{"hello":1}')
+    localStorage.setItem('localblocks.site', '{"hello":1}')
     expect(loadLocalSite()).toBeNull()
     const full = { setItem: () => { throw new Error('QuotaExceededError') } }
     expect(saveLocalSite(site, full)).toBe(false)
@@ -81,9 +81,9 @@ describe('uploadPhotos', () => {
 
 describe('the API client', () => {
   it('reads its address from the build and finds the site domain', () => {
-    expect(apiBase({ VITE_API_URL: 'https://api.siteblocks.co.uk/' })).toBe('https://api.siteblocks.co.uk')
+    expect(apiBase({ VITE_API_URL: 'https://api.localblocks.co.uk/' })).toBe('https://api.localblocks.co.uk')
     expect(apiBase({})).toBeNull()
-    expect(siteDomain('https://api.siteblocks.co.uk')).toBe('siteblocks.co.uk')
+    expect(siteDomain('https://api.localblocks.co.uk')).toBe('localblocks.co.uk')
   })
 
   it('sends the key and admin key as headers, and turns errors into messages', async () => {
@@ -101,8 +101,8 @@ describe('the API client', () => {
 
   it('says how to fix the local certificate when the local server is out of reach', async () => {
     const offline = (base: string) => createApi(base, (async () => { throw new TypeError('fail') }) as typeof fetch)
-    await expect(offline('https://api.siteblocks.localhost:8787').createDraft()).rejects.toMatchObject({ message: expect.stringContaining('open https://api.siteblocks.localhost:8787/health') })
-    await expect(offline('https://api.siteblocks.co.uk').createDraft()).rejects.toMatchObject({ message: 'We could not reach the server. Check your connection and try again.' })
+    await expect(offline('https://api.localblocks.localhost:8787').createDraft()).rejects.toMatchObject({ message: expect.stringContaining('open https://api.localblocks.localhost:8787/health') })
+    await expect(offline('https://api.localblocks.co.uk').createDraft()).rejects.toMatchObject({ message: 'We could not reach the server. Check your connection and try again.' })
   })
 
   it('sends the tester code with a checkout only when there is one', async () => {

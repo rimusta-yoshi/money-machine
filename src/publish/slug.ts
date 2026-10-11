@@ -15,7 +15,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'checkout', 'static', 'assets', 'cdn', 'img', 'images', 'media', 'files', 'fonts', 'photos', 'dev', 'staging',
   'test', 'demo', 'beta', 'root', 'security', 'abuse', 'postmaster', 'hostmaster', 'webmaster', 'privacy', 'terms',
   'legal', 'about', 'news', 'shop', 'store', 'my', 'go', 'auth', 'oauth', 'sso', 'id', 'internal', 'localhost',
-  'siteblocks', 'site-blocks', 'businessblocks', 'business-blocks', 'example', 'sample', 'samples', 'official',
+  'localblocks', 'local-blocks', 'siteblocks', 'site-blocks', 'businessblocks', 'business-blocks', 'example', 'sample', 'samples', 'official',
 ])
 
 /**

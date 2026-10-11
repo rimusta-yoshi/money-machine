@@ -65,7 +65,7 @@ describe('customer text can never become markup', () => {
       const site = nastySite(theme)
       // It is a valid record: validation is not what keeps it safe, the renderer is.
       expect(() => parseSite(JSON.parse(JSON.stringify({ ...site, content: { ...site.content, photos: { hero: null, about: null, gallery: [] } } })))).not.toThrow()
-      const opts = { origin: 'https://x.siteblocks.co.uk', base: '', cssHref: '/s.css', noindex: true, date: new Date('2026-10-02') }
+      const opts = { origin: 'https://x.localblocks.co.uk', base: '', cssHref: '/s.css', noindex: true, date: new Date('2026-10-02') }
       const home = assertInert(homeDocument(site, tradeById.plumber, opts))
       const text = home.body.textContent ?? ''
       expect(text).toContain(NASTY.script)

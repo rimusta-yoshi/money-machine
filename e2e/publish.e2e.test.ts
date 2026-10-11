@@ -15,7 +15,7 @@ import { launchBrowser } from '../scripts/browser.mjs'
  * pages, at desktop and phone width, for every theme. Run with `npm run e2e`.
  */
 const PORT = 8790
-const BASE = `siteblocks.localhost:${PORT}`
+const BASE = `localblocks.localhost:${PORT}`
 const ADMIN = 'e2e-admin-key-0123456789abcdef'
 const axeSource = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8')
 

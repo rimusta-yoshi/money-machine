@@ -21,7 +21,7 @@ interface Props {
   draft: Draft | null
   /** Shows the admin key field (dev builds): publishing without paying, for testing and support. */
   adminPublish: boolean
-  /** e.g. siteblocks.co.uk */
+  /** e.g. localblocks.co.uk */
   domain: string
   onBusinessChange: (patch: Partial<BusinessInfo>) => void
   /** Measures every section on real screens first: the checked record, or null if that failed. */
@@ -34,7 +34,7 @@ interface Props {
   redirect?: (url: string) => void
 }
 
-const ADMIN_STORAGE = 'siteblocks.admin'
+const ADMIN_STORAGE = 'localblocks.admin'
 const readAdmin = () => { try { return sessionStorage.getItem(ADMIN_STORAGE) ?? '' } catch { return '' } }
 const keepAdmin = (v: string) => { try { sessionStorage.setItem(ADMIN_STORAGE, v) } catch { /* not kept */ } }
 const emailSchema = z.string().trim().email()

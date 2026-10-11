@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { launchBrowser } from '../scripts/browser.mjs'
 
 /**
- * Accessibility in real Chrome for siteblocks' own pages: axe with colour contrast ON over
+ * Accessibility in real Chrome for Local Blocks' own pages: axe with colour contrast ON over
  * the homepage and every builder step (Basics, Your look, Build, Go live), at desktop and
  * phone width, with motion reduced and not. The generated customer-site previews inside
  * are left out here: `npm run a11y` and publish.e2e check those over every theme.

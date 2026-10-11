@@ -1,0 +1,21 @@
+// The old domain after the rename to Local Blocks: siteblocks.co.uk and every subdomain of it
+// redirect permanently to the same address on localblocks.co.uk (path and query kept).
+// Keep it for at least a year (until October 2027). Deploy: npm run cf:deploy:redirect
+// (server/README.md "Moving to localblocks.co.uk").
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "old-domain-redirect",
+  "main": "cloudflare/redirect-worker.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "siteblocks.co.uk", "custom_domain": true },
+    { "pattern": "*.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" }
+  ],
+  "vars": {
+    "OLD_DOMAIN": "siteblocks.co.uk",
+    "NEW_DOMAIN": "localblocks.co.uk"
+  },
+  "observability": { "enabled": true }
+}

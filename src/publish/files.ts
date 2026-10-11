@@ -14,7 +14,7 @@ export interface SiteFile {
 }
 
 export interface PublishOptions {
-  /** e.g. https://joes-plumbing.siteblocks.co.uk */
+  /** e.g. https://joes-plumbing.localblocks.co.uk */
   origin: string
   noindex: boolean
   date: Date

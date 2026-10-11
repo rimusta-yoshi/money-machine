@@ -9,7 +9,7 @@ import { launchBrowser, startSheetServer } from './browser.mjs'
 const [file] = process.argv.slice(2).filter(a => !a.startsWith('--'))
 if (!file) { console.error('Usage: npm run repro -- <debug.json>'); process.exit(2) }
 const info = JSON.parse(readFileSync(file, 'utf8'))
-if (info.kind !== 'siteblocks-debug') { console.error('That file isn’t debug info from the builder.'); process.exit(2) }
+if (info.kind !== 'localblocks-debug') { console.error('That file isn’t debug info from the builder.'); process.exit(2) }
 
 const { url, close } = await startSheetServer()
 const browser = await launchBrowser()

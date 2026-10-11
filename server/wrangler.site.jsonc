@@ -7,9 +7,9 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "*.siteblocks.co.uk/*", "zone_name": "siteblocks.co.uk" }],
+  "routes": [{ "pattern": "*.localblocks.co.uk/*", "zone_name": "localblocks.co.uk" }],
   "vars": {
-    "BASE_DOMAIN": "siteblocks.co.uk",
+    "BASE_DOMAIN": "localblocks.co.uk",
     "NOINDEX": "true"
   },
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],

@@ -29,7 +29,7 @@ describe('which screen an address asks for', () => {
 
 describe('payment received', () => {
   it('says it’s publishing, checks until the site is live, then links to it', async () => {
-    const states = [{ state: 'waiting' as const }, { state: 'live' as const, url: 'https://joes.siteblocks.co.uk/' }]
+    const states = [{ state: 'waiting' as const }, { state: 'live' as const, url: 'https://joes.localblocks.co.uk/' }]
     const checkoutStatus = vi.fn(async () => states.shift() ?? states[0])
     const { container } = render(<PaidScreen api={fakeApi({ checkoutStatus })} sessionId="cs_test_1234567890" every={10} />)
     expect(screen.getByRole('heading', { name: 'Payment received' })).toBeTruthy()
@@ -37,7 +37,7 @@ describe('payment received', () => {
     await noViolations(container)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Your site is live' })).toBeTruthy())
     expect(checkoutStatus).toHaveBeenCalledWith('cs_test_1234567890')
-    expect(screen.getByRole('link', { name: 'Visit your site' }).getAttribute('href')).toBe('https://joes.siteblocks.co.uk/')
+    expect(screen.getByRole('link', { name: 'Visit your site' }).getAttribute('href')).toBe('https://joes.localblocks.co.uk/')
     expect(screen.getByText(/emailed your receipt and your edit link/)).toBeTruthy()
     await noViolations(container)
   })
@@ -46,10 +46,10 @@ describe('payment received', () => {
 describe('the refund link', () => {
   it('asks once, with one button, and confirms', async () => {
     const refund = vi.fn(async () => ({ state: 'refunded' as const, amount: 9900 }))
-    const api = fakeApi({ refundStatus: vi.fn(async () => ({ state: 'ok' as const, amount: 9900, siteUrl: 'https://joes.siteblocks.co.uk/', until: '2026-10-20T00:00:00Z' })), refund })
+    const api = fakeApi({ refundStatus: vi.fn(async () => ({ state: 'ok' as const, amount: 9900, siteUrl: 'https://joes.localblocks.co.uk/', until: '2026-10-20T00:00:00Z' })), refund })
     const { container } = render(<RefundScreen api={api} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Refund £99 and take your site down?' })).toBeTruthy())
-    expect(screen.getByText(/joes\.siteblocks\.co\.uk comes down straight away/)).toBeTruthy()
+    expect(screen.getByText(/joes\.localblocks\.co\.uk comes down straight away/)).toBeTruthy()
     expect(screen.getAllByRole('button')).toHaveLength(1)
     await noViolations(container)
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Refund £99 and take my site down' })) })
@@ -58,15 +58,15 @@ describe('the refund link', () => {
   })
 
   it('says when the guarantee has ended, or the link was used', async () => {
-    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'expired' as const, support: 'help@siteblocks.co.uk' })) })} token={TOKEN} />)
+    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'expired' as const, support: 'help@localblocks.co.uk' })) })} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'The 14-day guarantee has ended' })).toBeTruthy())
-    expect(screen.getByRole('link', { name: 'help@siteblocks.co.uk' }).getAttribute('href')).toBe('mailto:help@siteblocks.co.uk')
+    expect(screen.getByRole('link', { name: 'help@localblocks.co.uk' }).getAttribute('href')).toBe('mailto:help@localblocks.co.uk')
     expect(screen.queryByRole('button')).toBeNull()
     cleanup()
     render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'used' as const })) })} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Already refunded' })).toBeTruthy())
     cleanup()
-    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'disputed' as const, support: 'help@siteblocks.co.uk' })) })} token={TOKEN} />)
+    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'disputed' as const, support: 'help@localblocks.co.uk' })) })} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Your payment is being disputed' })).toBeTruthy())
     expect(screen.queryByRole('button')).toBeNull()
   })
