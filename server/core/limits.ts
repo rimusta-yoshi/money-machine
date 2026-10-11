@@ -30,6 +30,8 @@ export const RATE = {
   editLink: { limit: 5, windowSec: 3600 },
   /** Preview pages render on every view. */
   previewView: { limit: 600, windowSec: 3600 },
+  /** The admin dashboard (also slows down guessing the admin key). */
+  admin: { limit: 120, windowSec: 3600 },
 } as const
 
 export type RateKey = keyof typeof RATE

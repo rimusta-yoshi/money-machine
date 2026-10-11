@@ -1,3 +1,4 @@
+import type { Source } from '../analytics/source'
 import type { Site } from '../site/schema'
 
 /**
@@ -75,7 +76,9 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
   const json = (method: string, body: unknown) => ({ method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 
   return {
-    createDraft: () => call<{ key: string }>('/v1/drafts', { method: 'POST' }).then(r => r.key),
+    /** A new draft, with the ad it came from (if any) so a later payment is credited to it. */
+    createDraft: (source?: Source) =>
+      call<{ key: string }>('/v1/drafts', source?.src || source?.campaign ? json('POST', source) : { method: 'POST' }).then(r => r.key),
     loadDraft: (key: string) => call<DraftState>('/v1/draft', { key }),
     saveDraft: (key: string, site: Site) => call<{ updatedAt: number }>('/v1/draft', { ...json('PUT', site), key }),
     uploadPhoto: (key: string, photo: Blob) =>

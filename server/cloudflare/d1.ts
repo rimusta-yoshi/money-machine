@@ -5,6 +5,7 @@ interface DraftDbRow {
   email: string | null; paid_at: number | null; stripe_session_id: string | null; stripe_payment_intent: string | null
   amount: number | null; currency: string | null; welcome_sent_at: number | null; refunded_at: number | null; link_version: number
   link_floor: number; disputed_at: number | null; dispute_lost_at: number | null; refunded_amount: number | null
+  src: string | null; campaign: string | null
 }
 
 interface CheckoutDbRow { session_id: string; ref: string; slug: string; email: string; record: string; created_at: number; expires_at: number }
@@ -18,13 +19,14 @@ const toDraft = (r: DraftDbRow | null): DraftRow | null =>
     },
     welcomeSentAt: r.welcome_sent_at, refundedAt: r.refunded_at, linksIssued: r.link_version ?? 0, linkFloor: r.link_floor ?? 0,
     disputedAt: r.disputed_at, disputeLostAt: r.dispute_lost_at, refundedAmount: r.refunded_amount,
+    source: { src: r.src ?? null, campaign: r.campaign ?? null },
   }
 
 const toCheckout = (r: CheckoutDbRow | null): CheckoutRow | null =>
   r && { sessionId: r.session_id, ref: r.ref, slug: r.slug, email: r.email, record: r.record, createdAt: r.created_at, expiresAt: r.expires_at }
 
 const DRAFT_COLUMNS = `ref, record, slug, updated_at, published_at, email, paid_at, stripe_session_id, stripe_payment_intent,
-  amount, currency, welcome_sent_at, refunded_at, link_version, link_floor, disputed_at, dispute_lost_at, refunded_amount`
+  amount, currency, welcome_sent_at, refunded_at, link_version, link_floor, disputed_at, dispute_lost_at, refunded_amount, src, campaign`
 const DAY_SEC = 24 * 60 * 60
 const DAY_MS = DAY_SEC * 1000
 /** Stripe retries an event for up to 3 days; ids (and old checkouts) are kept well past that. */
@@ -40,8 +42,9 @@ export function d1Database(db: D1Database): Database {
   const changed = (r: D1Result): boolean => (r.meta.changes ?? 0) > 0
 
   return {
-    async createDraft({ ref, keyHash, now }) {
-      await db.prepare('INSERT INTO drafts (ref, key_hash, created_at, updated_at, seen_at) VALUES (?1, ?2, ?3, ?3, ?3)').bind(ref, keyHash, now).run()
+    async createDraft({ ref, keyHash, now, source }) {
+      await db.prepare('INSERT INTO drafts (ref, key_hash, created_at, updated_at, seen_at, src, campaign) VALUES (?1, ?2, ?3, ?3, ?3, ?4, ?5)')
+        .bind(ref, keyHash, now, source.src, source.campaign).run()
     },
     draftByKey: keyHash => draftWhere('key_hash = ?1', keyHash),
     draftByRef: ref => draftWhere('ref = ?1', ref),

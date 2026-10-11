@@ -1,11 +1,15 @@
+import { NO_SOURCE, sourceFromSearch, withSource } from '../analytics/source'
 import { BRAND } from '../brand/config'
 import { PRICE } from '../brand/price'
 import type { TradeId } from '../types'
 import type { GetIconName } from './GetIcon'
 
+/** The ad this visit came from (?src=, utm_source, utm_campaign), carried on to the builder. */
+export const VISIT_SOURCE = typeof window === 'undefined' ? NO_SOURCE : sourceFromSearch(window.location.search)
+
 /** The builder, and the builder with a trade already picked. */
-export const BUILDER_URL = '/build/'
-export const builderFor = (trade: TradeId) => `${BUILDER_URL}?trade=${trade}`
+export const BUILDER_URL = withSource('/build/', VISIT_SOURCE)
+export const builderFor = (trade: TradeId) => withSource(`/build/?trade=${trade}`, VISIT_SOURCE)
 
 export const TRADE_LINKS: { id: TradeId; label: string }[] = [
   { id: 'plumber', label: 'Plumber' },

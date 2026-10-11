@@ -7,6 +7,7 @@ import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, DraftRow } from './ports'
 import { paymentsOn } from './checkout'
+import { trackSite } from './events'
 import { takeDownOwn } from './publish'
 import { signLink, verifyLink } from './tokens'
 
@@ -51,6 +52,7 @@ export async function sendWelcome(deps: Deps, draft: DraftRow): Promise<void> {
  */
 export async function refundedAndDown(deps: Deps, draft: DraftRow, refundId: string | null): Promise<void> {
   const first = await deps.db.markRefunded(draft.ref, deps.now(), refundId)
+  if (first) trackSite(deps, 'refunded', draft)
   await takeDownOwn(deps, draft)
   if (first && draft.payment) {
     await sendQuietly(deps.mailer, refundEmail(deps.config, draft.payment.email, `${siteOrigin(deps.config, draft.slug ?? '')}/`, draft.payment.amount))

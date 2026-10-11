@@ -9,6 +9,30 @@ A pay-once website builder for tradespeople. Vite + React + TypeScript.
 - `src/home/`: the homepage (`/`). `src/builder/`: the builder (`/build/`): Basics → Your look → Build → Go live.
 - `src/brand/`: siteblocks' own name (`config.ts`), tokens and logo, from [reference/design-handoff](reference/design-handoff/BRAND.md). Never used by customer sites.
 
+- `src/admin/`: the private admin dashboard (`/admin/`, behind Cloudflare Access): the funnel, ad sources, money, recent sites, layout picks. `src/analytics/`: the funnel steps, ad-source tags and the fire-and-forget tracker. See [server/README.md](server/README.md#admin-dashboard).
+
+## Privacy (for the privacy policy)
+
+What the policy can say, and exactly why it's true:
+
+- **No tracking cookies.** Site Blocks sets no cookies at all: not on the homepage, not in the builder, not on customers' sites. No third-party analytics, ad pixels or fonts from other servers.
+- **Anonymous counts only.** To see how many people get from the homepage to paying, we count steps: landed on the homepage, started the builder, finished the basics, picked a look, reached Go live, shared a preview, started a checkout, paid, refunded, disputed. And which layout was kept in each section.
+- **No data sold or shared.** The counts stay in our own database (Cloudflare D1) and are only seen by us.
+
+Exactly what each count stores (table `events`; layout picks in `layout_picks`):
+
+| Stored | Example |
+|---|---|
+| The step | `basics_done` |
+| The time | 2026-10-11 14:02 |
+| The trade and theme chosen, if chosen yet | `plumber`, `workwear` |
+| The ad or link that sent the visitor, if any | `fb`, campaign `oct-test` (from `?src=` / `utm_source` / `utm_campaign`) |
+| The site's random id, once there is one | `3f9c…` (32 random characters, not linked to a person until they pay) |
+
+Never stored with a count: names, email addresses, phone numbers, IP addresses, browser or device details, or anything typed into the builder. A homepage visit is counted with no id at all. Counts are deleted after 13 months.
+
+What the browser keeps (strictly necessary, not tracking): the builder saves the site you're building, and its draft key, in your browser's local storage so you don't lose your work; a tester code (before launch) lasts only for the tab. Nothing new is stored for counting. Rate limits briefly count requests per IP address in memory or for at most a day, to stop abuse; they're not linked to the counts. Paying customers' email addresses are kept with their payment (for receipts, edit links and refunds), as before.
+
 ```bash
 npm run dev
 ```

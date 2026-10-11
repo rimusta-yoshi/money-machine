@@ -1,0 +1,114 @@
+/* ============================================================
+   The admin dashboard: the builder's Block Party look, calm.
+   Mist ground, white tiles, night text, pipe blue for data marks.
+   ============================================================ */
+.ad-root { min-height: 100vh; background: var(--sb-mist); }
+
+.ad-bar {
+  display: flex; align-items: center; gap: 14px; padding: 14px 24px;
+  background: var(--sb-white); border-bottom: 1px solid var(--sb-rule);
+}
+.ad-bar-title { font-family: var(--sb-font-display); font-weight: 800; font-size: 15px; color: var(--sb-muted); }
+.ad-signout { margin-left: auto; }
+
+.ad-main { max-width: 1240px; margin: 0 auto; padding: 28px 24px 64px; }
+.ad-h1 { font-family: var(--sb-font-display); font-weight: 900; font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 18px; }
+.ad-h2 { font-family: var(--sb-font-display); font-weight: 800; font-size: 18px; line-height: 1.2; }
+.ad-h3 { font-weight: 700; font-size: 16px; display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.ad-note { margin: 0; font-size: 15px; color: var(--sb-muted); }
+.ad-detail { font-size: 14px; font-weight: 500; color: var(--sb-muted); }
+.ad-empty { color: var(--sb-muted); font-size: 15px; }
+
+/* ---- Key form ---- */
+.ad-key { max-width: 480px; }
+.ad-key-form { display: flex; flex-direction: column; gap: 20px; padding: 28px; border-radius: var(--sb-r-tile); background: var(--sb-white); }
+
+/* ---- Filters: one row above everything ---- */
+.ad-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 20px; }
+.ad-seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: var(--sb-white); border: 1px solid var(--sb-line-soft); }
+.ad-seg button {
+  min-height: 44px; padding: 8px 14px; border: 0; border-radius: 9px; background: transparent;
+  font-weight: 700; font-size: 15px; color: var(--sb-muted);
+}
+.ad-seg button:hover { color: var(--sb-night); background: var(--sb-mist); }
+.ad-seg button[aria-pressed="true"] { background: var(--sb-night); color: var(--sb-white); }
+.ad-seg--small { align-self: flex-start; background: var(--sb-mist); border: 0; }
+.ad-custom { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.ad-inline { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.ad-date, .ad-select { width: auto; min-height: 44px; font-size: 15px; padding: 0 12px; }
+.ad-refresh { margin-left: auto; }
+
+/* ---- Tiles ---- */
+.ad-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.ad-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 22px 24px; border-radius: 22px; background: var(--sb-white); }
+.ad-grid > .ad-panel--wide:not(:first-child) { grid-column: 1 / -1; }
+
+/* ---- Tables ---- */
+.ad-scroll { overflow-x: auto; }
+.ad-scroll--tall { max-height: 360px; overflow-y: auto; }
+.ad-table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+.ad-table th, .ad-table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--sb-rule); white-space: nowrap; }
+.ad-table thead th { font-size: 13px; font-weight: 700; color: var(--sb-muted); text-transform: uppercase; letter-spacing: 0.04em; border-bottom-color: var(--sb-line-soft); }
+.ad-table tbody th { font-weight: 700; }
+.ad-table .num { text-align: right; }
+.ad-table tbody tr:hover { background: #F8F8FA; }
+
+/* Funnel: the biggest drop is marked by a tag and a tint, never colour alone. */
+.ad-funnel .is-optional th, .ad-funnel .is-optional td { color: var(--sb-muted); }
+.ad-funnel .is-drop { background: #FFF1EC; }
+.ad-funnel .is-drop:hover { background: #FFE8E0; }
+.ad-tag {
+  display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; vertical-align: 1px;
+  font-size: 12px; font-weight: 700; background: var(--sb-mist); color: var(--sb-muted-mist);
+}
+.ad-tag--drop { background: var(--sb-brick); color: var(--sb-night); }
+.ad-bar-col { width: 28%; min-width: 120px; }
+.ad-meter { display: block; height: 10px; border-radius: 5px; background: var(--sb-rule); overflow: hidden; }
+.ad-meter > span { display: block; height: 100%; border-radius: 5px; background: var(--sb-pipe); }
+
+/* ---- Money ---- */
+.ad-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ad-tile { padding: 14px 16px; border-radius: 14px; background: var(--sb-mist); }
+.ad-tile dt { font-size: 14px; font-weight: 700; color: var(--sb-muted-mist); }
+.ad-tile dd { display: flex; flex-direction: column; }
+.ad-big { font-family: var(--sb-font-display); font-weight: 800; font-size: 24px; line-height: 1.2; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.ad-tile .ad-detail { color: var(--sb-muted-mist); }
+
+/* ---- Daily small multiples ---- */
+.ad-readout { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; min-height: 24px; }
+.ad-minis { display: grid; gap: 14px; }
+.ad-mini-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.ad-mini-svg { display: block; width: 100%; height: 72px; }
+.ad-axis { stroke: var(--sb-line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ad-hit { fill: transparent; }
+.ad-hit.is-on { fill: var(--sb-rule); }
+.ad-mark { fill: var(--sb-pipe); }
+.ad-axis-labels { display: flex; justify-content: space-between; font-size: 13px; color: var(--sb-muted); }
+.ad-details summary { cursor: pointer; font-weight: 700; color: var(--sb-pipe); min-height: 44px; display: flex; align-items: center; }
+
+/* ---- Recent sites ---- */
+.ad-status { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--sb-mist); color: var(--sb-muted-mist); }
+.ad-status--paid { background: var(--sb-lawn-tint); color: #155C43; }
+.ad-status--published { background: #E3EBFC; color: var(--sb-pipe-hover); }
+.ad-status--refunded, .ad-status--disputed { background: #FDE7E4; color: var(--sb-error); }
+
+/* ---- Layout picks ---- */
+.ad-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.ad-pick { padding: 14px 16px; border-radius: 14px; background: var(--sb-mist); display: flex; flex-direction: column; gap: 6px; }
+.ad-pick-head { font-size: 13px; font-weight: 700; color: var(--sb-muted-mist); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.ad-pick-list { list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+.ad-pick-list li { display: flex; justify-content: space-between; gap: 8px; }
+.ad-pick-list .num { font-variant-numeric: tabular-nums; color: var(--sb-muted-mist); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .ad-grid { grid-template-columns: minmax(0, 1fr); }
+  .ad-grid > .ad-panel--wide { grid-column: auto; }
+}
+@media (max-width: 600px) {
+  .ad-bar { padding: 10px 16px; }
+  .ad-main { padding: 20px 16px 48px; }
+  .ad-h1 { font-size: 22px; }
+  .ad-panel { padding: 18px 16px; border-radius: 18px; }
+  .ad-refresh { margin-left: 0; }
+  .ad-bar-col { display: none; }
+}

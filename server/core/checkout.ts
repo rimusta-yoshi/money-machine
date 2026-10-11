@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { builderUrl, siteOrigin } from './config'
 import { authDraft, storedRecord } from './drafts'
+import { trackSite } from './events'
 import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, Payments } from './ports'
@@ -73,6 +74,7 @@ export async function createCheckout(req: Request, deps: Deps): Promise<Response
     expiresAt,
   })
   await deps.db.createCheckout({ sessionId: session.id, ref: draft.ref, slug, email: email.data, record: JSON.stringify(site), createdAt: now, expiresAt })
+  trackSite(deps, 'checkout_started', draft)
   return json({ url: session.url }, 201)
 }
 

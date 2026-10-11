@@ -5,3 +5,7 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000
+
+# The private dashboard (behind Cloudflare Access): never cached anywhere.
+/admin/*
+  Cache-Control: no-store

@@ -8,6 +8,7 @@ import { storedRecord } from './drafts'
 import { sendQuietly } from './email'
 import { disputeOpenedEmail, disputeWonEmail } from './emails'
 import { siteOrigin } from './config'
+import { trackSite } from './events'
 import { putLive, suggestion, takeDownOwn } from './publish'
 import { verifyStripeSignature } from './stripe'
 
@@ -89,10 +90,11 @@ async function paid(deps: Deps, session: Session): Promise<void> {
     return
   }
   const paidAt = deps.now()
-  await deps.db.markPaid(checkout.ref, {
+  const first = await deps.db.markPaid(checkout.ref, {
     sessionId: session.id, paymentIntent: session.payment_intent, amount: session.amount_total ?? 0,
     currency: session.currency ?? deps.config.currency, email: checkout.email, paidAt,
   })
+  if (first) trackSite(deps, 'paid', { ...before, record: checkout.record })
   const draft = (await deps.db.draftByRef(checkout.ref))!
   if (draft.payment!.sessionId !== session.id) {
     // Paid twice for one site (two tabs): the second payment goes straight back.
@@ -136,6 +138,7 @@ async function disputeOpened(deps: Deps, dispute: Dispute): Promise<void> {
   const draft = dispute.payment_intent ? await deps.db.draftByPaymentIntent(dispute.payment_intent) : null
   if (!draft) return
   const first = await deps.db.markDisputed(draft.ref, deps.now())
+  if (first) trackSite(deps, 'disputed', draft)
   await takeDownOwn(deps, draft)
   // Once per dispute, whichever delivery gets here first.
   if (first && draft.payment && draft.slug) {
@@ -149,6 +152,8 @@ async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
   if (!draft) return
   if (dispute.status !== 'won') {
     await deps.db.endDispute(draft.ref, false, deps.now())
+    // Counted once per site: here too, in case the "opened" event never arrived.
+    trackSite(deps, 'disputed', draft)
     await takeDownOwn(deps, draft)
     return
   }
