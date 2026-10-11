@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from 'react'
 import type { BusinessInfo, TradeConfig } from '../../types'
 import type { Site } from '../../site/schema'
 import { LIMITS } from '../../site/limits'
+import { telHref } from '../../site/phone'
 import { Logo } from '../../brand/Logo'
 import { basicsGaps } from '../steps'
 import type { BasicsGap } from '../steps'
@@ -27,6 +28,9 @@ interface Props {
 }
 
 const EMPTY: Basics = { name: '', location: '', phone: '' }
+
+/** A phone with no digits is allowed (some prefer email), but the site then has no call button. */
+const NO_DIGITS = 'Without a number, your site won’t have a call button.'
 
 const NEEDS: Record<BasicsGap, string> = { trade: 'your trade', name: 'your business name', phone: 'a phone number' }
 const needsLine = (gaps: BasicsGap[]) =>
@@ -79,7 +83,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
       <TextField
         label="Phone number" type="tel" inputMode="tel" autoComplete="tel" maxLength={LIMITS.phone} inputRef={phoneRef}
         value={values.phone} onValue={set('phone')} placeholder="The number customers should ring"
-        hint={narrow ? undefined : 'Shown on your site so customers can call you in one tap.'}
+        hint={values.phone.trim() && !telHref(values.phone) ? NO_DIGITS : narrow ? undefined : 'Shown on your site so customers can call you in one tap.'}
       />
     </>
   )

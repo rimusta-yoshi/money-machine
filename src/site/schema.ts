@@ -164,6 +164,11 @@ export const siteSchema = z.object({
   sections: generatedSectionsSchema,
   rhythm: rhythmSchema,
   locks: locksSchema.optional(),
+  /**
+   * Picks the builder's sample photos, fixed when the site is created so they never change
+   * on their own (a new name or style keeps them). Absent in older records: parseSite sets it.
+   */
+  sampleSeed: seed.optional(),
 })
 
 export type Site = z.infer<typeof siteSchema>

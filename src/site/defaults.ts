@@ -1,8 +1,11 @@
-import { randomSeed } from '../gen'
+import { hashString, mixSeeds, randomSeed } from '../gen'
 import type { TradeConfig } from '../types'
 import type { Site } from './schema'
 import { DEFAULT_THEME, styleRecord } from './style'
 import { withRhythm } from './page'
+
+/** The sample-photo seed a new site starts with (stored, so later style changes don't move it). */
+export const firstSampleSeed = (styleSeed: number): number => mixSeeds(styleSeed, hashString('samples'))
 
 /**
  * A blank site for a trade. Content starts unset so nothing invented can be published.
@@ -19,6 +22,7 @@ export function createSite(trade: TradeConfig, styleSeed: number = randomSeed())
     sections: {},
     rhythm: {},
     locks: {},
+    sampleSeed: firstSampleSeed(styleSeed),
     content: {
       badges: null,
       areas: null,

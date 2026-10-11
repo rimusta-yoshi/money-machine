@@ -63,6 +63,7 @@ function switchTrade(site: Site, fresh: Site, trade: TradeConfig): Site {
     style: styleRecord(theme, brandColor, site.style.seed),
     sections,
     locks,
+    sampleSeed: site.sampleSeed ?? fresh.sampleSeed,
   }
 }
 
