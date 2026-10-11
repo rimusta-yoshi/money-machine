@@ -5,7 +5,7 @@ import type { Stack } from './stack'
 
 /** A tiny test client for the API, as the builder would call it. */
 export const ADMIN = 'test-admin-key-0123456789abcdef'
-export const BASE = 'siteblocks.test'
+export const BASE = 'localblocks.test'
 export const API = `https://api.${BASE}`
 export const BUILDER = 'http://localhost:5173'
 /** The tester code in the payment test stacks (server/test/fakeStripe.ts). */

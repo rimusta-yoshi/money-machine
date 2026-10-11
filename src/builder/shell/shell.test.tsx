@@ -38,13 +38,13 @@ describe('Publish changes', () => {
   it('checks every section, publishes the checked record, then links to the live site', async () => {
     const checked = site()
     const verify = vi.fn(async () => checked)
-    const publish = vi.fn(async () => 'https://joe-pipes.siteblocks.co.uk')
+    const publish = vi.fn(async () => 'https://joe-pipes.localblocks.co.uk')
     const { container } = render(<PublishChanges verify={verify} publish={publish} />)
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Publish changes' })) })
     expect(verify).toHaveBeenCalled()
     expect(publish).toHaveBeenCalledWith(checked)
     expect(screen.getByRole('status').textContent).toContain('Your changes are live')
-    expect(screen.getByRole('link', { name: /View your site/ }).getAttribute('href')).toBe('https://joe-pipes.siteblocks.co.uk')
+    expect(screen.getByRole('link', { name: /View your site/ }).getAttribute('href')).toBe('https://joe-pipes.localblocks.co.uk')
     expect((await axe.run(container, AXE)).violations).toEqual([])
   })
 

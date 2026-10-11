@@ -118,6 +118,13 @@ body { background: var(--sb-white); }
   font-family: var(--sb-font-display); font-weight: 900; font-size: 20px;
 }
 
+/* ---- Why £99, once: a lawn title tile, the reasons beside it ---- */
+.hp-once-title { grid-column: span 4; background: var(--sb-lawn); color: var(--sb-night); padding: clamp(26px, 3.4vw, 40px); display: flex; align-items: flex-end; }
+.hp-once-body { grid-column: span 8; background: var(--sb-mist); padding: clamp(26px, 3.4vw, 44px); display: flex; flex-direction: column; gap: 16px; }
+.hp-once-body p { margin: 0; font-size: 18px; line-height: 1.6; color: var(--sb-muted-mist); max-width: 62ch; }
+.hp .hp-once-body .hp-once-promise { font-family: var(--sb-font-display); font-weight: 800; font-size: clamp(19px, 1.9vw, 24px); line-height: 1.3; letter-spacing: -0.02em; color: var(--sb-night); }
+.hp-once-story { padding-left: 16px; border-left: 4px solid var(--sb-brick); }
+
 /* ---- What you get: the title tile runs the full height, six cards in a 3x2 grid beside it ---- */
 .hp-get-title {
   grid-column: span 3; background: var(--sb-pipe); color: var(--sb-white); padding: clamp(26px, 3vw, 36px);

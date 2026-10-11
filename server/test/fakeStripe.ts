@@ -108,11 +108,11 @@ export const PAYMENT_VARS = {
   STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
   LINK_SECRET,
   RESEND_API_KEY: RESEND_KEY,
-  APP_URL: 'https://app.siteblocks.test',
+  APP_URL: 'https://app.localblocks.test',
   // Before launch: checkouts need the tester code (the test client sends it).
   LAUNCHED: 'false',
   TESTER_CODE,
   BRAND_NAME: 'Test Blocks',
-  EMAIL_FROM: 'Test Blocks <hello@siteblocks.test>',
-  SUPPORT_EMAIL: 'help@siteblocks.test',
+  EMAIL_FROM: 'Test Blocks <hello@localblocks.test>',
+  SUPPORT_EMAIL: 'help@localblocks.test',
 }

@@ -18,7 +18,7 @@ import { launchBrowser } from '../scripts/browser.mjs'
  * e2e/screens (ignored by git) for a look by eye.
  */
 const PORT = 8791
-const BASE = `siteblocks.localhost:${PORT}`
+const BASE = `localblocks.localhost:${PORT}`
 const ADMIN = 'e2e-admin-key-0123456789abcdef'
 const BUILDER_PORT = 5198
 const SCREENS = join(process.cwd(), 'e2e', 'screens')
@@ -105,7 +105,7 @@ it('builds, previews, pays for, edits and refunds a site from the builder', asyn
   // Go live: checkout. Stripe's page is stood in for; paying there sends the signed webhook.
   const slug = page.getByLabel('Your web address')
   expect(await slug.inputValue()).toBe('riverside-plumbing')
-  await page.getByText(/riverside-plumbing\.siteblocks\.localhost:8791 is free\./).waitFor({ timeout: 30_000 })
+  await page.getByText(/riverside-plumbing\.localblocks\.localhost:8791 is free\./).waitFor({ timeout: 30_000 })
   // Not launched yet: the tester code from the link is filled in.
   expect(await page.getByLabel('Tester code').inputValue()).toBe(TESTER_CODE)
   await shot(page, '4-go-live-panel')

@@ -2,7 +2,7 @@ import { BRAND } from '../brand/config'
 import { Logo } from '../brand/Logo'
 import { BUILDER_URL } from './content'
 import { HomeHero } from './HomeHero'
-import { Faq, FinalCall, HowItWorks, Pricing, WhatYouGet } from './HomeSections'
+import { Faq, FinalCall, HowItWorks, Pricing, WhatYouGet, WhyOnce } from './HomeSections'
 
 /** The landing page at the site root: loud bento tiles, every button leads to the builder. */
 export function HomePage() {
@@ -23,14 +23,18 @@ export function HomePage() {
           <HomeHero />
           <HowItWorks />
           <Pricing />
+          <WhyOnce />
           <WhatYouGet />
           <Faq />
           <FinalCall />
         </main>
 
         <footer className="hp-foot">
-          <span className="hp-foot-name">{BRAND.name}</span>
-          <nav aria-label="Footer" className="hp-foot-nav"><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Contact</a></nav>
+          <span className="hp-foot-name">{BRAND.wordmark}</span>
+          <nav aria-label="Footer" className="hp-foot-nav">
+            {BRAND.legalPages && <><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></>}
+            <a href={`mailto:${BRAND.email}`}>Contact</a>
+          </nav>
           <span>Made in the UK</span>
         </footer>
       </div>

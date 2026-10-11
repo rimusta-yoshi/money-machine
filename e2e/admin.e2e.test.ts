@@ -17,7 +17,7 @@ import { seedSampleEvents } from '../scripts/sample-events'
  * Screenshots land in e2e/screens.
  */
 const PORT = 8792
-const BASE = `siteblocks.localhost:${PORT}`
+const BASE = `localblocks.localhost:${PORT}`
 const ADMIN = 'e2e-dashboard-key-0123456789abcdef'
 const APP_PORT = 5196
 const APP = `http://localhost:${APP_PORT}`

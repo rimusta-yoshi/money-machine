@@ -17,7 +17,7 @@ import { PRIVACY_CSS, privacySection } from './privacy'
  * differ. Everything the customer typed goes through the generator's escaping.
  */
 export interface DocumentOptions {
-  /** Where the site is served, without a trailing slash, e.g. https://joes-plumbing.siteblocks.co.uk */
+  /** Where the site is served, without a trailing slash, e.g. https://joes-plumbing.localblocks.co.uk */
   origin: string
   /** The site's path on that origin: '' when published, '/<token>' for a preview link. */
   base: string

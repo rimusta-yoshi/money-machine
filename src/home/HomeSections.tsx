@@ -1,6 +1,6 @@
 import { BRAND } from '../brand/config'
 import { PRICE } from '../brand/price'
-import { BUILDER_URL, FAQS, GETS, HOW_STEPS } from './content'
+import { BUILDER_URL, FAQS, GETS, HOW_STEPS, WHY_ONCE } from './content'
 import { GetIcon } from './GetIcon'
 
 const HOW_COLOURS = ['brick', 'yellow', 'lawn'] as const
@@ -43,6 +43,21 @@ export function Pricing() {
           <span className="hp-vs-note">once, for good. Year one, year three, year ten: still {PRICE}. Money back within {BRAND.guarantee.days} days if you change your mind.</span>
         </div>
         <span className="hp-vs-badge" aria-hidden="true">vs</span>
+      </div>
+    </section>
+  )
+}
+
+/** Why one price and no subscription: the title tile, then the reasons and the story. */
+export function WhyOnce() {
+  const [cost, promise, story] = WHY_ONCE
+  return (
+    <section aria-labelledby="once-h" className="hp-bento hp-gap-top">
+      <div className="hp-tile hp-once-title"><h2 id="once-h" className="hp-h2">Why {PRICE}, once?</h2></div>
+      <div className="hp-tile hp-once-body">
+        <p>{cost}</p>
+        <p className="hp-once-promise">{promise}</p>
+        <p className="hp-once-story">{story}</p>
       </div>
     </section>
   )

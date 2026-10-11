@@ -1,9 +1,10 @@
+import { BRAND } from '../../src/brand/config'
 /**
  * Server settings, from plain string variables (wrangler vars and secrets on Cloudflare;
  * any environment elsewhere). The base domain is the one value that decides every address.
  */
 export interface Config {
-  /** e.g. siteblocks.co.uk (a port is allowed for local runs: siteblocks.localhost:8787). */
+  /** e.g. localblocks.co.uk (a port is allowed for local runs: localblocks.localhost:8787). */
   baseDomain: string
   /** The product's name in emails and on the Stripe page. Changes with the rename, nowhere else. */
   brandName: string
@@ -73,7 +74,7 @@ function emailAddress(env: Record<string, unknown>, name: string, fallback: stri
 
 export function parseConfig(env: Record<string, unknown>): Config {
   const baseDomain = setting(env, 'BASE_DOMAIN').toLowerCase()
-  if (!HOST.test(baseDomain)) throw new Error('BASE_DOMAIN must be a domain like siteblocks.co.uk')
+  if (!HOST.test(baseDomain)) throw new Error('BASE_DOMAIN must be a domain like localblocks.co.uk')
   const noindex = setting(env, 'NOINDEX', 'true')
   if (noindex !== 'true' && noindex !== 'false') throw new Error('NOINDEX must be "true" or "false"')
   const origins = setting(env, 'BUILDER_ORIGINS', '').split(',').map(s => s.trim()).filter(Boolean).map(s => {
@@ -82,7 +83,7 @@ export function parseConfig(env: Record<string, unknown>): Config {
     return url.origin
   })
   const appUrl = setting(env, 'APP_URL', `https://${baseDomain}`).replace(/\/+$/, '')
-  if (new URL(appUrl).origin !== appUrl) throw new Error('APP_URL must be a bare origin like https://siteblocks.co.uk')
+  if (new URL(appUrl).origin !== appUrl) throw new Error('APP_URL must be a bare origin like https://localblocks.co.uk')
   const token = setting(env, 'ADMIN_TOKEN', '')
   if (token && token.length < 24) throw new Error('ADMIN_TOKEN must be at least 24 characters')
   const launched = setting(env, 'LAUNCHED', 'false')
@@ -95,7 +96,8 @@ export function parseConfig(env: Record<string, unknown>): Config {
   if (stripe && !linkSecret) throw new Error('LINK_SECRET is needed when payments are on')
   return {
     baseDomain,
-    brandName: setting(env, 'BRAND_NAME', baseDomain),
+    // The one name (src/brand/config.ts); BRAND_NAME only overrides it in tests.
+    brandName: setting(env, 'BRAND_NAME', BRAND.name),
     appUrl,
     builderOrigins: new Set(origins),
     noindex: noindex === 'true',

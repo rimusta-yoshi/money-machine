@@ -10,7 +10,7 @@ import { KeyForm } from './KeyForm'
  */
 
 const API_BASE = apiBase()
-const KEY_STORE = 'siteblocks.admin'
+const KEY_STORE = 'localblocks.admin'
 
 function storedKey(): string {
   try {

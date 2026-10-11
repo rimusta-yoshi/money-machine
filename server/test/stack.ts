@@ -13,7 +13,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const COMPAT = '2026-09-01'
 
 export interface StackOptions {
-  /** e.g. siteblocks.test, or siteblocks.localhost:8790 for a browser. */
+  /** e.g. localblocks.test, or localblocks.localhost:8790 for a browser. */
   baseDomain: string
   /** Listen on a real port (browser runs); otherwise only dispatchFetch works. */
   port?: number

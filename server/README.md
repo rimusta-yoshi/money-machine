@@ -6,17 +6,17 @@ without paying, for testing and support only (the public builder never shows it)
 
 | Host | Worker | What it does |
 |---|---|---|
-| `api.siteblocks.co.uk` | `siteblocks-api` | The builder's API: photo uploads, preview links, address checks, checkout, the Stripe webhook, edit links, refunds, re-publishing. Also serves the builder's sample photos (`/samples/<file>`). |
-| `preview.siteblocks.co.uk` | `siteblocks-api` | Preview links (`/<token>/`), rendered live from the latest save, plus draft photos. Always noindex. |
-| `<slug>.siteblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders, no database. `www.` redirects to the homepage. |
-| `siteblocks.co.uk` | `siteblocks-app` | The homepage and builder (`npm run build` output), static files only. Deploy with `npm run cf:deploy:app`; settings in `.env.production`. |
+| `api.localblocks.co.uk` | `siteblocks-api` | The builder's API: photo uploads, preview links, address checks, checkout, the Stripe webhook, edit links, refunds, re-publishing. Also serves the builder's sample photos (`/samples/<file>`). |
+| `preview.localblocks.co.uk` | `siteblocks-api` | Preview links (`/<token>/`), rendered live from the latest save, plus draft photos. Always noindex. |
+| `<slug>.localblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders, no database. `www.` redirects to the homepage. |
+| `localblocks.co.uk` | `siteblocks-app` | The homepage and builder (`npm run build` output), static files only. Deploy with `npm run cf:deploy:app`; settings in `.env.production`. |
 
 ```
 builder ──POST photos────▶ API worker ──bytes──────▶ R2 drafts/<ref>/photos/<hash>.webp
         ──PUT /v1/draft──▶            ──parseSite──▶ D1 (only before a preview link or a checkout)
         ──checkout───────▶            ──Stripe─────▶ Checkout Session (£99 from config) ──▶ customer pays on Stripe
 Stripe  ──webhook────────▶            ──src/gen────▶ R2 sites/<slug>/… ; D1 payment ; welcome email
-visitor ──<slug>.siteblocks.co.uk──▶ site worker ──▶ R2 sites/<slug>/…   (+ /fonts from the deployed assets)
+visitor ──<slug>.localblocks.co.uk──▶ site worker ──▶ R2 sites/<slug>/…   (+ /fonts from the deployed assets)
 ```
 
 ### How paying works
@@ -103,7 +103,7 @@ npm run e2e
 Real Chrome: builds a site in the actual builder, makes a preview link, goes through checkout
 (Stripe's page stood in for, the webhook signed by the test), sees it live, opens the edit link
 in a second browser and publishes a change, then refunds it with the refund link. It also visits
-`<slug>.siteblocks.localhost` over HTTPS and runs axe (with colour contrast) on the published
+`<slug>.localblocks.localhost` over HTTPS and runs axe (with colour contrast) on the published
 pages and preview links, desktop and phone, every theme. Screenshots go to `e2e/screens/`.
 
 ## Try it locally
@@ -116,8 +116,8 @@ npm run dev:stack
 npm run dev:api
 ```
 
-The first runs both workers on `https://*.siteblocks.localhost:8787` (self-signed: open
-`https://api.siteblocks.localhost:8787/health` once and accept the warning, and the same for
+The first runs both workers on `https://*.localblocks.localhost:8787` (self-signed: open
+`https://api.localblocks.localhost:8787/health` once and accept the warning, and the same for
 `preview.` and each site address). The second runs the builder against it. The local admin key
 is printed by `dev:stack`.
 
@@ -156,7 +156,7 @@ is printed by `dev:stack`.
 
    If the builder says it can't reach the local server, Chrome has forgotten that you accepted the
    local certificate (it does after a while, or after a restart): open
-   https://api.siteblocks.localhost:8787/health, choose **Advanced** → **Proceed**, and retry.
+   https://api.localblocks.localhost:8787/health, choose **Advanced** → **Proceed**, and retry.
 
 4. Open http://localhost:5173/build/, build a site, and press **Go live for £99** (leave the
    admin key empty). On Stripe's page pay with a test card:
@@ -184,7 +184,7 @@ Everything below happens once. Steps 1 to 4 are clicks in the dashboard; 5 to 7 
 3. Under **Permissions**, click **+ Add more** and add **Account · D1 · Edit**. (The template
    already has Workers Scripts, Workers R2 Storage and Workers Routes.)
 4. **Account Resources**: Include → your account. **Zone Resources**: Include → Specific zone →
-   `siteblocks.co.uk`.
+   `localblocks.co.uk`.
 5. **Continue to summary** → **Create Token**. Copy it now (it's shown once) into your password manager.
 6. In the PowerShell window you'll deploy from:
 
@@ -213,15 +213,15 @@ Everything below happens once. Steps 1 to 4 are clicks in the dashboard; 5 to 7 
 
 ### 4. Wildcard DNS record
 
-1. Dashboard → **siteblocks.co.uk** → **DNS** → **Records** → **Add record**.
+1. Dashboard → **localblocks.co.uk** → **DNS** → **Records** → **Add record**.
 2. Type **AAAA**, Name `*`, IPv6 address `100::`, Proxy status **Proxied** (orange cloud), TTL Auto → **Save**.
 
    `100::` is a "nowhere" address: every subdomain goes to Cloudflare, and the workers answer.
 3. **SSL/TLS** → **Edge Certificates**: the Universal certificate should list
-   `*.siteblocks.co.uk, siteblocks.co.uk` (can take 15 minutes after the first wildcard record).
+   `*.localblocks.co.uk, localblocks.co.uk` (can take 15 minutes after the first wildcard record).
 
 Worker routes need no clicks: `wrangler deploy` creates them from the configs
-(`api.` and `preview.` → `siteblocks-api`, `*.siteblocks.co.uk/*` → `siteblocks-sites`; the
+(`api.` and `preview.` → `siteblocks-api`, `*.localblocks.co.uk/*` → `siteblocks-sites`; the
 more specific routes win). After deploying you can see them under **Workers & Pages** →
 each worker → **Settings** → **Domains & Routes**.
 
@@ -257,26 +257,26 @@ npx wrangler secret put ADMIN_TOKEN -c server/wrangler.api.jsonc
 Create `.env.local` in the repo root (git ignores it):
 
 ```
-VITE_API_URL=https://api.siteblocks.co.uk
-VITE_SAMPLE_PHOTOS_URL=https://api.siteblocks.co.uk/samples
+VITE_API_URL=https://api.localblocks.co.uk
+VITE_SAMPLE_PHOTOS_URL=https://api.localblocks.co.uk/samples
 ```
 
 Then `npm run dev`, build a site, and on the go-live step use **Get a preview link** (open it on
 your phone), then **Go live for £99** (a test card, once the payment secrets below are set) or,
 on a dev build, fill in the admin key to publish without paying. It goes live at
-`https://<address>.siteblocks.co.uk`.
+`https://<address>.localblocks.co.uk`.
 
-Check: https://api.siteblocks.co.uk/health answers `{"ok":true}`.
+Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 
 ## Settings
 
 | Variable | Where | Meaning |
 |---|---|---|
-| `BASE_DOMAIN` | both configs | `siteblocks.co.uk`. Change here and in the route patterns to move domain. |
+| `BASE_DOMAIN` | both configs | `localblocks.co.uk`. Change here and in the route patterns to move domain. |
 | `BUILDER_ORIGINS` | API config | Comma-separated origins allowed to call the API (default `http://localhost:5173`). Add the builder's address when it's hosted. |
 | `NOINDEX` | both configs | `true` until launch: noindex headers and meta tags, robots.txt disallows everything. |
 | `PREVIEW_DAYS` | API config | How long preview links work (30). |
-| `BRAND_NAME` | API config | The product's name in emails and on Stripe's page (changes with the rename). |
+| `BRAND_NAME` | tests only | Overrides the product's name. Not set in production: the name comes from `src/brand/config.ts`, like the domain and email. |
 | `APP_URL` | API config | Where the homepage and builder live: Stripe's return pages and the links in emails. |
 | `PRICE_PENCE` | API config | The one price, in pence (`9900`). The only place it's set: the builder asks the server (`GET /v1/config`), and the homepage and builder are built with it. |
 | `LAUNCHED` | API config | `false` until launch: checkouts need the tester code. `true` takes orders from everyone. |
@@ -292,9 +292,103 @@ Check: https://api.siteblocks.co.uk/health answers `{"ok":true}`.
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
 deletes dashboard events older than 13 months, then runs the cleanup above.
 
+## Moving to localblocks.co.uk (October 2026)
+
+The product is now **Local Blocks** at **localblocks.co.uk**. The name, domain and email live in
+`src/brand/config.ts`; the wrangler configs name the same domain (`src/brand/brand.test.ts`
+checks they agree). `siteblocks.co.uk` stays registered and redirects everything for at least a
+year (until October 2027): `old-domain-redirect` (`server/wrangler.redirect.jsonc`) sends every
+address to the same path and query on the new domain, `<slug>.`, `api.` and `preview.` included
+(`www.` goes to the homepage). Pages get a 301; posts get a 308, which keeps their method.
+
+The database, storage bucket and worker names stay `siteblocks…`: nobody sees them, and keeping
+them keeps all the (test) data as it is. Test sites now answer at `<slug>.localblocks.co.uk`; their
+pages still link the old domain until they're republished, and the redirect covers that. Sites
+kept in a browser by the builder on the old address don't carry over (browser storage belongs to
+an address); none are real.
+
+### Your checklist, in order
+
+**1. DNS for the new domain** (Cloudflare → **localblocks.co.uk** → **DNS** → **Records**)
+
+- Leave the Email Routing records alone: the `MX` records and the `TXT` `v=spf1 …` on
+  `localblocks.co.uk`.
+- **Add record**: type **AAAA**, name `*`, IPv6 address `100::`, **Proxied** (orange cloud),
+  TTL Auto. This sends every subdomain (`api.`, `preview.`, customers' sites) to the workers.
+- **SSL/TLS → Edge Certificates**: wait until the Universal certificate lists
+  `*.localblocks.co.uk, localblocks.co.uk` (up to 15 minutes).
+
+**2. Deploy** (from the project folder, `main` up to date)
+
+```bash
+npm run cf:migrate
+```
+
+```bash
+npm run cf:deploy
+```
+
+```bash
+npm run cf:deploy:app
+```
+
+Then **Workers & Pages** → each of `siteblocks-app`, `siteblocks-api` and `siteblocks-sites` →
+**Settings → Domains & Routes**: delete anything still naming `siteblocks.co.uk` (wrangler adds
+the new ones; it may leave the old ones). Then:
+
+```bash
+npm run cf:deploy:redirect
+```
+
+Check: `https://localblocks.co.uk/` and `https://api.localblocks.co.uk/health` work, and
+`https://siteblocks.co.uk/build/?src=fb` lands on `https://localblocks.co.uk/build/?src=fb`.
+
+**3. Email: verify the domain in Resend** (before any test payment: until it's verified, emails
+from `hello@localblocks.co.uk` are refused)
+
+- Resend → **Domains** → **Add domain** → `localblocks.co.uk` (same region as before).
+- Resend lists three records. Add each in Cloudflare DNS exactly as shown, **DNS only** (grey
+  cloud): a `TXT` on `resend._domainkey` (DKIM), an `MX` on `send` (priority 10, a
+  `feedback-smtp.<region>.amazonses.com` address) and a `TXT` on `send`
+  (`v=spf1 include:amazonses.com ~all`). They sit on `send.` and `resend._domainkey.`, so the
+  Email Routing `MX` and SPF on the bare domain stay exactly as they are: don't edit or merge
+  those.
+- **Verify** in Resend. If your API key is limited to siteblocks.co.uk, make a new one
+  (Sending access, domain `localblocks.co.uk`) and store it:
+  `npx wrangler secret put RESEND_API_KEY -c server/wrangler.api.jsonc`.
+
+Emails now come from `Local Blocks <hello@localblocks.co.uk>` and replies land in your support
+inbox through Email Routing.
+
+**4. Stripe** (test mode now; check the same settings again when you activate live mode)
+
+- **Developers → Webhooks** → the existing endpoint → **Update details**: endpoint URL
+  `https://api.localblocks.co.uk/v1/stripe/webhook`. Same events; the signing secret doesn't
+  change, so `STRIPE_WEBHOOK_SECRET` stays.
+- **Settings → Business → Public details**: business name `Local Blocks`, website
+  `https://localblocks.co.uk`, support email `hello@localblocks.co.uk`.
+- **Settings → Business → Public details** (or **Payments → Statement descriptor**): statement
+  descriptor `LOCALBLOCKS`.
+
+**5. Cloudflare Access for the dashboard**: as in "Putting /admin behind Cloudflare Access"
+below, on domain `localblocks.co.uk`, path `admin`. If you made one for siteblocks.co.uk, change
+its hostname instead.
+
+**6. Cloudflare Web Analytics (homepage only)**
+
+- Cloudflare → **Analytics & Logs → Web Analytics → Add a site** → `localblocks.co.uk`. Choose
+  the **manual JavaScript snippet**, not automatic setup (automatic would put it on customers'
+  sites too). If it shows as automatic, switch it off under **Manage site**.
+- Copy the token (32 letters and digits from the snippet's `"token"`) into `.env.production`
+  as `VITE_CF_BEACON_TOKEN=…` (it's public, not a secret), then `npm run cf:deploy:app`. The build
+  adds the beacon to the homepage only.
+
+**7. Keep `siteblocks.co.uk` renewing** until October 2027, with its wildcard DNS record, so the
+redirects keep working.
+
 ## Admin dashboard
 
-`https://siteblocks.co.uk/admin/` shows the funnel from landing on the homepage to paying, where
+`https://localblocks.co.uk/admin/` shows the funnel from landing on the homepage to paying, where
 people drop off, which ad sent them, money in and out, recent sites and which layouts win. It's
 for the owner only: the page sits behind **Cloudflare Access** (a one-time code to your email),
 and the numbers come from `GET /v1/admin/stats`, which needs the admin key (`X-Admin-Key`,
@@ -361,16 +455,16 @@ Then open `http://localhost:5173/admin/` and enter the local admin key the first
 2. **Settings → Authentication → Login methods**: check **One-time PIN** is listed (it is by
    default). Nothing else is needed.
 3. **Access → Applications → Add an application → Self-hosted**.
-   - Name: `Site Blocks dashboard`. Session duration: `24 hours`.
-   - **Add public hostname**: domain `siteblocks.co.uk`, path `admin`. This covers `/admin`
+   - Name: `Local Blocks dashboard`. Session duration: `24 hours`.
+   - **Add public hostname**: domain `localblocks.co.uk`, path `admin`. This covers `/admin`
      and everything under it.
    - Identity providers: leave **One-time PIN** on; turn on **Instant Auth** if offered (skips the
      provider picker).
 4. **Policies → Add a policy**: name `Owner`, action **Allow**, include rule **Emails** with your
    own email address. Save the policy, then save the application.
-5. Check it in a private window: `https://siteblocks.co.uk/admin/` should show Cloudflare's
+5. Check it in a private window: `https://localblocks.co.uk/admin/` should show Cloudflare's
    sign-in page; enter your email, type the code it sends, and the dashboard asks for the admin key.
-   `https://siteblocks.co.uk/` and `/build/` must still open without signing in.
+   `https://localblocks.co.uk/` and `/build/` must still open without signing in.
 
 No secret goes in the repo: Access lives in the Cloudflare dashboard, and `ADMIN_TOKEN` is a
 wrangler secret (step 6 above).
@@ -399,7 +493,7 @@ Everything here is **test mode**. Live keys come with launch, not before.
 
 1. Stripe dashboard, **Test mode** on (top right). **Developers** → **API keys**: copy the
    **Secret key** (`sk_test_…`).
-2. **Developers** → **Webhooks** → **Add endpoint**. URL `https://api.siteblocks.co.uk/v1/stripe/webhook`.
+2. **Developers** → **Webhooks** → **Add endpoint**. URL `https://api.localblocks.co.uk/v1/stripe/webhook`.
    Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
    `charge.refunded`, `charge.dispute.created`, `charge.dispute.closed`. **Add endpoint**, then reveal and copy its **Signing secret** (`whsec_…`).
 3. **Settings** → **Business** → **Public details**: the business name and support email people
@@ -407,7 +501,7 @@ Everything here is **test mode**. Live keys come with launch, not before.
 
 ### 2. Resend (email)
 
-1. Sign up at https://resend.com, **Domains** → **Add domain** → `siteblocks.co.uk`, and add the DNS
+1. Sign up at https://resend.com, **Domains** → **Add domain** → `localblocks.co.uk`, and add the DNS
    records it lists in Cloudflare (**DNS** → **Records**). Wait for **Verified**.
 2. **API Keys** → **Create API key** (Sending access, that domain). Copy it (`re_…`).
 

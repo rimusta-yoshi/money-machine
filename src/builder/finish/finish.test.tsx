@@ -30,7 +30,7 @@ const renderStep = (s: Site, handlers: Handlers = {}) =>
       onEditStep={vi.fn()}
       draft={null}
       adminPublish={false}
-      domain="siteblocks.co.uk"
+      domain="localblocks.co.uk"
       verify={vi.fn(async () => s)}
       onReset={vi.fn()}
       {...handlers}
@@ -98,8 +98,8 @@ describe('FinishStep (go live)', () => {
 
   const fakeDraft = (o: Partial<Draft> = {}) => ({
     enabled: true, key: 'k', published: null, account: { paid: false, refunded: false },
-    slugStatus: vi.fn(async () => ({ available: true, url: 'https://joe-pipes.siteblocks.co.uk/' })),
-    publish: vi.fn(async (slug?: string) => ({ slug: slug ?? 'joe-pipes', url: `https://${slug ?? 'joe-pipes'}.siteblocks.co.uk/` })),
+    slugStatus: vi.fn(async () => ({ available: true, url: 'https://joe-pipes.localblocks.co.uk/' })),
+    publish: vi.fn(async (slug?: string) => ({ slug: slug ?? 'joe-pipes', url: `https://${slug ?? 'joe-pipes'}.localblocks.co.uk/` })),
     checkout: vi.fn(async () => 'https://checkout.stripe.com/c/pay/cs_test_1'),
     ...o,
   }) as unknown as Draft & { publish: ReturnType<typeof vi.fn>; checkout: ReturnType<typeof vi.fn> }
@@ -110,7 +110,7 @@ describe('FinishStep (go live)', () => {
     const draft = fakeDraft()
     const verify = vi.fn(async () => checked)
     const redirect = vi.fn()
-    render(<GoLivePanel site={withEmail()} trade={plumber} draft={draft} adminPublish={false} domain="siteblocks.co.uk" onBusinessChange={vi.fn()} verify={verify} redirect={redirect} />)
+    render(<GoLivePanel site={withEmail()} trade={plumber} draft={draft} adminPublish={false} domain="localblocks.co.uk" onBusinessChange={vi.fn()} verify={verify} redirect={redirect} />)
     expect((screen.getByLabelText('Your web address') as HTMLInputElement).value).toBe('joe-pipes')
     await act(async () => { fireEvent.click(goLive()) })
     expect(verify).toHaveBeenCalled()
@@ -124,14 +124,14 @@ describe('FinishStep (go live)', () => {
     const draft = fakeDraft()
     const redirect = vi.fn()
     const shop = { pricePence: 9900, currency: 'gbp', launched: false, refundDays: 14 }
-    render(<GoLivePanel site={withEmail()} trade={plumber} draft={draft} adminPublish={false} domain="siteblocks.co.uk" onBusinessChange={vi.fn()} verify={vi.fn(async () => checked)} shop={shop} redirect={redirect} />)
+    render(<GoLivePanel site={withEmail()} trade={plumber} draft={draft} adminPublish={false} domain="localblocks.co.uk" onBusinessChange={vi.fn()} verify={vi.fn(async () => checked)} shop={shop} redirect={redirect} />)
     await act(async () => { fireEvent.click(goLive()) })
     expect(screen.getByText(/not taking orders yet\. Your site is kept/)).toBeTruthy()
     expect(draft.checkout).not.toHaveBeenCalled()
     fireEvent.change(screen.getByLabelText('Tester code'), { target: { value: ' tester-1234 ' } })
     await act(async () => { fireEvent.click(goLive()) })
     expect(draft.checkout).toHaveBeenCalledWith('joe-pipes', checked, 'tester-1234')
-    expect(sessionStorage.getItem('siteblocks.tester')).toBe('tester-1234')
+    expect(sessionStorage.getItem('localblocks.tester')).toBe('tester-1234')
   })
 
   it('shows the price the server asks, and no tester field once launched', () => {
@@ -156,11 +156,11 @@ describe('FinishStep (go live)', () => {
     await act(async () => { fireEvent.click(goLive()) })
     expect(draft.publish).toHaveBeenCalledWith('joe-pipes', 'secret', checked)
     expect(draft.checkout).not.toHaveBeenCalled()
-    expect(screen.getByRole('link', { name: 'joe-pipes.siteblocks.co.uk' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'joe-pipes.localblocks.co.uk' })).toBeTruthy()
   })
 
   it('re-publishes a paid site for free, at the address it paid for', async () => {
-    const draft = fakeDraft({ account: { paid: true, refunded: false }, published: { slug: 'joes-old', url: 'https://joes-old.siteblocks.co.uk/' } })
+    const draft = fakeDraft({ account: { paid: true, refunded: false }, published: { slug: 'joes-old', url: 'https://joes-old.localblocks.co.uk/' } })
     renderStep(withEmail(), { draft, adminPublish: true, verify: vi.fn(async () => checked) })
     const address = screen.getByLabelText('Your web address') as HTMLInputElement
     expect(address.value).toBe('joes-old')

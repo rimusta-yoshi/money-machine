@@ -35,6 +35,13 @@ export const GETS: { title: string; text: string; icon: GetIconName; colour: 'br
   { title: 'No ads, no catches', text: 'No monthly fees, no upsell emails, no small print.', icon: 'shield', colour: 'brick' },
 ]
 
+/** "Why £99, once?": why there's no subscription. */
+export const WHY_ONCE = [
+  'A website like yours costs pennies a month to host. So we don’t think you should pay £20 a month for it, forever.',
+  'You pay once. Your site stays up. No subscription, no add-ons, no surprise renewals.',
+  'We started this after watching a small business pay over £300 a year for a simple website. That felt wrong.',
+]
+
 export const FAQS = [
   { q: 'Do I need to be good with computers?', a: 'No. If you can pick from a few options on your phone, you can build your site.' },
   { q: 'Are there really no monthly fees?', a: `Really. You pay ${PRICE} once and your site stays online.` },

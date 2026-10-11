@@ -1,9 +1,9 @@
-/* Global reset for siteblocks' own pages (homepage and builder). Brand tokens: src/brand/tokens.css. */
+/* Global reset for Local Blocks' own pages (homepage and builder). Brand tokens: src/brand/tokens.css. */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 body { font-family: 'DM Sans', system-ui, -apple-system, sans-serif; font-size: 17px; line-height: 1.5; color: #1C1A24; background: #FFFFFF; }
 button { font: inherit; cursor: pointer; }
-/* Generated site previews expect plain links; siteblocks' own links are styled in tokens.css. */
+/* Generated site previews expect plain links; Local Blocks' own links are styled in tokens.css. */
 a { text-decoration: none; color: inherit; }
 input, textarea, select { font: inherit; }
 #root { min-height: 100vh; }

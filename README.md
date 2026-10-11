@@ -1,4 +1,4 @@
-# Site Blocks (working title)
+# Local Blocks
 
 A pay-once website builder for tradespeople. Vite + React + TypeScript.
 
@@ -7,7 +7,7 @@ A pay-once website builder for tradespeople. Vite + React + TypeScript.
 - `src/publish/`: whole static pages from a saved record (meta tags, privacy notice, sitemap, address rules).
 - `server/`: publishing on Cloudflare: checkout (Stripe), preview links, published sites, refunds. See [server/README.md](server/README.md), which also covers testing payments locally with the Stripe CLI and test cards.
 - `src/home/`: the homepage (`/`). `src/builder/`: the builder (`/build/`): Basics → Your look → Build → Go live.
-- `src/brand/`: siteblocks' own name (`config.ts`), tokens and logo, from [reference/design-handoff](reference/design-handoff/BRAND.md). Never used by customer sites.
+- `src/brand/`: Local Blocks' own name, domain and email (`config.ts`, the one place they're set), tokens and logo, from [reference/design-handoff](reference/design-handoff/BRAND.md). Never used by customer sites.
 
 - `src/admin/`: the private admin dashboard (`/admin/`, behind Cloudflare Access): the funnel, ad sources, money, recent sites, layout picks. `src/analytics/`: the funnel steps, ad-source tags and the fire-and-forget tracker. See [server/README.md](server/README.md#admin-dashboard).
 
@@ -15,7 +15,7 @@ A pay-once website builder for tradespeople. Vite + React + TypeScript.
 
 What the policy can say, and exactly why it's true:
 
-- **No tracking cookies.** Site Blocks sets no cookies of its own: not on the homepage, not in the builder, not on customers' sites. Cloudflare, which hosts everything, may set a security cookie (such as `__cf_bm`) to tell people from bots; it isn't used for tracking or advertising. No third-party analytics, ad pixels or fonts from other servers.
+- **No tracking cookies.** Local Blocks sets no cookies of its own: not on the homepage, not in the builder, not on customers' sites. Cloudflare, which hosts everything, may set a security cookie (such as `__cf_bm`) to tell people from bots; it isn't used for tracking or advertising. No ad pixels and no fonts from other servers. The homepage (only) uses Cloudflare Web Analytics for page counts: it sets no cookies and doesn't follow anyone across sites.
 - **Anonymous counts only.** To see how many people get from the homepage to paying, we count steps: landed on the homepage, started the builder, finished the basics, picked a look, reached Go live, shared a preview, started a checkout, paid, refunded, disputed. And which layout was kept in each section.
 - **No data sold or shared.** The counts stay in our own database (Cloudflare D1) and are only seen by us.
 

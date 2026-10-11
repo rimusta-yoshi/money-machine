@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'public', 'fonts')
 
-/** family -> faces ("400", "400-italic"). siteblocks' own pages first (homepage and builder), the contact sheet's Inter, then everything a site theme can use. */
+/** family -> faces ("400", "400-italic"). Local Blocks' own pages first (homepage and builder), the contact sheet's Inter, then everything a site theme can use. */
 const FONTS = {
   'Inter': ['400', '500', '600', '700'],
   'Unbounded': ['800', '900'],

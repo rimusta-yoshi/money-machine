@@ -6,7 +6,7 @@ import { finishedSite } from './test/sites'
 
 describe('siteFiles', () => {
   it('writes the pages, a content-named stylesheet, icon, sitemap and robots rules', async () => {
-    const files = await siteFiles(finishedSite(), tradeById.plumber, { origin: 'https://joes.siteblocks.co.uk', noindex: true, date: new Date('2026-10-02') })
+    const files = await siteFiles(finishedSite(), tradeById.plumber, { origin: 'https://joes.localblocks.co.uk', noindex: true, date: new Date('2026-10-02') })
     const names = files.map(f => f.name)
     expect(names).toEqual(['index.html', 'privacy.html', expect.stringMatching(/^site-[0-9a-f]{12}\.css$/), 'favicon.svg', 'sitemap.xml', 'robots.txt'])
     const css = files[2]
@@ -17,7 +17,7 @@ describe('siteFiles', () => {
   })
 
   it('names the stylesheet by its content', async () => {
-    const opts = { origin: 'https://a.siteblocks.co.uk', noindex: true, date: new Date('2026-10-02') }
+    const opts = { origin: 'https://a.localblocks.co.uk', noindex: true, date: new Date('2026-10-02') }
     const a = await siteFiles(finishedSite({ theme: 'workwear' }), tradeById.plumber, opts)
     const b = await siteFiles(finishedSite({ theme: 'clean-pro' }), tradeById.plumber, opts)
     expect(a[2].name).not.toBe(b[2].name)

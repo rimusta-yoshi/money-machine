@@ -4,7 +4,7 @@
 declare const __PRICE_PENCE__: number
 
 interface ImportMetaEnv {
-  /** The API's address, e.g. https://api.siteblocks.co.uk. Unset: the builder saves nothing. */
+  /** The API's address, e.g. https://api.localblocks.co.uk. Unset: the builder saves nothing. */
   readonly VITE_API_URL?: string
   /** "true" shows the admin publish form in a production build (dev builds always show it). */
   readonly VITE_ADMIN_PUBLISH?: string

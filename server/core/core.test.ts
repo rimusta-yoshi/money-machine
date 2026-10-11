@@ -4,18 +4,18 @@ import { ownPhotoName, sniffImage } from './photos'
 import { DRAFT_KEY, newDraftKey, newPreviewToken, newRef, PREVIEW_TOKEN, REF, sameSecret, sha256Hex } from './tokens'
 import { corsHeaders, readBody } from './http'
 
-const env = { BASE_DOMAIN: 'siteblocks.co.uk', BUILDER_ORIGINS: 'http://localhost:5173, https://app.siteblocks.co.uk' }
+const env = { BASE_DOMAIN: 'localblocks.co.uk', BUILDER_ORIGINS: 'http://localhost:5173, https://app.localblocks.co.uk' }
 
 describe('config', () => {
   it('reads plain string variables with safe defaults', () => {
     const c = parseConfig(env)
-    expect(c).toMatchObject({ baseDomain: 'siteblocks.co.uk', noindex: true, previewDays: 30, adminToken: null })
-    expect([...c.builderOrigins]).toEqual(['http://localhost:5173', 'https://app.siteblocks.co.uk'])
+    expect(c).toMatchObject({ baseDomain: 'localblocks.co.uk', noindex: true, previewDays: 30, adminToken: null })
+    expect([...c.builderOrigins]).toEqual(['http://localhost:5173', 'https://app.localblocks.co.uk'])
     expect(parseConfig({ ...env, NOINDEX: 'false', PREVIEW_DAYS: '7', ADMIN_TOKEN: 'x'.repeat(24) })).toMatchObject({ noindex: false, previewDays: 7, adminToken: 'x'.repeat(24) })
   })
 
   it('refuses settings that would be unsafe', () => {
-    expect(() => parseConfig({ ...env, BASE_DOMAIN: 'https://siteblocks.co.uk' })).toThrow()
+    expect(() => parseConfig({ ...env, BASE_DOMAIN: 'https://localblocks.co.uk' })).toThrow()
     expect(() => parseConfig({ ...env, BUILDER_ORIGINS: 'http://localhost:5173/app' })).toThrow()
     expect(() => parseConfig({ ...env, ADMIN_TOKEN: 'short' })).toThrow()
     expect(() => parseConfig({ ...env, NOINDEX: 'yes' })).toThrow()
@@ -23,12 +23,12 @@ describe('config', () => {
 
   it('finds the slug in a Host header', () => {
     const c = parseConfig(env)
-    expect(slugFromHost('joes-plumbing.siteblocks.co.uk', c)).toBe('joes-plumbing')
-    expect(slugFromHost('JOES.SITEBLOCKS.CO.UK', c)).toBe('joes')
-    expect(slugFromHost('siteblocks.co.uk', c)).toBeNull()
-    expect(slugFromHost('a.b.siteblocks.co.uk', c)).toBeNull()
-    expect(slugFromHost('joes.siteblocks.co.uk.evil.com', c)).toBeNull()
-    expect(slugFromHost('joes.siteblocks.localhost:8790', parseConfig({ BASE_DOMAIN: 'siteblocks.localhost:8790' }))).toBe('joes')
+    expect(slugFromHost('joes-plumbing.localblocks.co.uk', c)).toBe('joes-plumbing')
+    expect(slugFromHost('JOES.LOCALBLOCKS.CO.UK', c)).toBe('joes')
+    expect(slugFromHost('localblocks.co.uk', c)).toBeNull()
+    expect(slugFromHost('a.b.localblocks.co.uk', c)).toBeNull()
+    expect(slugFromHost('joes.localblocks.co.uk.evil.com', c)).toBeNull()
+    expect(slugFromHost('joes.localblocks.localhost:8790', parseConfig({ BASE_DOMAIN: 'localblocks.localhost:8790' }))).toBe('joes')
   })
 })
 
@@ -61,9 +61,9 @@ describe('photos', () => {
     const c = parseConfig(env)
     const ref = 'a'.repeat(32)
     const name = `${'b'.repeat(32)}.webp`
-    expect(ownPhotoName(`https://preview.siteblocks.co.uk/photos/${ref}/${name}`, c, ref)).toBe(name)
-    expect(ownPhotoName(`https://preview.siteblocks.co.uk/photos/${'c'.repeat(32)}/${name}`, c, ref)).toBeNull()
-    expect(ownPhotoName(`https://preview.siteblocks.co.uk/photos/${ref}/../x.webp`, c, ref)).toBeNull()
+    expect(ownPhotoName(`https://preview.localblocks.co.uk/photos/${ref}/${name}`, c, ref)).toBe(name)
+    expect(ownPhotoName(`https://preview.localblocks.co.uk/photos/${'c'.repeat(32)}/${name}`, c, ref)).toBeNull()
+    expect(ownPhotoName(`https://preview.localblocks.co.uk/photos/${ref}/../x.webp`, c, ref)).toBeNull()
     expect(ownPhotoName(`https://evil.com/photos/${ref}/${name}`, c, ref)).toBeNull()
   })
 })

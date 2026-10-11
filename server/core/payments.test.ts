@@ -5,13 +5,13 @@ import { welcomeEmail } from './emails'
 import { stripePayments, stripeSignature, verifyStripeSignature } from './stripe'
 import { parseLink, signLink, verifyLink } from './tokens'
 
-const env = { BASE_DOMAIN: 'siteblocks.co.uk' }
+const env = { BASE_DOMAIN: 'localblocks.co.uk' }
 const stripe = { STRIPE_SECRET_KEY: 'sk_test_abc123', STRIPE_WEBHOOK_SECRET: 'whsec_abc123', LINK_SECRET: 'x'.repeat(32) }
 const email = { to: 'jo@example.com', subject: 'Hello', html: '<p>Hi</p>', text: 'Hi' }
 
 describe('payment settings', () => {
   it('has safe defaults: £99, 14 days, payments off', () => {
-    expect(parseConfig(env)).toMatchObject({ pricePence: 9900, currency: 'gbp', refundDays: 14, stripe: null, linkSecret: null, appUrl: 'https://siteblocks.co.uk', brandName: 'siteblocks.co.uk' })
+    expect(parseConfig(env)).toMatchObject({ pricePence: 9900, currency: 'gbp', refundDays: 14, stripe: null, linkSecret: null, appUrl: 'https://localblocks.co.uk', brandName: 'Local Blocks' })
     expect(parseConfig({ ...env, ...stripe, BRAND_NAME: 'Local Blocks', APP_URL: 'http://localhost:5173/' })).toMatchObject({
       stripe: { secretKey: 'sk_test_abc123', webhookSecret: 'whsec_abc123' }, brandName: 'Local Blocks', appUrl: 'http://localhost:5173',
     })
@@ -31,7 +31,7 @@ describe('payment settings', () => {
     expect(() => parseConfig({ ...env, ...stripe, STRIPE_WEBHOOK_SECRET: '' })).toThrow(/WEBHOOK/)
     expect(() => parseConfig({ ...env, PRICE_PENCE: '99.5' })).toThrow()
     expect(() => parseConfig({ ...env, EMAIL_FROM: 'nobody' })).toThrow()
-    expect(() => parseConfig({ ...env, APP_URL: 'https://siteblocks.co.uk/build' })).toThrow()
+    expect(() => parseConfig({ ...env, APP_URL: 'https://localblocks.co.uk/build' })).toThrow()
   })
 
   it('says prices plainly', () => {
@@ -125,8 +125,8 @@ describe('email', () => {
 
   it('writes the welcome email in HTML and text, escaping what it shows', () => {
     const c = parseConfig({ ...env, ...stripe, BRAND_NAME: 'Site <Blocks>' })
-    const w = welcomeEmail(c, { to: 'jo@example.com', siteUrl: 'https://joes.siteblocks.co.uk/', editLink: 'https://siteblocks.co.uk/build/#edit=x', refundLink: 'https://siteblocks.co.uk/build/#refund=y', amount: 9900, paidAt: Date.UTC(2026, 9, 6), reference: 'ABCD1234', receiptUrl: null })
-    expect(w.subject).toBe('Your site is live: joes.siteblocks.co.uk')
+    const w = welcomeEmail(c, { to: 'jo@example.com', siteUrl: 'https://joes.localblocks.co.uk/', editLink: 'https://localblocks.co.uk/build/#edit=x', refundLink: 'https://localblocks.co.uk/build/#refund=y', amount: 9900, paidAt: Date.UTC(2026, 9, 6), reference: 'ABCD1234', receiptUrl: null })
+    expect(w.subject).toBe('Your site is live: joes.localblocks.co.uk')
     expect(w.text).toContain('14-day money-back guarantee, no questions asked.')
     expect(w.text).toContain('by 20 October 2026')
     expect(w.text).toContain('£99 paid on 6 October 2026')

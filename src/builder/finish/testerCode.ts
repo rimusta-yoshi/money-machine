@@ -3,7 +3,7 @@
  * (/build/?tester=…). It's kept for this browser tab only, and taken out of the address bar.
  */
 
-const STORAGE_KEY = 'siteblocks.tester'
+const STORAGE_KEY = 'localblocks.tester'
 
 export function storedTesterCode(storage: Pick<Storage, 'getItem'> | undefined = globalThis.sessionStorage): string {
   try {

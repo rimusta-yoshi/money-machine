@@ -84,8 +84,8 @@ describe('checkout', () => {
     expect(await res.json()).toMatchObject({ url: expect.stringMatching(/^https:\/\/checkout\.stripe\.test\//) })
     const session = stripe.lastSession()
     expect(session).toMatchObject({ amount: 9900, currency: 'gbp', email, slug: 'checkout-plumbing' })
-    expect(session.successUrl).toBe('https://app.siteblocks.test/build/?paid={CHECKOUT_SESSION_ID}')
-    expect(session.cancelUrl).toBe('https://app.siteblocks.test/build/?checkout=cancelled')
+    expect(session.successUrl).toBe('https://app.localblocks.test/build/?paid={CHECKOUT_SESSION_ID}')
+    expect(session.cancelUrl).toBe('https://app.localblocks.test/build/?checkout=cancelled')
     // Nothing is live until the webhook says it's paid.
     expect((await site('checkout-plumbing')).status).toBe(404)
     expect(await (await c.call(`/v1/checkouts/${session.id}`)).json()).toEqual({ state: 'waiting' })
@@ -148,10 +148,10 @@ describe('the webhook', () => {
     expect(row).toMatchObject({ stripe_payment_intent: p.session.paymentIntent, amount: 9900, currency: 'gbp', email: p.email })
     expect(row!.paid_at).toEqual(expect.any(Number))
 
-    expect(p.welcome.from).toBe('Test Blocks <hello@siteblocks.test>')
+    expect(p.welcome.from).toBe('Test Blocks <hello@localblocks.test>')
     expect(p.welcome.text).toContain(`https://paid-plumbing.${BASE}/`)
-    expect(p.welcome.text).toContain('https://app.siteblocks.test/build/#edit=')
-    expect(p.welcome.text).toContain('https://app.siteblocks.test/build/#refund=')
+    expect(p.welcome.text).toContain('https://app.localblocks.test/build/#edit=')
+    expect(p.welcome.text).toContain('https://app.localblocks.test/build/#refund=')
     expect(p.welcome.text).toContain('14-day money-back guarantee, no questions asked.')
     expect(p.welcome.text).toContain(`https://pay.stripe.test/receipts/${p.session.paymentIntent}`)
     expect(p.welcome.html).toContain('Request a refund')
@@ -252,9 +252,9 @@ describe('edit links', () => {
     expect(stripe.emails.length).toBe(before + 1)
     const sent = stripe.emails.at(-1)!
     expect(sent.to).toEqual([p.email])
-    expect(sent.text).toContain('https://app.siteblocks.test/build/#edit=')
+    expect(sent.text).toContain('https://app.localblocks.test/build/#edit=')
     // Still within the guarantee: the refund link comes too.
-    expect(sent.text).toContain('https://app.siteblocks.test/build/#refund=')
+    expect(sent.text).toContain('https://app.localblocks.test/build/#refund=')
     // Asking for a link revokes nothing: the old one works until the new one is opened.
     const fresh = /#edit=([\w.-]+)/.exec(sent.text)![1]
     expect((await c.call('/v1/draft', { key: p.editToken })).status).toBe(200)
@@ -306,7 +306,7 @@ describe('refunds', () => {
   it('after 14 days: the guarantee has ended, nothing is refunded', async () => {
     const p = await paidSite('too-late')
     await sql('UPDATE drafts SET paid_at = paid_at - ?1 WHERE stripe_session_id = ?2', 15 * DAY, p.session.id)
-    const expected = { state: 'expired', support: 'help@siteblocks.test' }
+    const expected = { state: 'expired', support: 'help@localblocks.test' }
     expect(await (await status(p.refundToken)).json()).toEqual(expected)
     const res = await refund(p.refundToken)
     expect(res.status).toBe(409)
@@ -365,13 +365,13 @@ describe('disputes', () => {
     expect((await site('disputed-won')).status).toBe(410)
     // The owner can't put it back up, or refund it on top of the bank's chargeback.
     expect((await c.call('/v1/draft/publish', { method: 'POST', key: p.editToken, json: {} })).status).toBe(403)
-    expect(await (await c.call('/v1/refund/status', { method: 'POST', json: { token: p.refundToken } })).json()).toEqual({ state: 'disputed', support: 'help@siteblocks.test' })
+    expect(await (await c.call('/v1/refund/status', { method: 'POST', json: { token: p.refundToken } })).json()).toEqual({ state: 'disputed', support: 'help@localblocks.test' })
     expect(await (await c.call('/v1/draft', { key: p.key })).json()).toMatchObject({ disputed: true, publishedUrl: null })
 
     // The owner hears once, with the support address.
     const paused = stripe.emailsTo(p.email).filter(e => e.subject.startsWith('Your site is paused'))
     expect(paused).toHaveLength(1)
-    expect(paused[0].text).toContain('Your payment is being disputed with your bank, so your site is paused. If this is a mistake, contact us at help@siteblocks.test.')
+    expect(paused[0].text).toContain('Your payment is being disputed with your bank, so your site is paused. If this is a mistake, contact us at help@localblocks.test.')
     expect((await send({ ...opened, id: `${opened.id}x` })).status).toBe(200)
     expect(stripe.emailsTo(p.email).filter(e => e.subject.startsWith('Your site is paused'))).toHaveLength(1)
 
