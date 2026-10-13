@@ -28,6 +28,14 @@ describe('brand', () => {
     expect(config('api')).not.toContain('BRAND_NAME')
   })
 
+  it('launch is one switch: noindex in both workers is on exactly while LAUNCHED is off', () => {
+    const launched = /"LAUNCHED":\s*"(true|false)"/.exec(config('api'))?.[1]
+    expect(launched).toMatch(/^(true|false)$/)
+    for (const name of ['api', 'site']) {
+      expect(/"NOINDEX":\s*"(true|false)"/.exec(config(name))?.[1], `${name} NOINDEX`).toBe(launched === 'true' ? 'false' : 'true')
+    }
+  })
+
   it('the old domain redirects to the new one', () => {
     const text = config('redirect')
     expect(text).toContain(`"NEW_DOMAIN": "${BRAND.domain}"`)

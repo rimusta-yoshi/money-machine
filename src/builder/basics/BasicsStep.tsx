@@ -7,6 +7,7 @@ import { telHref } from '../../site/phone'
 import { Logo } from '../../brand/Logo'
 import { basicsGaps } from '../steps'
 import type { BasicsGap } from '../steps'
+import { LegalLinks } from '../ui/LegalLinks'
 import { TextField } from '../ui/TextField'
 import { useNarrow } from '../useNarrow'
 import { TradePicker } from './TradePicker'
@@ -111,6 +112,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
             {note}
             <button type="button" className="sb-main-btn bb-wide-btn" onClick={toDetails}>Continue</button>
             {paidAlready}
+            <LegalLinks />
           </main>
         ) : (
           <main className="sb-in">
@@ -144,6 +146,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
           {note}
           <button type="submit" className="sb-main-btn bb-submit">Next: your look</button>
           {paidAlready}
+          <LegalLinks />
         </form>
         <BasicsPreview trade={trade} business={values} />
       </main>

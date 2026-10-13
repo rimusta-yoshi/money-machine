@@ -28,6 +28,8 @@ export const RATE = {
   refund: { limit: 30, windowSec: 3600 },
   /** "Lost your edit link?": each one sends an email. */
   editLink: { limit: 5, windowSec: 3600 },
+  /** "Download your site" (each site also has a daily allowance: export.ts). */
+  download: { limit: 60, windowSec: 3600 },
   /** Preview pages render on every view. */
   previewView: { limit: 600, windowSec: 3600 },
   /** The admin dashboard (also slows down guessing the admin key). */

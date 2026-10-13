@@ -96,6 +96,17 @@ describe('FinishStep (go live)', () => {
     expect(screen.getByText(/card payment by Stripe/)).toBeTruthy()
   })
 
+  it('says paying means agreeing to the terms and privacy policy, opening them in a new tab', () => {
+    renderStep(site())
+    expect(screen.getByText(/By paying you agree to our/)).toBeTruthy()
+    const terms = screen.getByRole('link', { name: /^terms ?\(opens in a new tab\)$/ })
+    const privacy = screen.getByRole('link', { name: /^privacy policy ?\(opens in a new tab\)$/ })
+    expect([terms.getAttribute('href'), privacy.getAttribute('href')]).toEqual(['/terms/', '/privacy/'])
+    expect([terms.getAttribute('target'), privacy.getAttribute('target')]).toEqual(['_blank', '_blank'])
+    const footer = screen.getByRole('navigation', { name: 'Footer' })
+    expect([...footer.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual(['/privacy/', '/terms/', '/guide/host-your-own-site/', 'mailto:hello@localblocks.co.uk'])
+  })
+
   const fakeDraft = (o: Partial<Draft> = {}) => ({
     enabled: true, key: 'k', published: null, account: { paid: false, refunded: false },
     slugStatus: vi.fn(async () => ({ available: true, url: 'https://joe-pipes.localblocks.co.uk/' })),
@@ -170,6 +181,17 @@ describe('FinishStep (go live)', () => {
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Publish changes' })) })
     expect(draft.publish).toHaveBeenCalledWith(undefined, undefined, checked)
     expect(draft.checkout).not.toHaveBeenCalled()
+    expect(screen.queryByText(/By paying you agree/)).toBeNull()
+  })
+
+  it('offers "Download your site" on a paid site only', () => {
+    const paid = fakeDraft({ account: { paid: true, refunded: false }, published: { slug: 'joes', url: 'https://joes.localblocks.co.uk/' }, exportSite: vi.fn() })
+    renderStep(withEmail(), { draft: paid })
+    expect(screen.getByRole('button', { name: 'Download your site' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: /^How to host it yourself ?\(opens in a new tab\)$/ }).getAttribute('href')).toBe('/guide/host-your-own-site/')
+    cleanup()
+    renderStep(withEmail(), { draft: fakeDraft() })
+    expect(screen.queryByRole('button', { name: 'Download your site' })).toBeNull()
   })
 
   it('says a cancelled payment took nothing, and that a refunded site is down', () => {

@@ -15,3 +15,20 @@ textarea.bf-input, .mm-fld textarea { min-height: 110px; padding: 14px 16px; lin
 .mm-fld { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .mm-count { margin: 0; font-size: 15px; color: var(--sb-muted); }
 .mm-count.full { color: var(--sb-night); font-weight: 700; }
+
+/* The builder's footer links (privacy, terms, guide, contact). */
+.b-legal { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; }
+.b-legal a { display: inline-block; padding: 10px 0; }
+
+/* "Download your site" (src/download/DownloadSite.tsx). */
+.dl { display: flex; flex-direction: column; gap: 8px; }
+.dl > button { align-self: flex-start; }
+.dl-status { font-weight: 700; font-size: 15px; }
+.dl-status:empty { margin: 0; }
+.dl-status.is-error { color: var(--sb-error); }
+.dl-small { font-size: 15px; line-height: 1.5; color: var(--sb-muted-mist); }
+
+/* Our own links in running text: pipe blue and underlined (the global reset makes bare links plain). */
+.sb-ui .b-legal a, .sb-ui .bg-small a, .sb-ui .dl-small a { color: var(--sb-pipe); text-decoration: underline; text-underline-offset: 3px; }
+.sb-ui .b-legal a { color: var(--sb-muted-mist); }
+.sb-ui .b-legal a:hover, .sb-ui .bg-small a:hover, .sb-ui .dl-small a:hover { color: var(--sb-pipe-hover); }

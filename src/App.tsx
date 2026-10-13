@@ -34,11 +34,12 @@ import { ShareCard } from './builder/save/ShareCard'
 import { useScreen } from './builder/account/screens'
 import { PaidScreen } from './builder/account/PaidScreen'
 import { RefundScreen } from './builder/account/RefundScreen'
+import { DownloadScreen } from './download/DownloadScreen'
 import { LostLinkScreen } from './builder/account/LostLinkScreen'
 import { AccountShell } from './builder/account/AccountShell'
 import { NO_SOURCE, sourceFromSearch } from './analytics/source'
 import { createTracker } from './analytics/track'
-import { storedDraftKey, editTokenFromHash } from './api/draftKey'
+import { storedDraftKey, editTokenFromHash, downloadTokenFromHash } from './api/draftKey'
 import { loadLocalSite } from './api/localSite'
 import { EditLinkChoice } from './builder/account/EditLinkChoice'
 
@@ -64,7 +65,7 @@ const tracker = createTracker(API_BASE, SOURCE)
  * such visits, so a reload, a return visit or an edit link never counts the same person twice
  * (the server counts preview, checkout and payment per site whatever the visit).
  */
-const FRESH_VISIT = typeof window !== 'undefined' && !loadLocalSite() && !storedDraftKey() && !editTokenFromHash(window.location.hash)
+const FRESH_VISIT = typeof window !== 'undefined' && !loadLocalSite() && !storedDraftKey() && !editTokenFromHash(window.location.hash) && downloadTokenFromHash(window.location.hash) === null
 const trackStep: typeof tracker.step = (step, facts) => { if (FRESH_VISIT) tracker.step(step, facts) }
 
 /** The builder, or one of the pages around paying (Stripe's return page, a refund link, a lost edit link). */
@@ -76,6 +77,7 @@ export default function App() {
   if (!api) return <AccountShell title="Not switched on"><p>Payments aren’t switched on in this version of the builder.</p></AccountShell>
   if (screen.kind === 'paid') return <PaidScreen api={api} sessionId={screen.sessionId} />
   if (screen.kind === 'refund') return <RefundScreen api={api} token={screen.token} />
+  if (screen.kind === 'download') return <DownloadScreen api={api} token={screen.token} />
   return <LostLinkScreen api={api} />
 }
 

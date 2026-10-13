@@ -5,6 +5,7 @@ import type { Browser, Page } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { STATIC_PAGES } from '../src/pages/registry'
 import { launchBrowser } from '../scripts/browser.mjs'
 
 /**
@@ -88,6 +89,22 @@ describe.each(VIEWPORTS)('$name', vp => {
     const moving = await open('/', vp, 'no-preference')
     expect(await moving.page.evaluate(() => getComputedStyle(document.querySelector('.sb-rise')!).animationName)).toBe('sbRise')
     await moving.close()
+  })
+
+  it.each(STATIC_PAGES.map(p => p.path))('plain page %s', async path => {
+    const { page, errors, close } = await open(path, vp)
+    await check(page, `page${path.replace(/\/+/g, '-').replace(/-$/, '')}-${vp.name}`)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    // The contents: a sidebar on desktop, a fold-away list on phones (opened and checked again).
+    if (vp.isMobile) {
+      await page.locator('summary', { hasText: 'On this page' }).click()
+      expect(await axe(page)).toEqual([])
+    } else {
+      expect(await page.getByRole('navigation', { name: 'On this page' }).isVisible()).toBe(true)
+    }
+    expect(await page.getByRole('navigation', { name: 'Footer' }).getByRole('link').count()).toBe(4)
+    expect(errors).toEqual([])
+    await close()
   })
 
   it('every builder step', async () => {

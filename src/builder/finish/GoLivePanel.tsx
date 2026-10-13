@@ -11,6 +11,8 @@ import { isReadyToPublish } from '../../site/checklist'
 import { LIMITS } from '../../site/limits'
 import type { Site } from '../../site/schema'
 import type { BusinessInfo, TradeConfig } from '../../types'
+import { DownloadSite } from '../../download/DownloadSite'
+import { AgreeLine } from '../ui/LegalLinks'
 import { TextField } from '../ui/TextField'
 import { keepTesterCode, storedTesterCode } from './testerCode'
 
@@ -146,6 +148,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
         <h2 id="live-h" className="bg-h2">It’s live.</h2>
         <p role="status">Your site is at <a href={live} target="_blank" rel="noreferrer">{live.replace(/^https:\/\//, '').replace(/\/$/, '')}</a></p>
         <p className="bg-small">Changes you make later go live, free, when you publish again.</p>
+        {draft?.account.paid && <DownloadSite load={draft.exportSite} />}
       </aside>
     )
   }
@@ -207,8 +210,10 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
         <button type="submit" className="sb-main-btn bg-go" disabled={busy}>
           {busy ? (paid ? 'Publishing…' : 'Going live…') : paid ? 'Publish changes' : `Go live for ${price}`}
         </button>
+        {!paid && <AgreeLine />}
         {!paid && <p className="bg-small bg-center">Secure card payment by Stripe. Your card details go to Stripe, never to us.</p>}
       </form>
+      {paid && draft && <DownloadSite load={draft.exportSite} />}
     </aside>
   )
 }

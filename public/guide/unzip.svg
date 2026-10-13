@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 240" font-family="DM Sans, system-ui, sans-serif">
+  <rect width="560" height="240" rx="24" fill="#F2F2F4"/>
+  <!-- The .zip -->
+  <g transform="translate(46 50)">
+    <path d="M0 14C0 6 6 0 14 0h70l30 30v96c0 8-6 14-14 14H14c-8 0-14-6-14-14z" fill="#FFCE3A"/>
+    <path d="M84 0v22c0 4 4 8 8 8h22" fill="#E0AE1C"/>
+    <g fill="#1C1A24"><rect x="50" y="10" width="12" height="8" rx="2"/><rect x="50" y="26" width="12" height="8" rx="2"/><rect x="50" y="42" width="12" height="8" rx="2"/><rect x="46" y="58" width="20" height="22" rx="4"/></g>
+    <text x="57" y="118" text-anchor="middle" font-size="18" font-weight="700" fill="#1C1A24">.zip</text>
+  </g>
+  <!-- Arrow -->
+  <path d="M190 120h70" stroke="#1C1A24" stroke-width="6" stroke-linecap="round"/>
+  <path d="M250 104l18 16-18 16" fill="none" stroke="#1C1A24" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- The folder and what's inside -->
+  <g transform="translate(296 34)">
+    <path d="M0 18C0 10 6 4 14 4h56l16 16h134c8 0 14 6 14 14v124c0 8-6 14-14 14H14c-8 0-14-6-14-14z" fill="#2F64E0"/>
+    <g font-size="15" font-weight="700" fill="#1C1A24">
+      <rect x="18" y="40" width="198" height="26" rx="8" fill="#FFFFFF"/><text x="30" y="58">index.html</text>
+      <rect x="18" y="72" width="198" height="26" rx="8" fill="#FFFFFF"/><text x="30" y="90">privacy.html</text>
+      <rect x="18" y="104" width="96" height="26" rx="8" fill="#2DBE8A"/><text x="28" y="122">photos</text>
+      <rect x="120" y="104" width="96" height="26" rx="8" fill="#FF5A36"/><text x="132" y="122">fonts</text>
+      <rect x="18" y="136" width="198" height="26" rx="8" fill="#FFFFFF"/><text x="30" y="154">README.txt</text>
+    </g>
+  </g>
+</svg>

@@ -281,6 +281,12 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
     return api.slugStatus(await ensureKey(), slug)
   }, [api, ensureKey])
 
+  /** "Download your site" (paid, live sites): the files to zip. */
+  const exportSite = useCallback(async () => {
+    if (!api || !keyRef.current) throw new ApiError(0, 'not_saved', 'Downloading isn’t available for this site.')
+    return api.exportSite(keyRef.current)
+  }, [api])
+
   const dismissNotice = useCallback(() => setNotice(null), [])
 
   /** The Retry button: reopens the saved site if that failed, else saves again. */
@@ -307,9 +313,9 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
   return useMemo(
     () => ({
       enabled: !!api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict,
-      saveNow, retry, createPreview, checkout, publish, slugStatus, forget,
+      saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite,
     }),
-    [api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict, saveNow, retry, createPreview, checkout, publish, slugStatus, forget],
+    [api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict, saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite],
   )
 }
 
