@@ -58,6 +58,7 @@
 .pg-text code { font-family: ui-monospace, Consolas, monospace; font-size: 0.9em; background: var(--sb-mist); padding: 1px 6px; border-radius: 6px; }
 .pg-text img { display: block; width: 100%; max-width: 560px; height: auto; margin-top: 20px; }
 .pg-todo { background: var(--sb-hard-hat); color: var(--sb-night); padding: 0 4px; border-radius: 4px; font-weight: 700; }
+.pg-hero--yellow .pg-todo { background: var(--sb-white); }
 .pg-note { border-radius: 20px; background: var(--sb-mist); border-left: 6px solid var(--sb-pipe); padding: 18px 22px; }
 .pg-note > * + * { margin-top: 10px; }
 
