@@ -7,6 +7,8 @@ import { goneKey, sitePrefix } from './storage'
 import { serveFont, serveObject } from './static'
 
 const cacheFor = (file: string): string => (/^(site-[0-9a-f]+\.css|photos\/.+)$/.test(file) ? CACHE.immutable : CACHE.page)
+/** Photos, like the fonts, may be fetched by the builder for "Download your site": they're public anyway. */
+const corsFor = (file: string): Record<string, string> => (file.startsWith('photos/') ? { 'Access-Control-Allow-Origin': '*' } : {})
 
 /**
  * The site worker: <slug>.<base> serves that site's published files from storage, as they
@@ -25,7 +27,7 @@ export async function handleSite(req: Request, deps: Deps): Promise<Response> {
     const font = await serveFont(url.pathname, deps)
     if (font) return font
     const file = filePath(url.pathname)
-    const res = file ? await serveObject(req, deps, sitePrefix(slug) + file, { ...headers, 'Cache-Control': cacheFor(file) }) : null
+    const res = file ? await serveObject(req, deps, sitePrefix(slug) + file, { ...headers, 'Cache-Control': cacheFor(file), ...corsFor(file) }) : null
     if (res) return res
     // A refunded site: every page of the address says so.
     if (await deps.blobs.get(goneKey(slug))) return htmlPage(410, 'This site is no longer available', 'There is nothing at this address any more.', headers)

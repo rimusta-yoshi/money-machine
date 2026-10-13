@@ -1,3 +1,4 @@
+import { PAGES } from '../../src/brand/config'
 import { money } from './config'
 import type { Config } from './config'
 import type { Email } from './ports'
@@ -11,6 +12,8 @@ type Line = string | { link: string; label: string }
 /** One simple layout: a heading, lines of text, links on their own lines, and the support address. */
 function email(c: Config, to: string, subject: string, heading: string, lines: Line[]): Email {
   const support = c.email.support.replace(/^.*<([^>]+)>$/, '$1')
+  const privacy = `${c.appUrl}${PAGES.privacy}`
+  const terms = `${c.appUrl}${PAGES.terms}`
   const html = `<!doctype html><html lang="en-GB"><head><meta charset="utf-8"><title>${esc(subject)}</title></head>`
     + `<body style="margin:0;padding:24px;font:16px/1.5 Arial,Helvetica,sans-serif;color:#16181D;background:#ffffff">`
     + `<div style="max-width:560px;margin:0 auto">`
@@ -19,11 +22,19 @@ function email(c: Config, to: string, subject: string, heading: string, lines: L
       ? `<p style="margin:0 0 14px">${esc(l)}</p>`
       : `<p style="margin:0 0 14px"><a href="${esc(l.link)}" style="color:#16181D;font-weight:bold">${esc(l.label)}</a></p>`).join('')
     + `<p style="margin:24px 0 0;font-size:14px;color:#4A4F5C">Questions? Reply to this email or write to <a href="mailto:${esc(support)}" style="color:#4A4F5C">${esc(support)}</a>.<br>${esc(c.brandName)}</p>`
+    + `<p style="margin:8px 0 0;font-size:14px;color:#4A4F5C"><a href="${esc(privacy)}" style="color:#4A4F5C">Privacy</a> · <a href="${esc(terms)}" style="color:#4A4F5C">Terms</a></p>`
     + `</div></body></html>`
   const text = [heading, '', ...lines.map(l => (typeof l === 'string' ? l : `${l.label}:\n${l.link}`)).flatMap(l => [l, '']),
-    `Questions? Reply to this email or write to ${support}.`, c.brandName].join('\n')
+    `Questions? Reply to this email or write to ${support}.`, c.brandName, '', `Privacy: ${privacy}`, `Terms: ${terms}`].join('\n')
   return { to, subject, html, text }
 }
+
+/**
+ * "Download your site" from an edit link: the same key, opening the download page instead of
+ * the builder. Without a key (e.g. from a closed site's page) it asks for a new edit link.
+ */
+export const downloadLinkFor = (editLink: string): string => editLink.replace('#edit=', '#download=')
+const DOWNLOAD_LINE = 'Your site is yours: download the whole thing to keep a copy or to host it anywhere else. Like the edit link, it stops working once you open a newer one.'
 
 const day = (ms: number): string => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
 const bare = (url: string): string => url.replace(/^https?:\/\//, '').replace(/\/$/, '')
@@ -45,6 +56,8 @@ export function welcomeEmail(c: Config, w: WelcomeEmail): Email {
     { link: w.siteUrl, label: bare(w.siteUrl) },
     'To change anything, open your edit link. Saving your changes puts them live, free. Keep this link to yourself: anyone with it can edit your site.',
     { link: w.editLink, label: 'Edit your site' },
+    DOWNLOAD_LINE,
+    { link: downloadLinkFor(w.editLink), label: 'Download your site' },
     `Receipt: ${money(w.amount)} paid on ${day(w.paidAt)}, one payment, no monthly fees. Reference ${w.reference}.`,
     ...(w.receiptUrl ? [{ link: w.receiptUrl, label: 'Your Stripe receipt' }] : []),
     `${c.refundDays}-day money-back guarantee, no questions asked. Not happy? Use this link by ${refundBy} and we'll refund ${money(w.amount)} and take your site down.`,
@@ -83,6 +96,7 @@ export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email
     'Here is a fresh link to edit your site. Saving your changes puts them live, free. Keep it to yourself: anyone with it can edit your site. Once you open it, older edit links stop working.',
     ...sites.flatMap((s): Line[] => [
       { link: s.editLink, label: `Edit ${bare(s.siteUrl)}` },
+      { link: downloadLinkFor(s.editLink), label: `Download ${bare(s.siteUrl)}` },
       ...(s.refund ? [`Changed your mind? You can get a full refund until ${day(s.refund.until)}.`, { link: s.refund.link, label: `Request a refund for ${bare(s.siteUrl)}` }] : []),
     ]),
     "If you didn't ask for this, you can ignore it.",

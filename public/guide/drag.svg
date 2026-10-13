@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 240" font-family="DM Sans, system-ui, sans-serif">
+  <rect width="560" height="240" rx="24" fill="#F2F2F4"/>
+  <!-- The host's upload page -->
+  <rect x="200" y="28" width="330" height="184" rx="18" fill="#FFFFFF" stroke="#D6D6DC" stroke-width="2"/>
+  <circle cx="222" cy="48" r="5" fill="#FF5A36"/><circle cx="238" cy="48" r="5" fill="#FFCE3A"/><circle cx="254" cy="48" r="5" fill="#2DBE8A"/>
+  <rect x="226" y="70" width="278" height="120" rx="14" fill="#F2F2F4" stroke="#1C1A24" stroke-width="3" stroke-dasharray="10 8"/>
+  <path d="M365 112v34M350 128l15-16 15 16" fill="none" stroke="#1C1A24" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="365" y="174" text-anchor="middle" font-size="16" font-weight="700" fill="#1C1A24">Drop your folder here</text>
+  <!-- The folder being dragged -->
+  <g transform="translate(40 76) rotate(-8)">
+    <path d="M0 12C0 6 4 2 10 2h38l10 10h70c6 0 10 4 10 10v68c0 6-4 10-10 10H10C4 100 0 96 0 90z" fill="#2F64E0"/>
+    <text x="69" y="64" text-anchor="middle" font-size="14" font-weight="700" fill="#FFFFFF">your site</text>
+  </g>
+  <!-- Pointer -->
+  <path d="M170 140l0 46 12-12 10 22 9-4-10-22h17z" fill="#1C1A24" stroke="#FFFFFF" stroke-width="2" stroke-linejoin="round"/>
+</svg>

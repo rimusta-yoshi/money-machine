@@ -1,9 +1,15 @@
-import { readFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import type { Browser, BrowserContext, Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { THEME_KEYS } from '../src/gen'
+import { buildSiteZip } from '../src/publish/siteZip'
+import type { SiteExport } from '../src/publish/siteZip'
 import { finishedSite } from '../src/publish/test/sites'
+import { unzipStored } from '../src/publish/zip'
 import { client, photoBytes } from '../server/test/client'
 import { startStack } from '../server/test/stack'
 import type { Stack } from '../server/test/stack'
@@ -27,6 +33,8 @@ const VIEWPORTS = [
 let stack: Stack
 let browser: Browser
 const contexts: BrowserContext[] = []
+/** The draft key of the site publishedSite() made last. */
+let lastKey: string | null = null
 
 beforeAll(async () => {
   stack = await startStack({ baseDomain: BASE, port: PORT, https: true, adminToken: ADMIN })
@@ -64,6 +72,7 @@ async function axe(page: Page): Promise<string[]> {
 async function publishedSite(theme: typeof THEME_KEYS[number], slug: string) {
   const c = client(stack, BASE)
   const key = await c.newDraft()
+  lastKey = key
   const hero = await c.upload(key, photoBytes('bathroom.jpg'))
   const about = await c.upload(key, photoBytes('worker-hi-vis.jpg'))
   const site = finishedSite({ theme, extras: ['reviews'], content: {
@@ -110,4 +119,54 @@ describe('publish, then visit', () => {
       await page.close()
     }, 180_000)
   }
+})
+
+describe('download your site', () => {
+  it('the zip of a paid site opens from a local folder, with every photo and font, and nothing fetched from anywhere', async () => {
+    const { live } = await publishedSite('workwear', 'e2e-download')
+    const db = await stack.db()
+    // Marked paid directly: this stack has no Stripe (server/test/export.test.ts covers paying).
+    await db.prepare("UPDATE drafts SET paid_at = ?1, stripe_session_id = 'cs_test_e2e', stripe_payment_intent = 'pi_e2e', amount = 9900, currency = 'gbp', email = 'joe@example.com' WHERE slug = 'e2e-download'").bind(Date.now()).run()
+    const key = lastKey!
+    const res = await client(stack, BASE).call('/v1/draft/export', { key })
+    expect(res.status, await res.clone().text()).toBe(200)
+    const zip = unzipStored(await buildSiteZip(await res.json() as SiteExport, url => stack.fetch(url)))
+
+    const dir = mkdtempSync(join(tmpdir(), 'localblocks-download-'))
+    for (const [path, data] of zip) {
+      mkdirSync(dirname(join(dir, path)), { recursive: true })
+      writeFileSync(join(dir, path), data)
+    }
+    for (const vp of VIEWPORTS) {
+      const context = await browser.newContext({ viewport: vp.viewport, isMobile: vp.isMobile, hasTouch: vp.isMobile, offline: true })
+      contexts.push(context)
+      const page = await context.newPage()
+      const requests: string[] = []
+      const failed: string[] = []
+      page.on('request', r => requests.push(r.url()))
+      page.on('requestfailed', r => failed.push(`${r.url()} ${r.failure()?.errorText}`))
+      for (const file of ['index.html', 'privacy.html']) {
+        await page.goto(pathToFileURL(join(dir, file)).href, { waitUntil: 'load' })
+        await page.evaluate(() => document.fonts.ready)
+        const broken = await page.evaluate(async () => {
+          const imgs = [...document.images]
+          imgs.forEach(i => { i.loading = 'eager' })
+          await Promise.all(imgs.map(i => i.decode().catch(() => undefined)))
+          return imgs.filter(i => i.naturalWidth === 0).map(i => i.src)
+        })
+        expect(broken, file).toEqual([])
+        expect(await page.evaluate(() => [...document.fonts].filter(f => f.status === 'loaded').length), file).toBeGreaterThan(0)
+        expect(await page.evaluate(() => [...document.fonts].filter(f => f.status === 'error').map(f => f.family)), file).toEqual([])
+        await page.screenshot({ path: join(process.cwd(), 'e2e', 'screens', `download-${file.replace('.html', '')}-${vp.name}.png`) })
+      }
+      // The privacy link and the way back both work between the local files.
+      await page.goto(pathToFileURL(join(dir, 'index.html')).href)
+      await page.locator('a[href="privacy.html"]').first().click()
+      expect(page.url()).toMatch(/privacy\.html$/)
+      expect(failed).toEqual([])
+      expect(requests.filter(u => !u.startsWith('file:') && !u.startsWith('data:'))).toEqual([])
+      await context.close()
+    }
+    expect(live).toBe(`https://e2e-download.${BASE}/`)
+  }, 120_000)
 })

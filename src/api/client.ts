@@ -1,4 +1,5 @@
 import type { Source } from '../analytics/source'
+import type { SiteExport } from '../publish/siteZip'
 import type { Site } from '../site/schema'
 
 /**
@@ -98,6 +99,8 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
       if (err instanceof ApiError && err.status === 409 && typeof err.extra.state === 'string') return { ...err.extra } as RefundState
       throw err
     }),
+    /** "Download your site": the site's files, ready to zip (paid, live sites only). */
+    exportSite: (key: string) => call<SiteExport>('/v1/draft/export', { key }),
     requestEditLink: (email: string) => call<{ message: string }>('/v1/edit-link', json('POST', { email })).then(r => r.message),
   }
 }

@@ -68,6 +68,23 @@ browser stays small). The daily cron (03:17 UTC) deletes unpaid, never-published
 for 30 days, with their photos, and photos left behind by drafts that no longer exist. Paid sites
 (refunded ones too) and published sites are never deleted automatically.
 
+### Download your site
+
+A paid, live site can be downloaded as a .zip: **Download your site** on the go-live step (when
+opened with the edit link or in the browser that paid), or the link in the welcome email and in
+every "your edit link" email (`/build/#download=<edit token>`, the edit link's own key; a bare
+`/build/#download` asks for a new edit link, so a future "site closed" page can link there).
+
+`GET /v1/draft/export` (draft key or edit link) checks the site is paid, not refunded or
+disputed and not taken down, counts the download (10 per site per day, plus 60 an hour per
+address), then answers with the published `index.html`, `privacy.html`, stylesheet and icon
+made portable (`src/publish/portable.ts`: relative links; the robots, canonical and `og:url` /
+`og:image` tags left out, since they name our address), a `README.txt`, and the photos and
+fonts (with their licence) to fetch from the live site. The builder fetches those (photos and
+fonts send `Access-Control-Allow-Origin: *`) and zips everything in the browser
+(`src/publish/zip.ts`, stored, no compression), so the worker does no heavy work. The zip opens
+offline from a folder; `e2e/publish.e2e.test.ts` checks that in Chrome.
+
 ## Layout
 
 - `server/core/`: everything the server does, written against plain interfaces (`ports.ts`) and
@@ -274,12 +291,12 @@ Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 |---|---|---|
 | `BASE_DOMAIN` | both configs | `localblocks.co.uk`. Change here and in the route patterns to move domain. |
 | `BUILDER_ORIGINS` | API config | Comma-separated origins allowed to call the API (default `http://localhost:5173`). Add the builder's address when it's hosted. |
-| `NOINDEX` | both configs | `true` until launch: noindex headers and meta tags, robots.txt disallows everything. |
+| `NOINDEX` | both configs | `true` until launch: noindex headers and meta tags, robots.txt disallows everything. Always the opposite of `LAUNCHED` (a test checks). |
 | `PREVIEW_DAYS` | API config | How long preview links work (30). |
 | `BRAND_NAME` | tests only | Overrides the product's name. Not set in production: the name comes from `src/brand/config.ts`, like the domain and email. |
 | `APP_URL` | API config | Where the homepage and builder live: Stripe's return pages and the links in emails. |
 | `PRICE_PENCE` | API config | The one price, in pence (`9900`). The only place it's set: the builder asks the server (`GET /v1/config`), and the homepage and builder are built with it. |
-| `LAUNCHED` | API config | `false` until launch: checkouts need the tester code. `true` takes orders from everyone. |
+| `LAUNCHED` | API config | `false` until launch: checkouts need the tester code. `true` takes orders from everyone, and the next homepage build opens it to search engines (see "Launch day"). |
 | `REFUND_DAYS` | API config | How long the self-serve refund link works after paying (`14`). |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | API config | Sender of every email, and the address replies and "get in touch" go to. |
 | `ADMIN_TOKEN` | API secret | Publishing without paying, for testing and support, and reading the admin dashboard. Unset: both closed. |
@@ -385,6 +402,58 @@ its hostname instead.
 
 **7. Keep `siteblocks.co.uk` renewing** until October 2027, with its wildcard DNS record, so the
 redirects keep working.
+
+## Launch day
+
+Until launch, nothing of ours is in search results: every page says noindex, `robots.txt`
+disallows everything and there's no sitemap. One switch turns that around.
+
+**1. Fill in the legal details** in `src/brand/config.ts` under `legal` (your name, business
+address, ICO registration number, and the date for "Last updated"). The privacy policy and terms
+show any that are still placeholders, highlighted; a build with `LAUNCHED` on refuses to finish
+while one is left.
+
+**2. Flip the switch.** In `server/wrangler.api.jsonc` set `"LAUNCHED": "true"` and `"NOINDEX":
+"false"`, and in `server/wrangler.site.jsonc` set `"NOINDEX": "false"` (`npm test` fails if
+the three disagree). Merge, then deploy all three:
+
+```bash
+npm run cf:deploy
+```
+
+```bash
+npm run cf:deploy:app
+```
+
+The homepage build then serves `robots.txt` (open, but not `/build/` or `/admin/`) and
+`sitemap.xml` (the homepage, privacy, terms and the hosting guide), and drops the noindex
+header except on the builder and dashboard (`src/pages/seo.ts`). Customers' sites get their own
+`robots.txt` and `sitemap.xml` when they're published; **sites published before launch keep
+noindex until republished** (pressing Publish changes on each is enough).
+
+Check: `https://localblocks.co.uk/robots.txt` shows `Sitemap: https://localblocks.co.uk/sitemap.xml`,
+and `curl -I https://localblocks.co.uk/` shows no `X-Robots-Tag`.
+
+**3. Google Search Console** (free; you'll need the Google account you want to manage it with)
+
+1. Go to https://search.google.com/search-console and choose **Add property** (or the property
+   menu, top left → **Add property**).
+2. Choose **Domain** (the left box, not "URL prefix") and type `localblocks.co.uk`. **Continue**.
+   A Domain property covers every address: `www.`, and every customer's `<name>.localblocks.co.uk`.
+3. Google shows a TXT record starting `google-site-verification=`. Click **Copy**. Leave the page open.
+4. In Cloudflare → **localblocks.co.uk** → **DNS** → **Records** → **Add record**: type **TXT**,
+   name `@`, content: paste the whole value, TTL Auto → **Save**. Don't change the existing SPF
+   TXT record (`v=spf1 …`): this is a second, separate TXT record.
+5. Back in Search Console, click **Verify**. If it says it can't find the record, wait ten
+   minutes and try again (it can take up to a day). Keep the TXT record for good: removing it
+   un-verifies the property.
+6. In the new property: **Sitemaps** (left menu) → enter `sitemap.xml` →
+   **Submit**. It should say "Success" within a day or so.
+7. Optional: **URL inspection** → `https://localblocks.co.uk/` → **Request indexing**, to get
+   the homepage looked at sooner.
+
+Customers' sites need nothing from you: they're covered by the Domain property, and each has
+its own sitemap.
 
 ## Admin dashboard
 

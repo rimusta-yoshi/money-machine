@@ -151,6 +151,7 @@ describe('useDraft', () => {
     refundStatus: vi.fn(async () => ({ state: 'used' as const })),
     refund: vi.fn(async () => ({ state: 'used' as const })),
     requestEditLink: vi.fn(async () => 'sent'),
+    exportSite: vi.fn(async () => ({ name: 'joes.zip', files: [], fetch: [] })),
     shop: vi.fn(async () => ({ pricePence: 9900, currency: 'gbp', launched: true, refundDays: 14 })),
   }) satisfies Api
 

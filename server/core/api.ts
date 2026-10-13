@@ -5,6 +5,7 @@ import { checkoutStatus, createCheckout, shopConfig } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
 import { recordEvent } from './events'
+import { exportSite } from './export'
 import { corsHeaders, errorResponse, HttpError, htmlPage, json, withHeaders } from './http'
 import type { Deps } from './ports'
 import { createPreview, servePreviewHost } from './preview'
@@ -33,6 +34,7 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/draft\/preview$/, createPreview],
   ['POST', /^\/v1\/draft\/publish$/, publish],
   ['POST', /^\/v1\/draft\/checkout$/, createCheckout],
+  ['GET', /^\/v1\/draft\/export$/, exportSite],
   ['GET', /^\/v1\/config$/, shopConfig],
   ['GET', /^\/v1\/checkouts\/([A-Za-z0-9_]{1,255})$/, checkoutStatus],
   ['POST', /^\/v1\/stripe\/webhook$/, stripeWebhook],

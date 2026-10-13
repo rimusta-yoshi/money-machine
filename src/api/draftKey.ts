@@ -46,6 +46,16 @@ export const editTokenFromHash = (hash: string): string | null => {
   return t?.startsWith('edit.') ? t : null
 }
 
+/**
+ * A download link (#download=<edit token>, from the welcome email): the token, '' for a bare
+ * #download (no key: the page offers a new edit link), or null if the hash isn't one.
+ */
+export const downloadTokenFromHash = (hash: string): string | null => {
+  if (hash === '#download') return ''
+  const t = fromHash(hash, 'download', KEY_SHAPE)
+  return t?.startsWith('edit.') ? t : null
+}
+
 /** The token from a refund link's hash (#refund=<token>). */
 export const refundTokenFromHash = (hash: string): string | null => fromHash(hash, 'refund', REFUND_SHAPE)
 

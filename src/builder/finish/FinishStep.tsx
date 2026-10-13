@@ -12,6 +12,7 @@ import { siteSections } from '../../site/sections'
 import type { Step } from '../steps'
 import { PhotoNeeds } from './PhotoNeeds'
 import { GoLivePanel } from './GoLivePanel'
+import { LegalLinks } from '../ui/LegalLinks'
 import './finish.css'
 
 interface Props {
@@ -112,6 +113,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEdi
           <button type="button" className="sb-text-btn bg-reset" onClick={onReset}>Start a new site</button>
         </div>
         {share && <div id={shareId} hidden={!sharing}>{share}</div>}
+        <LegalLinks />
       </section>
 
       <GoLivePanel site={site} trade={trade} draft={draft} adminPublish={adminPublish} domain={domain} onBusinessChange={onBusinessChange} verify={verify} cancelled={cancelled} shop={shop} />

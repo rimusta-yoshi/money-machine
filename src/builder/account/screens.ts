@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { refundTokenFromHash } from '../../api/draftKey'
+import { downloadTokenFromHash, refundTokenFromHash } from '../../api/draftKey'
 
 /** Which page the builder's address is asking for: the builder itself, or a page around paying. */
 export type Screen =
@@ -7,6 +7,8 @@ export type Screen =
   | { kind: 'paid'; sessionId: string }
   | { kind: 'refund'; token: string }
   | { kind: 'lost-link' }
+  /** "Download your site" from the welcome email; token '' when the link carried none. */
+  | { kind: 'download'; token: string }
 
 const SESSION = /^cs_(test|live)_[A-Za-z0-9]{10,250}$/
 
@@ -17,6 +19,8 @@ export function screenFrom(loc: { search: string; hash: string }): Screen {
   const refund = refundTokenFromHash(loc.hash)
   if (refund) return { kind: 'refund', token: refund }
   if (loc.hash === '#lost-link') return { kind: 'lost-link' }
+  const download = downloadTokenFromHash(loc.hash)
+  if (download !== null) return { kind: 'download', token: download }
   return { kind: 'builder', cancelled: q.get('checkout') === 'cancelled' }
 }
 

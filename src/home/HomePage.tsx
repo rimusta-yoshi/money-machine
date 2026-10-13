@@ -1,4 +1,5 @@
 import { BRAND } from '../brand/config'
+import { FOOTER_LINKS } from '../brand/footer'
 import { Logo } from '../brand/Logo'
 import { BUILDER_URL } from './content'
 import { HomeHero } from './HomeHero'
@@ -32,8 +33,7 @@ export function HomePage() {
         <footer className="hp-foot">
           <span className="hp-foot-name">{BRAND.wordmark}</span>
           <nav aria-label="Footer" className="hp-foot-nav">
-            {BRAND.legalPages && <><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a></>}
-            <a href={`mailto:${BRAND.email}`}>Contact</a>
+            {FOOTER_LINKS.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}
           </nav>
           <span>Made in the UK</span>
         </footer>
