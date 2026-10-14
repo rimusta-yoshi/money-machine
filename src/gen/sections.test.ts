@@ -7,6 +7,7 @@ import {
 } from '.'
 import type { AnySpec, PageContent, ResolvedSection, SectionKey, ThemeKey } from '.'
 import { BARE_PAGE, BRANDS, RICH_PAGE } from './test/fixtures'
+import { CREDIT } from '../brand/config'
 
 const view = (t: SectionKey, c: PageContent = RICH_PAGE) => viewOf(t, c) as never
 const themeUses = (type: SectionKey, theme: ThemeKey) =>
@@ -324,5 +325,19 @@ describe('safety nets', () => {
     expect(presentSections(SECTION_KEYS, unreachable)).not.toContain('contact')
     expect(heroView(unreachable).quote).toBeNull()
     expect(heroView(BARE_PAGE).quote?.href).toBe('#contact')
+  })
+})
+
+describe('the "Made with" credit', () => {
+  it('is in every footer layout, on every theme, linking home with its own source', () => {
+    for (const theme of THEME_KEYS) {
+      const style = resolveSiteStyle(theme, '#1E88E5', 5)
+      const archetypes = new Set(Array.from({ length: 200 }, (_, i) => generateSpec(SECTIONS.footer, candidateSeed(4, i), view('footer'), style)).map(s => JSON.stringify(s)))
+      for (const spec of [...archetypes].map(s => JSON.parse(s) as AnySpec)) {
+        const html = renderPageSection({ type: 'footer', spec, rhythm: { band: 'ground', side: 'right', motif: false } }, style, RICH_PAGE)
+        expect(html, `${theme} ${spec.archetype}`).toContain(`<a class="sb-copy-link sb-credit" href="${CREDIT.href}">Made with Local Blocks</a>`)
+      }
+    }
+    expect(CREDIT.href).toBe('https://localblocks.co.uk/?src=madewith')
   })
 })

@@ -11,6 +11,7 @@ import type { Deps } from './ports'
 import { createPreview, servePreviewHost } from './preview'
 import { publish, slugStatus } from './publish'
 import { serveObject } from './static'
+import { deleteSites, listSites } from './testSites'
 import { stripeWebhook } from './webhook'
 
 function decodeSegment(s: string): string {
@@ -28,6 +29,8 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/drafts$/, createDraft],
   ['POST', /^\/v1\/events$/, recordEvent],
   ['GET', /^\/v1\/admin\/stats$/, adminStats],
+  ['GET', /^\/v1\/admin\/sites$/, listSites],
+  ['POST', /^\/v1\/admin\/sites\/delete$/, deleteSites],
   ['GET', /^\/v1\/draft$/, getDraft],
   ['PUT', /^\/v1\/draft$/, saveDraft],
   ['POST', /^\/v1\/draft\/photos$/, uploadPhoto],

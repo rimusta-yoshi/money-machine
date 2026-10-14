@@ -45,7 +45,7 @@ npm test
 npm run e2e
 ```
 
-The builder stress test (also in CI): every trade, theme, content shape and 50 seeds, each section generated in real Chrome exactly as the builder does it. Every section must offer at least three layouts that pass every hard check (fit, contrast, no lone grid items, no gaps, no overlapping text, nothing spilling out).
+The builder stress test (in CI: 5 seeds on every pull request, the full 50 nightly and after each merge to main, `.github/workflows/stress.yml`): every trade, theme, content shape and 50 seeds, each section generated in real Chrome exactly as the builder does it. Every section must offer at least three layouts that pass every hard check (fit, contrast, no lone grid items, no gaps, no overlapping text, nothing spilling out).
 
 ```bash
 npm run stress

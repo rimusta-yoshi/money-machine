@@ -22,7 +22,8 @@ export function cleanTag(value: unknown): string | null {
 }
 
 /** The ad sources the dashboard tracks. Anything else is counted as OTHER_SOURCE; none (or "direct") as direct. */
-export const KNOWN_SOURCES = ['fb', 'ig', 'google', 'tiktok', 'leaflet'] as const
+// madewith: the "Made with Local Blocks" link on customers' sites.
+export const KNOWN_SOURCES = ['fb', 'ig', 'google', 'tiktok', 'leaflet', 'madewith'] as const
 export const OTHER_SOURCE = 'other'
 /** Common spellings of the known sources. */
 const ALIASES: Record<string, string> = { facebook: 'fb', instagram: 'ig' }

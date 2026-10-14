@@ -1,0 +1,42 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "stack",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/dev-stack.ts"
+      ],
+      "port": 8787,
+      "url": "https://api.localblocks.localhost:8787"
+    },
+    {
+      "name": "stack-sample",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/dev-stack.ts",
+        "--sample-events"
+      ],
+      "port": 8787,
+      "url": "https://api.localblocks.localhost:8787"
+    },
+    {
+      "name": "builder-stack",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:api"
+      ],
+      "port": 5173
+    }
+  ]
+}

@@ -11,7 +11,7 @@ describe('ad source', () => {
   })
 
   it('keeps sources to the list: anything else is "other", none or "direct" is direct', () => {
-    for (const s of ['fb', 'ig', 'google', 'tiktok', 'leaflet']) expect(cleanSource(s.toUpperCase())).toBe(s)
+    for (const s of ['fb', 'ig', 'google', 'tiktok', 'leaflet', 'madewith']) expect(cleanSource(s.toUpperCase())).toBe(s)
     expect(cleanSource('facebook')).toBe('fb')
     expect(cleanSource('Instagram')).toBe('ig')
     expect(cleanSource('bing')).toBe('other')

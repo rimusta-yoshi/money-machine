@@ -36,10 +36,11 @@ Libre Franklin, Nunito Sans, Schibsted Grotesk, Unbounded.
 
 The icons on our pages, in the builder and on customer websites are drawn for Local Blocks
 (inline SVG in `src/gen/core/markup.ts`, `src/home/GetIcon.tsx`, `src/components/ui/Icon.tsx`).
-Two builder icons, `Icon.Monitor` and `Icon.Sun`, look like Feather/Lucide shapes and their
-origin isn't recorded; both are unused. Delete them or credit Feather (MIT) / Lucide (ISC).
+Two unused icons of unrecorded origin (Feather/Lucide-like) and the starter template's
+`/icons.svg` (other companies' logos) were deleted on 14 October 2026.
 
-The guide's pictures (`public/guide/*.svg`) are drawn for Local Blocks.
+The favicon (the Local Blocks block mark) and the guide's pictures (`public/guide/*.svg`) are
+drawn for Local Blocks.
 
 ## Images
 

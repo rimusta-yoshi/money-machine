@@ -1,0 +1,56 @@
+# Money Machine: PM status
+
+**Source of truth:** [MVP Roadmap doc](https://claude.ai/code/artifact/b03af0b3-d31a-479d-a237-2dee353c7eac)
+**Repo:** github.com/rimusta-yoshi/money-machine (Vite + React + TS, Cloudflare Workers backend in server/)
+**Launch name: Local Blocks** (chosen Oct 2026; localblocks.co.uk bought, UK Sole Trader in rob's name). Working title Site Blocks / siteblocks.co.uk is still what's live; it clashes with the existing SiteBlocks builder, so switch before launch (name is one config value). Reason for Local Blocks: every target customer is a local business (trades, hairdressers, dog walkers), and name.localblocks.co.uk reads well for customers without their own domain. UK IPO search clean.
+
+## How we work
+- This chat acts as project manager: priorities, sequencing, decisions, and writing briefs for coding chats.
+- The Claude Code chats get short, self-contained task briefs, not the whole backstory, so usage stays low.
+
+## Status (latest, 7 Oct 2026)
+- Phase 1 live (PR #8): homepage siteblocks.co.uk, builder, sites <slug>.siteblocks.co.uk, previews; noindex until launch.
+- Brand/homepage/builder restyle merged (PRs #12, #13).
+- **Phase 2 payment merged (PR #14), NOT deployed yet.** Stripe Checkout (£99 from server PRICE_PENCE), signed idempotent webhook publishes, success/cancel pages, welcome email (Resend adapter), edit link, self-serve refunds (14 days), dashboard refunds take site down, browser-only autosave, daily 30-day cleanup. Extras: duplicate/late payments auto-refunded, email failure retried by Stripe. 2,280 tests + Chrome e2e pass.
+- Phase 2 follow-up merged (tester gate, disputes, edit-link change, single price, refunded addresses freed after 90 days). 2,291 tests. Main NOT deployable until migrations run (cf:migrate applies two).
+- Decided 7 Oct: dispute → email owner (paused + contact us; another when restored); lost dispute frees address after 90 days; one shared tester code for now.
+- 10 Oct: Phase 2 PRs #14–#19 merged. Tested locally in Stripe sandbox: pay → live → email → edit → refund works. Still to test: dashboard refund, declined card, dispute. Not deployed yet. Local test: npm run dev:pay.
+- Decided 10 Oct: price stays £99 for now; founding price (small, e.g. first 10 at £49 or launch week) decided at launch via Stripe promo code; homepage gets a plain 'Why £99, once?' story section (in rename brief). Paid-site editing (Publish changes in top bar, clickable steps) added to reliability brief. Refund fee kept by Stripe (~£1.70 on a UK card) — watch refund rate.
+- 11 Oct: builder reliability done (dead sections fixed — cause was a phone with no digits failing the call-button check; even-row grids 1–12 items; 4 new browser checks; picks locked; 50 licensed Pexels samples, 8+ per trade; paid sites open on Build with Publish changes; stress test 7,000 cases in CI, 0 failures; 2,334 tests). Deploy now also needs `npm run cf:samples` then API redeploy then builder.
+- Decided 11 Oct: locked layout that stops fitting after a text edit → keep swap-and-restore but tell the user; first gallery upload replaces samples (honest preview) + nudge to add more; sample set fixed at site creation (not tied to name); warn (don't block) when phone has no digits.
+- 11 Oct: privacy policy + terms first draft (Claude Doc): https://claude.ai/code/artifact/b60b2c99-6ec2-4c86-bba6-04c9a2a727a8 — placeholders [FULL NAME], [BUSINESS ADDRESS], [ICO NUMBER], [DATE]; 6 open questions for rob; needs professional check. Admin dashboard brief pasted into a new coding chat (claude/brief-admin-dashboard.md). hello@ and abuse@ routing to localblocks.hello@gmail.com, tested.
+- 11 Oct: admin dashboard built (/admin, funnel, src/utm carry-through, money, layouts; admin key + Cloudflare Access steps in server/README). Decided: keep per-visit builder counting; reloads count as landings (fine for test); allowlist sources (fb, ig, google, tiktok, leaflet, direct) and bucket the rest as 'other'; drop rate-limit config if rejected; show Stripe fees + net after fees; layout picks raw counts for now; policy reworded to allow Cloudflare's security cookie.
+- Deploy is safe with sandbox keys + tester gate; 'proper' Stripe = activation later, just swaps keys.
+- 12 Oct: LIVE on localblocks.co.uk (test payments only, tester gate): admin dashboard (#22, #23), rename to Local Blocks (#24; siteblocks.co.uk 301s everything, keep renewing to Oct 2027; internal names stay 'siteblocks'), builder fix (#25), test payments in production (#26): Stripe sandbox webhook, secrets, Resend verified, full test checkout worked. Emails from Local Blocks <hello@localblocks.co.uk>.
+- rob to do in dashboards: Stripe public details (Local Blocks, https://localblocks.co.uk, hello@, LOCALBLOCKS), Cloudflare Access for /admin, Web Analytics token → coding chat. Check Stripe fee shows after a day on a kept test site.
+- Decided 12 Oct (PM recommendation): 'Made with Local Blocks' footer link yes (small, ?src=madewith, not removable for now); failed sample photos → drawn stand-ins; keep reviews example on Your look, labelled Example.
+- rob's list 12 Oct: (a) PRE-LAUNCH: 'Host your own site' guide page — ships with the site download + legal pages brief. (b) POST-LAUNCH: SEO pages per trade (and a few cities) — few, genuinely useful, real examples; avoid thin city-swapped doorway pages (Google spam policy). (c) AT LAUNCH: Google Search Console via DNS in Cloudflare, sitemap.xml + robots, lift noindex. Support: promise 5 working days, weekly Monday inbox check, Gmail notifications for abuse@ only.
+- 13 Oct: briefs ready: claude/brief-legal-download-guide.md (+ claude/legal-text.md) and claude/brief-packs-and-type-pages.md. Post-launch months 1–2 (rob will soon have full days): ads (Google + Meta), scale business types via packs (~30 simple trades first), brand/UI generator. See ideas-backlog roadmap.
+- 13 Oct: mobile builder UX (pre-launch): rob dislikes section pills covering content and bottom sheet up to half the screen (worse with keyboard). Direction: per-section loop — swipe layouts (small bar, no typing) → 'Use this layout' → that section's fields with only that section visible above → Done → full site + Change layout / Edit content / Next; tap any section to jump to its fields; no pills on the site. Clickable prototype: https://claude.ai/artifact/Y1RxThgephzTk114jTce3y. Order: legal brief → packs brief (prototype reviewed meanwhile) → mobile build after packs merges.
+- 14 Oct: legal pages (/privacy, /terms from content/legal/*.md; placeholders in src/brand/config.ts, build fails if LAUNCHED with blanks), footer + checkout links, 'Download your site' (paid only, 10/day, zip built in browser, works offline), hosting guide /guide/host-your-own-site/, licence check (THIRD-PARTY-NOTICES, font licences), launch-day SEO switch ready but off. Search Console steps in server/README 'Launch day'.
+- Decided 14 Oct: add 'Made with' link if not already done; download-link expiry OK; pre-launch sites are test data (delete before launch, no bulk republish); delete Vite favicon/icons.svg/unused icons; REPO TO GO PRIVATE (rob) — watch GitHub Actions minutes (2,000/month free for private) → run stress shards nightly/on main only if needed; close-down page later; rob to remove the 'Bash(python -)' allow from .claude/settings.local.json.
+- 14 Oct (PM session in the repo): PM docs moved to docs/pm/; this file is kept up to date here from now on. feat/credit-cleanup-ci finished: 'Made with Local Blocks' footer link (?src=madewith, every footer layout + download), admin-key test-site list/delete (refused once LAUNCHED) + `npm run test-sites`, Vite favicon/icons.svg/unused icons removed, CI split (PRs run one quick stress job; full 6-shard run nightly + on main in stress.yml). Types, lint, 2,414 tests pass. 'Bash(python -)' allow removed. Merge waits on rob swapping the required status checks. Then: packs + type pages brief as a worktree agent; mobile builder after packs merges (docs/pm/mobile-direction.md).
+- Next: legal pages (rob answers the doc's open questions first) → Stripe activation → launch → ad test.
+- Older next-steps line: rob signs up to Stripe (test mode needs no business account) → sets secrets + Stripe webhook + Resend + migrate + deploy → rob test-buys and refunds once → builder reliability (claude/brief-builder-reliability.md: dead sections, broken gallery layouts, picks changing by themselves) → admin dashboard/funnel brief.
+- Stale branch repo-restructure (May) - don't merge.
+- Rename to Local Blocks (and move to localblocks.co.uk) just before launch.
+
+## Open decisions (owner: rob)
+- Paid extras pricing (reviews, bookings)
+- Whether/when to register "Local Blocks" as a UK trade mark (not required; ~£265 for classes 42 + 35)
+
+## Decisions (Oct 2026)
+- Phase 2 follow-ups decided 7 Oct: tester gate on checkout until launch; refunded addresses freed after 90 days; dispute opened → site down, restored if dispute won; partial refunds leave site up (rob-only action); requesting a new edit link doesn't kill old ones, opening a new link does; paid sites can't change address (support via admin key) until redirects are built; builder shows price from server config.
+- Drafts: no server-side resume drafts; browser autosave only. Unpaid copies and unused photos deleted after 30 days.
+- Upgrade to Workers Paid ($5/mo) at launch / first ads.
+- 'Download your site' zip: yes, later.
+- Paid review by an experienced developer (payments, security, privacy) after Phase 2 in test mode, before live payments.
+- Refund policy: 14-day money-back guarantee, no questions asked.
+- Analytics: no GA. Cloudflare Web Analytics (cookieless) on homepage/builder; no tracking on customer sites.
+- Admin dashboard (/admin, rob only): first-party anonymous funnel events in D1 (landed, started, look picked, built, preview, checkout, paid, refunded) + ad source tag (?src=), by trade/theme; carousel pick logging. Build right after Phase 2, before the first ad test.
+- Legal: privacy policy + terms (90 days' notice + site download if we close; liability capped at £99; content warranties; no uptime guarantee). ICO fee. Contact address (virtual). Not started — rob to say when.
+- Stripe: test mode now; activate before launch as sole trader, business name Local Blocks, payouts to a separate Monzo Business (Lite, free) account.
+- Own domains: later via Cloudflare for SaaS (100 free, then $0.10/month each); registrar affiliate link, never resell domains.
+- Renaming later is possible (~a week of work) but the old domain must renew forever.
+- Parked: Workers Paid (until launch), old-address redirects, server drafts (dropped), split tests, custom domains.
+- Order: deploy (payments + reliability) → admin dashboard/funnel → legal pages → rename → first ad test.

@@ -174,6 +174,25 @@ export function d1Database(db: D1Database): Database {
       ).bind(before, ...refs).all<{ ref: string }>()
       return rows.results.map(r => r.ref)
     },
+    async sites() {
+      const rows = await db.prepare(`SELECT ${DRAFT_COLUMNS}, created_at FROM drafts WHERE paid_at IS NOT NULL OR published_at IS NOT NULL OR slug IS NOT NULL ORDER BY created_at DESC`)
+        .all<DraftDbRow & { created_at: number }>()
+      return rows.results.map(r => ({ ...toDraft(r)!, createdAt: r.created_at }))
+    },
+    async deleteDraft(ref) {
+      const held = await db.prepare('SELECT slug FROM slugs WHERE ref = ?1 UNION SELECT slug FROM drafts WHERE ref = ?1 AND slug IS NOT NULL')
+        .bind(ref).all<{ slug: string }>()
+      // Previews, addresses and checkouts go with the draft (ON DELETE CASCADE); the dashboard's rows by hand.
+      await db.batch([
+        db.prepare('DELETE FROM events WHERE ref = ?1').bind(ref),
+        db.prepare('DELETE FROM layout_picks WHERE ref = ?1').bind(ref),
+        db.prepare('DELETE FROM checkouts WHERE ref = ?1').bind(ref),
+        db.prepare('DELETE FROM previews WHERE ref = ?1').bind(ref),
+        db.prepare('DELETE FROM slugs WHERE ref = ?1').bind(ref),
+        db.prepare('DELETE FROM drafts WHERE ref = ?1').bind(ref),
+      ])
+      return held.results.map(r => r.slug)
+    },
     async existingRefs(refs) {
       if (!refs.length) return new Set()
       const rows = await db.prepare(`SELECT ref FROM drafts WHERE ref IN (${params(refs.length)})`).bind(...refs).all<{ ref: string }>()
