@@ -46,6 +46,8 @@ describe('portable site files', () => {
     expect(fontFiles(files[2].body).length).toBeGreaterThan(0)
     expect(css).toContain(`url('fonts/${fontFiles(files[2].body)[0]}')`)
     expect(photoFiles(page('index.html'), page('privacy.html'))).toEqual(['photos/0a1b2c.webp'])
+    // The credit stays, absolute, on the downloaded copy.
+    expect(index).toContain('href="https://localblocks.co.uk/?src=madewith">Made with Local Blocks</a>')
   })
 
   it('leaves the customer’s own words alone', () => {

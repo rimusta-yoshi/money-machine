@@ -106,6 +106,13 @@ export interface Database {
   releaseHolds(ref: string, except: string): Promise<void>
   /** Marks the site refunded once. True if this call did it. */
   markRefunded(ref: string, now: number, refundId: string | null): Promise<boolean>
+  /** Every site that was published or paid for (refunded ones too), newest first. */
+  sites(): Promise<(DraftRow & { createdAt: number })[]>
+  /**
+   * Deletes a draft for good, with its previews, addresses, checkouts and dashboard rows
+   * (test sites before launch). Returns every address it held, for their files to go too.
+   */
+  deleteDraft(ref: string): Promise<string[]>
   /** Stripe events: true if this id was handled already. */
   eventSeen(id: string): Promise<boolean>
   recordEvent(id: string, type: string, now: number): Promise<void>

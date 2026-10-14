@@ -1,0 +1,46 @@
+name: Stress test
+
+# The full builder stress test (scripts/stress-browser.mjs): every trade × theme × content shape
+# × 50 seeds, each section generated as the builder does it in real Chrome, split across six
+# runners of four tabs each. Nightly and after every merge to main (pull requests run the quick
+# one in ci.yml). Run it by hand from the Actions tab: "Stress test" → "Run workflow".
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stress-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stress:
+    name: Stress test (shard ${{ matrix.shard }} of 6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Run the stress test
+        run: npm run stress -- --seeds 50 --pages 4 --shard ${{ matrix.shard }}/6 --timeout-min 40 --out stress-${{ matrix.shard }}.json
+      - name: Keep the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-report-${{ matrix.shard }}
+          path: stress-${{ matrix.shard }}.json
+          if-no-files-found: ignore

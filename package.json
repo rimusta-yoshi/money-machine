@@ -23,7 +23,8 @@
     "cf:deploy:app": "npm run build && wrangler deploy -c server/wrangler.app.jsonc",
     "cf:deploy:redirect": "wrangler deploy -c server/wrangler.redirect.jsonc",
     "stress": "node scripts/stress-browser.mjs",
-    "repro": "node scripts/repro.mjs"
+    "repro": "node scripts/repro.mjs",
+    "test-sites": "node scripts/test-sites.mjs"
   },
   "dependencies": {
     "react": "^19.2.6",

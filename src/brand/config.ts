@@ -31,6 +31,15 @@ export const BRAND = {
   },
 } as const
 
+/**
+ * The "Made with Local Blocks" line at the foot of every customer site (and its download):
+ * a quiet link home, counted as the "madewith" source on the dashboard.
+ */
+export const CREDIT = {
+  label: `Made with ${BRAND.name}`,
+  href: `https://${BRAND.domain}/?src=madewith`,
+} as const
+
 /** Our own plain pages (content/*.md, built by vite.config.ts), as linked from footers and emails. */
 export const PAGES = {
   privacy: '/privacy/',
