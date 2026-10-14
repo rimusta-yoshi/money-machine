@@ -2,12 +2,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
-import { plumber } from '../../trades/plumber'
 import { createSite } from '../../site/defaults'
 import type { Site } from '../../site/schema'
 import type { Draft } from '../../api/useDraft'
 import { FinishStep } from './FinishStep'
 import { GoLivePanel } from './GoLivePanel'
+import { tradeById } from '../../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 
@@ -104,7 +106,7 @@ describe('FinishStep (go live)', () => {
     expect([terms.getAttribute('href'), privacy.getAttribute('href')]).toEqual(['/terms/', '/privacy/'])
     expect([terms.getAttribute('target'), privacy.getAttribute('target')]).toEqual(['_blank', '_blank'])
     const footer = screen.getByRole('navigation', { name: 'Footer' })
-    expect([...footer.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual(['/privacy/', '/terms/', '/guide/host-your-own-site/', 'mailto:hello@localblocks.co.uk'])
+    expect([...footer.querySelectorAll('a')].map(a => a.getAttribute('href'))).toEqual(['/faq/', '/websites-for/', '/privacy/', '/terms/', '/guide/host-your-own-site/', 'mailto:hello@localblocks.co.uk'])
   })
 
   const fakeDraft = (o: Partial<Draft> = {}) => ({

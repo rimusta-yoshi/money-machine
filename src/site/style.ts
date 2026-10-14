@@ -1,17 +1,12 @@
 import { hashString, resolveSiteStyle } from '../gen'
 import type { LegacyThemeKey, ThemeKey } from '../gen'
 import { mixSeeds } from '../gen/rng'
-import type { TradeId } from '../types'
+import { PACKS } from '../packs'
+import type { TradeId } from '../packs'
 import type { SiteStyleRecord } from './schema'
 
-/** Starting theme per trade. The customer can switch in the builder. */
-export const DEFAULT_THEME: Record<TradeId, ThemeKey> = {
-  plumber: 'clean-pro',
-  electrician: 'workwear',
-  roofer: 'workwear',
-  painter: 'craft-heritage',
-  landscaper: 'friendly-local',
-}
+/** Starting theme per trade (its pack's `look.theme`). The customer can switch in the builder. */
+export const DEFAULT_THEME = Object.fromEntries(PACKS.map(p => [p.id, p.look.theme])) as Record<TradeId, ThemeKey>
 
 /**
  * Where a record's old theme lands. Nobody could pick a theme before the biomes, so every
@@ -24,10 +19,12 @@ const NEAREST: Record<LegacyThemeKey, ThemeKey> = {
   family: 'friendly-local',
   brutalism: 'workwear',
 }
-/** The theme each trade had before any theme could be picked. */
-export const OLD_DEFAULT: Record<TradeId, LegacyThemeKey> = {
-  plumber: 'professional', electrician: 'professional', roofer: 'professional', painter: 'family', landscaper: 'family',
-}
+const LEGACY_OF = Object.fromEntries(Object.entries(NEAREST).map(([old, now]) => [now, old])) as Record<ThemeKey, LegacyThemeKey>
+/**
+ * The theme each trade had before any theme could be picked (its pack's `look.legacyTheme`).
+ * Types added since never had one; theirs is simply the old look nearest their default.
+ */
+export const OLD_DEFAULT = Object.fromEntries(PACKS.map(p => [p.id, p.look.legacyTheme ?? LEGACY_OF[p.look.theme]])) as Record<TradeId, LegacyThemeKey>
 export const migrateTheme = (tradeId: TradeId, old: LegacyThemeKey): ThemeKey =>
   old === OLD_DEFAULT[tradeId] ? DEFAULT_THEME[tradeId] : NEAREST[old]
 

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { plumber } from '../trades/plumber'
 import { createSite } from '../site/defaults'
 import { parseSite } from '../site/parse'
 import { debugInfo } from './debugInfo'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 const photo = (n: number) => ({ url: `data:image/jpeg;base64,${'A'.repeat(4000)}${n}`, alt: `Job ${n}` })
 

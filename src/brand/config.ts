@@ -45,4 +45,7 @@ export const PAGES = {
   privacy: '/privacy/',
   terms: '/terms/',
   hostingGuide: '/guide/host-your-own-site/',
+  faq: '/faq/',
+  /** The "Websites for…" hub: every business type, each with its own page. */
+  types: '/websites-for/',
 } as const

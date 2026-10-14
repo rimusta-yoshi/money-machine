@@ -2,11 +2,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
-import { plumber } from '../../trades/plumber'
 import { createSite } from '../../site/defaults'
 import type { Site } from '../../site/schema'
 import { ListEditor } from './ListEditor'
 import { SectionContentEditor } from './SectionContentEditor'
+import { tradeById } from '../../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 

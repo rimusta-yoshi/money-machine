@@ -5,6 +5,7 @@ import { checkoutStatus, createCheckout, shopConfig } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
 import { recordEvent } from './events'
+import { recordRequestedType } from './requested'
 import { exportSite } from './export'
 import { corsHeaders, errorResponse, HttpError, htmlPage, json, withHeaders } from './http'
 import type { Deps } from './ports'
@@ -28,6 +29,7 @@ type Handler = (req: Request, deps: Deps, param: string) => Promise<Response>
 const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/drafts$/, createDraft],
   ['POST', /^\/v1\/events$/, recordEvent],
+  ['POST', /^\/v1\/requested-types$/, recordRequestedType],
   ['GET', /^\/v1\/admin\/stats$/, adminStats],
   ['GET', /^\/v1\/admin\/sites$/, listSites],
   ['POST', /^\/v1\/admin\/sites\/delete$/, deleteSites],

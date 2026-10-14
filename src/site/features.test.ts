@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { contact } from '../gen/sections/contact'
 import { estimateMeasurer, generateOptions, heroView, renderPage, SECTIONS, viewOf } from '../gen'
 import type { SectionSpecs } from '../gen'
-import { plumber } from '../trades/plumber'
 import { createSite } from './defaults'
 import { FEATURES } from './features'
 import { publishedPage } from './page'
 import { pageContent } from './pageContent'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 const site = {
   ...createSite(plumber, 3),

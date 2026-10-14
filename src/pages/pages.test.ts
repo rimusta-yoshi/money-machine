@@ -77,7 +77,7 @@ describe('our plain pages', () => {
     expect(doc.querySelector('main#main')).not.toBeNull()
     expect(doc.querySelector('a.pg-skip')?.getAttribute('href')).toBe('#main')
     const footer = [...doc.querySelectorAll('footer a')].map(a => a.getAttribute('href'))
-    expect(footer).toEqual([PAGES.privacy, PAGES.terms, PAGES.hostingGuide, `mailto:${BRAND.email}`])
+    expect(footer).toEqual([PAGES.faq, PAGES.types, PAGES.privacy, PAGES.terms, PAGES.hostingGuide, `mailto:${BRAND.email}`])
     // Headings go h1 -> h2 -> h3, never skipping a level.
     const levels = [...doc.querySelectorAll('h1, h2, h3')].map(h => Number(h.tagName[1]))
     levels.forEach((l, i) => { if (i) expect(l - levels[i - 1]).toBeLessThanOrEqual(1) })
@@ -108,14 +108,17 @@ describe('launch switch for search engines', () => {
     expect(appHeaders(false)).toMatch(/^\/\*\n {2}X-Robots-Tag: noindex, nofollow$/m)
   })
 
-  it('after launch: the homepage, legal pages and guide are open, the builder and dashboard are not', () => {
+  it('after launch: the homepage, the trade pages, legal pages, guide and FAQ are open, the builder and dashboard are not', () => {
     const robots = appRobotsTxt(true, ORIGIN)
     expect(robots).toContain('Disallow: /build/')
     expect(robots).toContain('Disallow: /admin/')
     expect(robots).toContain(`Sitemap: ${ORIGIN}/sitemap.xml`)
     const sitemap = appSitemap(true, ORIGIN, new Date('2026-11-01'))!
     expect([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1])).toEqual(PUBLIC_PATHS.map(p => ORIGIN + p))
-    expect(PUBLIC_PATHS).toEqual(['/', '/privacy/', '/terms/', '/guide/host-your-own-site/'])
+    expect(PUBLIC_PATHS).toEqual([
+      '/', '/websites-for/', '/websites-for/plumbers/', '/websites-for/painters-and-decorators/', '/websites-for/roofers/',
+      '/websites-for/electricians/', '/websites-for/landscapers-and-gardeners/', '/privacy/', '/terms/', '/guide/host-your-own-site/', '/faq/',
+    ])
     const headers = appHeaders(true)
     expect(headers).not.toMatch(/^\/\*\n {2}X-Robots-Tag/m)
     expect(headers).toMatch(/^\/build\/\*\n {2}X-Robots-Tag: noindex, nofollow$/m)

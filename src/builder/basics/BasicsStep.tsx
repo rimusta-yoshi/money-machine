@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import type { BusinessInfo, TradeConfig } from '../../types'
+import type { BusinessInfo, TradeConfig, TradeId } from '../../types'
 import type { Site } from '../../site/schema'
 import { LIMITS } from '../../site/limits'
 import { telHref } from '../../site/phone'
@@ -11,6 +11,7 @@ import { LegalLinks } from '../ui/LegalLinks'
 import { TextField } from '../ui/TextField'
 import { useNarrow } from '../useNarrow'
 import { TradePicker } from './TradePicker'
+import { NotListed } from './NotListed'
 import { BasicsPreview, BasicsPreviewCard } from './BasicsPreview'
 import './basics.css'
 
@@ -26,6 +27,8 @@ interface Props {
   status?: ReactNode
   /** Offer "Already paid? Get your edit link" (when this build has a server). */
   lostLink?: boolean
+  /** "My business isn't listed": counts what they said (anonymously). */
+  onRequestType?: (text: string, closest: TradeId | null) => void
 }
 
 const EMPTY: Basics = { name: '', location: '', phone: '' }
@@ -42,7 +45,7 @@ const needsLine = (gaps: BasicsGap[]) =>
  * Desktop shows one form; phones split it in two (trade first, then the three fields).
  * Typing before a trade is picked is kept here and handed over with the trade.
  */
-export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext, status, lostLink }: Props) {
+export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext, status, lostLink, onRequestType }: Props) {
   const narrow = useNarrow()
   const [stage, setStage] = useState<0 | 1>(0)
   const [pending, setPending] = useState<Basics>(EMPTY)
@@ -109,6 +112,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
           <main className="bb-stage sb-in">
             <h1 className="bb-h1">What's your trade?</h1>
             <TradePicker value={trade?.id ?? null} onPick={pick} variant="rows" legend="Your trade" legendHidden firstRef={tradeRef} />
+            <NotListed onPick={pick} onRequest={onRequestType} />
             {note}
             <button type="button" className="sb-main-btn bb-wide-btn" onClick={toDetails}>Continue</button>
             {paidAlready}
@@ -142,6 +146,7 @@ export function BasicsStep({ trade, site, onPickTrade, onBusinessChange, onNext,
             <p className="bb-lead">Four quick things. You can change them all later.</p>
           </div>
           <TradePicker value={trade?.id ?? null} onPick={pick} variant="chips" legend="Your trade" firstRef={tradeRef} />
+          <NotListed onPick={pick} onRequest={onRequestType} />
           {fields}
           {note}
           <button type="submit" className="sb-main-btn bb-submit">Next: your look</button>

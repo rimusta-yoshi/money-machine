@@ -3,13 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
 import { ApiError } from '../../api/client'
-import { plumber } from '../../trades/plumber'
 import { createSite } from '../../site/defaults'
 import { pageContent } from '../../site/pageContent'
 import type { Site } from '../../site/schema'
 import { LookStep } from '../look/LookStep'
 import { PublishChanges } from './PublishChanges'
 import { TopBar } from './TopBar'
+import { tradeById } from '../../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 

@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { plumber } from '../trades/plumber'
-import { painter } from '../trades/painter'
 import { siteReducer } from './reducer'
 import type { Site } from './schema'
 import { resolveSiteStyle } from '../gen'
 import type { Generated } from '../gen'
 import { tradeById } from '../trades'
 import { withRhythm } from './page'
+
+const plumber = tradeById.plumber
+const painter = tradeById.painter
 
 const PICKED_HERO: Generated = {
   seed: 42,

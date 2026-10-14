@@ -9,6 +9,7 @@ import {
 import type { AnySpec, Generated } from '../gen'
 import { verifySite } from '../builder/verifySite'
 import { withSample } from '../sample/content'
+import { STOCK_PHOTO_FILES } from '../sample/stockPhotoFiles'
 import { trades, tradeById } from '../trades'
 import { createSite } from './defaults'
 import { FEATURES } from './features'
@@ -217,9 +218,10 @@ describe('sample stock photos', () => {
     const loader = readFileSync(join(__dirname, '..', 'sample', 'stockPhotos.ts'), 'utf8')
     expect(loader).not.toMatch(/import [^\n]*\.jpg/)
     expect(loader).toContain('VITE_SAMPLE_PHOTOS_URL')
-    const list = readFileSync(join(__dirname, '..', 'sample', 'stockPhotoFiles.ts'), 'utf8')
-    expect(list).not.toMatch(/import [^\n]*\.jpg/)
-    expect(list.match(/'Sample photo: /g)?.length).toBe(readdirSync(dir).filter(f => f.endsWith('.jpg')).length)
+    // The list comes from the packs (src/packs/business), which name each file and never import it.
+    const packs = join(__dirname, '..', 'packs', 'business')
+    for (const f of readdirSync(packs)) expect(readFileSync(join(packs, f), 'utf8')).not.toMatch(/import [^\n]*\.jpg/)
+    expect([...STOCK_PHOTO_FILES].sort()).toEqual(readdirSync(dir).filter(f => f.endsWith('.jpg')).sort())
   })
 
   it('are never used for the examples customers see', () => {

@@ -1,16 +1,30 @@
-import { painter } from './painter'
-import { roofer } from './roofer'
-import { electrician } from './electrician'
-import { landscaper } from './landscaper'
-import { plumber } from './plumber'
-import type { TradeConfig, TradeId } from '../types'
+import { PACKS } from '../packs'
+import type { PackCore, TradeId } from '../packs'
+import { isBuilt } from '../packs/sections'
+import type { TradeConfig } from '../types'
 
-export const trades: TradeConfig[] = [plumber, painter, roofer, electrician, landscaper]
-
-export const tradeById: Record<TradeId, TradeConfig> = {
-  plumber,
-  painter,
-  roofer,
-  electrician,
-  landscaper,
+/**
+ * The trades as the builder and generator see them, read from the business-type packs
+ * (src/packs). Nothing about a trade is written here: edit its pack.
+ */
+export function toTradeConfig(pack: PackCore & { id: TradeId }): TradeConfig {
+  return {
+    id: pack.id,
+    name: pack.name,
+    emoji: pack.emoji,
+    tagline: pack.copy.tagline,
+    colorScheme: pack.look.colours,
+    // Planned sections wait until they're built (pack:check reports them).
+    sections: pack.sections.flatMap(s => (isBuilt(s.type) ? [{ type: s.type }] : [])),
+    ctaText: pack.copy.cta,
+    ctaSubtext: pack.copy.ctaNote,
+    offer: pack.copy.offer,
+    trustSignals: pack.badges,
+    services: pack.services.map(s => s.name),
+    stickyCallBar: pack.stickyCallBar,
+  }
 }
+
+export const trades: TradeConfig[] = PACKS.map(toTradeConfig)
+
+export const tradeById = Object.fromEntries(trades.map(t => [t.id, t])) as Record<TradeId, TradeConfig>

@@ -8,6 +8,7 @@ build turns them into pages with the homepage's look (see `src/pages/`).
 | `legal/privacy.md` | `/privacy/` |
 | `legal/terms.md` | `/terms/` |
 | `guide/host-your-own-site.md` | `/guide/host-your-own-site/` |
+| `faq.md` | `/faq/` |
 
 Words in double curly brackets are filled in by the build, so each is set in one place:
 

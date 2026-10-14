@@ -307,7 +307,8 @@ Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 | `RESEND_API_KEY` | API secret | Sends email through Resend. Unset: emails are written to the worker's log instead (fine for testing, not for customers: the log then holds their links). |
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
-deletes dashboard events older than 13 months, then runs the cleanup above.
+deletes dashboard events older than 13 months (and requested business types not asked for
+since), then runs the cleanup above.
 
 ## Moving to localblocks.co.uk (October 2026)
 
@@ -497,6 +498,16 @@ event of that site (checkout, payment, refund, dispute) carries it, whatever lin
 (`facebook` and `instagram` count as `fb` and `ig`). Any other value is stored as `other`, and none
 (or `direct`) as direct. Campaigns are cleaned to lower-case letters, digits, `-` and `_` (40
 characters); anything with an `@` or a run of 7+ digits (a phone number) is dropped.
+
+**Requested business types** (`server/core/requested.ts`, table `requested_types`, migration
+0006): "My business isn't listed" on the builder's first step sends what the visitor typed
+(`POST /v1/requested-types {text, closest}`). Only a short description is kept, cleaned by
+`src/analytics/requested.ts` (lower case, letters and `& ' -`, 60 characters, six words);
+anything that looks like an email, a phone number or a web address is dropped without a word.
+Each row is the description, how many times it was asked for, the type we suggested and when it
+was first and last asked: nothing about who asked (no draft key, no source, no IP). Same rate
+limit as events. The dashboard lists the 50 most asked for, all time. A description not asked for
+again in 13 months is deleted by the daily cron.
 
 Money (sales, revenue, refunds, disputes, net) comes from the payments on `drafts`, not from
 events. Full refunds and disputes count on the day they happened. Stripe's fee on each sale is

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { plumber } from '../trades/plumber'
-import { painter } from '../trades/painter'
 import { createSite } from './defaults'
 import { DEFAULT_THEME } from './style'
 import { SiteParseError } from './schema'
 import { parseSite } from './parse'
 import type { Site } from './schema'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
+const painter = tradeById.painter
 
 describe('createSite', () => {
   it('starts with the trade accent as brand colour and nothing filled in', () => {

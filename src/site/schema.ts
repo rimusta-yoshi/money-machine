@@ -3,12 +3,11 @@ import { SECTION_TYPES, TRADE_IDS } from '../types'
 import { LEGACY_THEME_KEYS, siteStyleSchema, THEME_KEYS } from '../gen/schema'
 import { BANDS, FACETS, SECTION_KEYS } from '../gen/core/types'
 import { generatedSectionsSchema } from '../gen/specs'
-import { LIMITS } from './limits'
+import { LIMITS, MAX_SERVICES } from './limits'
 
 export const EXTRA_IDS = ['reviews'] as const
 
-/** Most services a site lists (the trades start with six). */
-export const MAX_SERVICES = 8
+export { MAX_SERVICES }
 export type ExtraId = typeof EXTRA_IDS[number]
 
 const text = (max: number) => z.string().trim().max(max)

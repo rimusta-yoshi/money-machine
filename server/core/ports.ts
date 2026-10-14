@@ -151,6 +151,23 @@ export interface PickRow {
   ref: string | null
 }
 
+/** "My business isn't listed": one request, already cleaned. */
+export interface RequestedTypeRow {
+  text: string
+  /** The business type we suggested, if any. */
+  closest: string | null
+  at: number
+}
+
+/** A requested business type with how many times it was asked for. */
+export interface RequestedType {
+  text: string
+  count: number
+  closest: string | null
+  firstAt: number
+  lastAt: number
+}
+
 /** A date range (ms, inclusive) and an ad source: undefined for every source, null for none (direct). */
 export interface StatsQuery {
   from: number
@@ -206,7 +223,11 @@ export interface Insights {
   recentSites(q: StatsQuery, limit: number): Promise<RecentSite[]>
   /** The ad sources seen in the range (ignoring the source filter), busiest first, for the filter. */
   sources(q: StatsQuery): Promise<string[]>
-  /** Deletes events and picks older than `before`. */
+  /** Counts one "My business isn't listed" request (the same text adds to its count). */
+  addRequestedType(r: RequestedTypeRow): Promise<void>
+  /** The most requested business types (all time), most asked for first. */
+  requestedTypes(limit: number): Promise<RequestedType[]>
+  /** Deletes events and picks older than `before`, and requested types not asked for since. */
   forgetBefore(before: number): Promise<void>
 }
 

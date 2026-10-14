@@ -1,5 +1,5 @@
 import type { Step } from '../../src/analytics/funnel'
-import type { Dimension, Insights, MoneyTotals, RecentSite, SiteStatus, StatsQuery } from '../core/ports'
+import type { Dimension, Insights, MoneyTotals, RecentSite, RequestedType, SiteStatus, StatsQuery } from '../core/ports'
 
 /** The dashboard's counts, on D1 (SQLite). Plain SQL, like d1.ts. */
 
@@ -121,10 +121,22 @@ export function d1Insights(db: D1Database): Insights {
         `SELECT src FROM events WHERE src IS NOT NULL AND at >= ? AND at <= ? GROUP BY src ORDER BY COUNT(*) DESC, src LIMIT ${MAX_SOURCES}`, [q.from, q.to])
       return rows.map(r => r.src)
     },
+    async addRequestedType(r) {
+      await db.prepare(
+        `INSERT INTO requested_types (text, count, closest, first_at, last_at) VALUES (?1, 1, ?2, ?3, ?3)
+         ON CONFLICT (text) DO UPDATE SET count = count + 1, closest = excluded.closest, last_at = excluded.last_at`,
+      ).bind(r.text, r.closest, r.at).run()
+    },
+    async requestedTypes(limit) {
+      const rows = await all<{ text: string; count: number; closest: string | null; first_at: number; last_at: number }>(
+        'SELECT text, count, closest, first_at, last_at FROM requested_types ORDER BY count DESC, last_at DESC LIMIT ?', [limit])
+      return rows.map((r): RequestedType => ({ text: r.text, count: r.count, closest: r.closest, firstAt: r.first_at, lastAt: r.last_at }))
+    },
     async forgetBefore(before) {
       await db.batch([
         db.prepare('DELETE FROM events WHERE at < ?1').bind(before),
         db.prepare('DELETE FROM layout_picks WHERE at < ?1').bind(before),
+        db.prepare('DELETE FROM requested_types WHERE last_at < ?1').bind(before),
       ])
     },
   }

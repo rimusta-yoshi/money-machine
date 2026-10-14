@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { renderPage } from '../gen'
 import { withSample } from '../sample/content'
-import { plumber } from '../trades/plumber'
 import { createSite } from './defaults'
 import { publishedPage } from './page'
 import { pageContent } from './pageContent'
 import { parseSite } from './parse'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 // samplePhotos() draws on a canvas, which node doesn't have; plain https photos stand in.
 const PHOTOS = [1, 2, 3, 4, 5].map(i => ({ url: `https://example.com/sample${i}.jpg`, alt: `Sample photo ${i}` }))

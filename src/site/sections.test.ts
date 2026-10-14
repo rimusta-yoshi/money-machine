@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { plumber } from '../trades/plumber'
 import { createSite } from './defaults'
 import { siteSections } from './sections'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 describe('siteSections', () => {
   it('leaves out the reviews section when the reviews extra is off', () => {

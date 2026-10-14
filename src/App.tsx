@@ -39,6 +39,7 @@ import { LostLinkScreen } from './builder/account/LostLinkScreen'
 import { AccountShell } from './builder/account/AccountShell'
 import { NO_SOURCE, sourceFromSearch } from './analytics/source'
 import { createTracker } from './analytics/track'
+import { sendRequestedType } from './analytics/sendRequested'
 import { storedDraftKey, editTokenFromHash, downloadTokenFromHash } from './api/draftKey'
 import { loadLocalSite } from './api/localSite'
 import { EditLinkChoice } from './builder/account/EditLinkChoice'
@@ -187,6 +188,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
         onBusinessChange={onBusinessChange}
         onNext={() => go('look')}
         lostLink={!!api}
+        onRequestType={(text, closest) => sendRequestedType(API_BASE, text, closest)}
       />
     )
   }

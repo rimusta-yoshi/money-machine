@@ -2,8 +2,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
-import { plumber } from '../trades/plumber'
-import { roofer } from '../trades/roofer'
 import { createSite } from '../site/defaults'
 import { businessFieldsFor } from '../site/businessFields'
 import type { Site } from '../site/schema'
@@ -14,6 +12,10 @@ import { LookStep } from './look/LookStep'
 import { TopBar } from './shell/TopBar'
 import { SectionContentEditor } from './content/SectionContentEditor'
 import { NextButton } from './build/BuildBits'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
+const roofer = tradeById.roofer
 
 afterEach(() => {
   cleanup()

@@ -8,6 +8,7 @@ import { siteOrigin } from './config'
 import { HttpError, json } from './http'
 import { rateLimit } from './limits'
 import type { Deps, Dimension, MoneyTotals, StatsQuery } from './ports'
+import { REQUESTED_SHOWN } from './requested'
 import { sameSecret } from './tokens'
 
 /**
@@ -84,9 +85,10 @@ export async function adminStats(req: Request, deps: Deps): Promise<Response> {
   await requireAdminKey(req, deps)
   const q = statsQuery(new URL(req.url))
   const ins = deps.insights
-  const [counts, bySrc, byTrade, byTheme, daily, picks, money, recent, sources] = await Promise.all([
+  const [counts, bySrc, byTrade, byTheme, daily, picks, money, recent, sources, requested] = await Promise.all([
     ins.stepCounts(q), ins.breakdown(q, 'src'), ins.breakdown(q, 'trade'), ins.breakdown(q, 'theme'),
     ins.daily(q, DAILY_STEPS, q.tz), ins.picks(q), ins.money(q), ins.recentSites(q, RECENT_SITES), ins.sources(q),
+    ins.requestedTypes(REQUESTED_SHOWN),
   ])
   return json({
     range: { from: q.from, to: q.to, src: q.src === null ? DIRECT : q.src ?? null },
@@ -101,5 +103,7 @@ export async function adminStats(req: Request, deps: Deps): Promise<Response> {
     recent: recent.map(s => ({ ...s, url: s.slug ? `${siteOrigin(deps.config, s.slug)}/` : null })),
     layouts: layoutRows(picks),
     sources,
+    // All time, whatever the date range: there are few, and each one matters.
+    requested,
   })
 }

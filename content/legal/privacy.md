@@ -16,7 +16,7 @@ We collect only what we need to build, host and support your website. We don't u
 | Your email address | The email you give at Go live | To send your receipt, edit link and refund link, and to answer you | Contract |
 | Payment details | Card payments, handled by Stripe. We see the amount, date, email and card country, never your full card number | To take payment, give refunds and handle disputes | Contract; legal obligation (tax records) |
 | Support messages | Emails you send to hello@ or abuse@ | To help you and deal with reports | Legitimate interests (running a support service) |
-| Anonymous usage counts | Which builder steps are reached, which layouts are picked, which ad a visit came from. No names, emails or IP addresses | To understand where people get stuck and improve the builder | Legitimate interests (improving the service) |
+| Anonymous usage counts | Which builder steps are reached, which layouts are picked, which ad a visit came from, and the kinds of business people ask us to add ("My business isn't listed"). No names, emails or IP addresses | To understand where people get stuck and improve the builder | Legitimate interests (improving the service) |
 | Technical data | IP address and browser details, seen by our hosting provider when pages load | To deliver pages and protect against attacks and abuse | Legitimate interests (security) |
 
 Your phone number, business name and other site content are meant to be public once your site is live. Only add what you are happy for anyone to see.

@@ -11,13 +11,8 @@ export const VISIT_SOURCE = typeof window === 'undefined' ? NO_SOURCE : sourceFr
 export const BUILDER_URL = withSource('/build/', VISIT_SOURCE)
 export const builderFor = (trade: TradeId) => withSource(`/build/?trade=${trade}`, VISIT_SOURCE)
 
-export const TRADE_LINKS: { id: TradeId; label: string }[] = [
-  { id: 'plumber', label: 'Plumber' },
-  { id: 'electrician', label: 'Electrician' },
-  { id: 'roofer', label: 'Roofer' },
-  { id: 'painter', label: 'Painter' },
-  { id: 'landscaper', label: 'Landscaper' },
-]
+/** The trade chips: every pack marked `featured`, from the build (the rest are on the /websites-for/ hub). */
+export const TRADE_LINKS: { id: TradeId; label: string }[] = __FEATURED_TRADES__
 
 export const HOW_STEPS = [
   { title: 'Pick your trade', text: 'We fill in the basics: your services, the right wording, the sections customers look for.' },

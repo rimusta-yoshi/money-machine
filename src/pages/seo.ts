@@ -1,5 +1,7 @@
+import { PACKS } from '../packs'
 import { sitemapXml } from '../publish/meta'
 import { STATIC_PAGES } from './registry'
+import { HUB_PATH, typePath } from './types/paths'
 
 /**
  * Search-engine files for our own site (homepage, legal pages, guide), written by the build.
@@ -8,8 +10,11 @@ import { STATIC_PAGES } from './registry'
  * Customers' sites get their own robots.txt and sitemap.xml when published (src/publish/files.ts).
  */
 
-/** Pages search engines may list, once launched: never the builder, the dashboard or previews. */
-export const PUBLIC_PATHS: readonly string[] = ['/', ...STATIC_PAGES.map(p => p.path)]
+/**
+ * Pages search engines may list, once launched: never the builder, the dashboard, previews or
+ * the example sites on the "Websites for…" pages (those say noindex themselves).
+ */
+export const PUBLIC_PATHS: readonly string[] = ['/', HUB_PATH, ...PACKS.map(typePath), ...STATIC_PAGES.map(p => p.path)]
 
 export function appRobotsTxt(launched: boolean, origin: string): string {
   if (!launched) return 'User-agent: *\nDisallow: /\n'

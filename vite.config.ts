@@ -9,6 +9,8 @@ import { launchProblems, pageWords } from './src/pages/fill'
 import { STATIC_PAGES } from './src/pages/registry'
 import { appHeaders, appRobotsTxt, appSitemap } from './src/pages/seo'
 import { buildPage } from './src/pages/shell'
+import { PACKS } from './src/packs'
+import { typePages } from './vite.pages'
 
 /** Fills %BRAND_NAME% in the HTML pages, so the name lives only in src/brand/config.ts. */
 const brandName = (): Plugin => ({
@@ -89,17 +91,25 @@ const staticPages = (): Plugin => {
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), brandName(), staticPages(), webAnalytics(loadEnv(mode, process.cwd(), 'VITE_').VITE_CF_BEACON_TOKEN)],
-  define: { __PRICE_PENCE__: JSON.stringify(PRICE_PENCE) },
+  plugins: [
+    react(), brandName(), staticPages(), typePages({ origin: ORIGIN, pricePence: PRICE_PENCE }),
+    webAnalytics(loadEnv(mode, process.cwd(), 'VITE_').VITE_CF_BEACON_TOKEN),
+  ],
+  define: {
+    __PRICE_PENCE__: JSON.stringify(PRICE_PENCE),
+    __FEATURED_TRADES__: JSON.stringify(PACKS.filter(p => p.featured).map(p => ({ id: p.id, label: p.name }))),
+  },
   build: {
     // The licences of the open-source code in the browser bundles (MIT notices), served at
     // /third-party-notices.md. The rest of the list: THIRD-PARTY-NOTICES.md.
     license: { fileName: 'third-party-notices.md' },
     rollupOptions: {
       // The homepage at the root, the builder at /build/, the private dashboard at /admin/,
-      // and the plain pages (privacy, terms, the hosting guide).
+      // the plain pages (privacy, terms, the hosting guide, the FAQ), the "Websites for…" hub
+      // (each type's page is built from it: vite.pages.ts) and the 404 page.
       input: {
         home: page('./index.html'), build: page('./build/index.html'), admin: page('./admin/index.html'),
+        hub: page('./websites-for/index.html'), notFound: page('./404.html'),
         ...Object.fromEntries(STATIC_PAGES.map(p => [p.entry.replace(/\/index\.html$/, ''), page(`./${p.entry}`)])),
       },
     },

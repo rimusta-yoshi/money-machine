@@ -11,6 +11,7 @@ import { DailyPanel } from './panels/DailyPanel'
 import { BreakdownPanel } from './panels/BreakdownPanel'
 import { RecentSitesPanel } from './panels/RecentSitesPanel'
 import { LayoutPicksPanel } from './panels/LayoutPicksPanel'
+import { RequestedTypesPanel } from './panels/RequestedTypesPanel'
 
 interface Props {
   base: string
@@ -70,6 +71,7 @@ export function Dashboard({ base, adminKey, onRefused }: Props) {
           <BreakdownPanel breakdowns={stats.breakdowns} />
           <RecentSitesPanel sites={stats.recent} />
           <LayoutPicksPanel layouts={stats.layouts} />
+          <RequestedTypesPanel requested={stats.requested ?? []} />
         </div>
       )}
     </main>
