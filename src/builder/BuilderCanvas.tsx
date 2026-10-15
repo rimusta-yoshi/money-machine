@@ -277,7 +277,11 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
       openUpload(slot, sIdx)
       return
     }
-    if (sIdx !== activeIdx) navigateTo(sIdx)
+    if (sIdx !== activeIdx) {
+      // Moving by tapping the site: the next Next is a fresh choice, not a double tap on Done.
+      doneAt.current = 0
+      navigateTo(sIdx)
+    }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = editing ? null : e.touches[0].clientX }
@@ -380,8 +384,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
             <PhoneBar
               ref={editRef}
               {...navProps}
-              onNext={() => { if (Date.now() - doneAt.current > 600) navProps.onNext() }}
-              onFinish={() => { if (Date.now() - doneAt.current > 600) navProps.onFinish() }}
+              onNext={() => { if (Date.now() - doneAt.current > 400) navProps.onNext() }}
+              onFinish={() => { if (Date.now() - doneAt.current > 400) navProps.onFinish() }}
               onEdit={() => { watched.current = null; dispatchFlow({ type: 'edit' }) }} />
           )}
         </div>

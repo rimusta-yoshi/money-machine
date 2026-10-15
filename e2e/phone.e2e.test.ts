@@ -132,7 +132,7 @@ it('builds a site on a phone, one section at a time', async () => {
   await page.getByRole('button', { name: 'Start building' }).click()
 
   // 1. The slim bar: ‹ Edit hero ›, the layout line, Next. No pills on the site.
-  await page.getByRole('button', { name: 'Edit hero' }).waitFor({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Edit hero', exact: true }).waitFor({ timeout: 30_000 })
   await expect.poll(() => line(page), { timeout: 30_000 }).toMatch(/^Hero · .+ · 1 of \d+ · swipe to change$/)
   expect(await page.locator('.mm-band-tag').count()).toBe(0)
   expect(await page.getByRole('button', { name: /use this layout/i }).count()).toBe(0)
@@ -145,7 +145,7 @@ it('builds a site on a phone, one section at a time', async () => {
   await expect.poll(() => line(page)).toMatch(/ · 2 of \d+ · /)
 
   // 2. Edit hero: just the hero above its fields, focus in the panel.
-  await page.getByRole('button', { name: 'Edit hero' }).click()
+  await page.getByRole('button', { name: 'Edit hero', exact: true }).click()
   const title = page.getByRole('heading', { name: 'Your hero' })
   await title.waitFor()
   expect(await title.evaluate(el => el === document.activeElement)).toBe(true)
@@ -193,13 +193,13 @@ it('builds a site on a phone, one section at a time', async () => {
   await page.getByRole('button', { name: 'Phone', exact: true }).click()
 
   // 3. Done moves straight on to the next section's bar, focus on its Edit button.
-  const editTrust = page.getByRole('button', { name: 'Edit trust bar' })
+  const editTrust = page.getByRole('button', { name: 'Edit trust bar', exact: true })
   await done(page, editTrust)
   expect(await editTrust.evaluate(el => el === document.activeElement)).toBe(true)
 
   // 4. Tapping an earlier section goes back to its bar, not its fields.
   await page.getByRole('button', { name: 'Edit Hero section' }).click()
-  await page.getByRole('button', { name: 'Edit hero' }).waitFor({ timeout: 30_000 })
+  await page.getByRole('button', { name: 'Edit hero', exact: true }).waitFor({ timeout: 30_000 })
   expect(await page.getByRole('heading', { name: 'Your hero' }).count()).toBe(0)
   await (await nextReady(page)).click()
   await editTrust.waitFor({ timeout: 30_000 })
@@ -232,7 +232,7 @@ it('builds a site on a phone, one section at a time', async () => {
   await desk.getByText('Harrogate plumbing: log in to book online').first().waitFor({ timeout: 30_000 })
   expect(desk.url()).not.toContain('#resume=')
   await computer.close()
-  await done(page, page.getByRole('button', { name: 'Edit services' }))
+  await done(page, page.getByRole('button', { name: 'Edit services', exact: true }))
 
   // Next skips editing, section after section, to Go live.
   for (let i = 0; i < 20; i++) {
@@ -240,6 +240,12 @@ it('builds a site on a phone, one section at a time', async () => {
     const label = await next.textContent()
     await next.click()
     if (label?.includes('go live')) break
+    // A Next just after Done is ignored (a double tap): press again until the section changes.
+    await expect.poll(async () => {
+      if (await next.textContent() !== label) return true
+      if (await next.isEnabled()) await next.click()
+      return await next.textContent() !== label
+    }, { timeout: 30_000, interval: 500 }).toBe(true)
   }
   await page.getByRole('heading', { name: /Nearly there, Riverside Plumbing/ }).waitFor({ timeout: 60_000 })
   await check(page, '6-go-live')
