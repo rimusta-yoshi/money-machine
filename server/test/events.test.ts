@@ -102,10 +102,12 @@ describe('recording events', () => {
       expect((await event({ kind: 'step', step: 'landed', src, campaign: marker })).status).toBe(204)
       expect((await eventually('SELECT * FROM events WHERE campaign = ?1', [marker], 1))[0].src).toBe('other')
     }
-    // Nor as a campaign: that's dropped.
+    // Nor as a campaign: that's dropped. Checked on this event's own row, since other tests' random tags can contain "jo".
+    const [{ last }] = await rows('SELECT COALESCE(MAX(id), 0) AS last FROM events')
     expect((await event({ kind: 'step', step: 'landed', src: 'fb', campaign: 'jo@example.com' })).status).toBe(204)
-    await new Promise(r => setTimeout(r, 200))
-    expect(await rows("SELECT * FROM events WHERE campaign LIKE '%example%' OR campaign LIKE '%jo%'")).toEqual([])
+    const [mine] = await eventually('SELECT * FROM events WHERE id > ?1', [last], 1)
+    expect(mine).toMatchObject({ step: 'landed', src: 'fb', campaign: null })
+    expect(await rows("SELECT * FROM events WHERE campaign LIKE '%@%' OR campaign LIKE '%example%'")).toEqual([])
   })
 
   it('refuses unknown steps, steps only the server records, and odd values', async () => {
