@@ -23,16 +23,29 @@ async function draftByEditLink(token: string, deps: Deps): Promise<DraftRow | nu
   return { ...draft, linkFloor: claim.n }
 }
 
+/** The key or edit link token in the Authorization header ('' if none). */
+export const bearerKey = (req: Request): string => /^Bearer (\S+)$/.exec(req.headers.get('Authorization') ?? '')?.[1] ?? ''
+
 /**
  * The draft whose key is in the Authorization header: the browser's own draft key, or an
  * edit link's token (which works on any device).
  */
 export async function authDraft(req: Request, deps: Deps): Promise<DraftRow> {
-  const key = /^Bearer (\S+)$/.exec(req.headers.get('Authorization') ?? '')?.[1] ?? ''
-  const draft = DRAFT_KEY.test(key) ? await deps.db.draftByKey(await sha256Hex(key))
+  const key = bearerKey(req)
+  const hash = DRAFT_KEY.test(key) ? await sha256Hex(key) : null
+  const draft = hash ? await deps.db.draftByKey(hash)
     : LINK_TOKEN.test(key) ? await draftByEditLink(key, deps)
       : null
-  if (!draft) throw new HttpError(401, 'unknown_draft', 'We could not find that saved site. It may have been started on another device.')
+  if (!draft) {
+    // A resume link's key that a newer one (or paying) replaced: the site is there, just not for this key.
+    const replaced = hash ? await deps.db.draftByReplacedKey(hash) : null
+    if (replaced) {
+      throw new HttpError(401, 'key_replaced', replaced.payment
+        ? 'This site is live now: open the edit link from your email to change it.'
+        : 'This site was opened on another device. Open the newest link from your email to carry on here.')
+    }
+    throw new HttpError(401, 'unknown_draft', 'We could not find that saved site. It may have been started on another device.')
+  }
   await deps.db.touch(draft.ref, deps.now())
   return draft
 }

@@ -3,6 +3,7 @@ import { tradeById } from '../../src/trades'
 import { previewOrigin } from './config'
 import { authDraft, storedRecord } from './drafts'
 import { trackSite } from './events'
+import { flagSavedForReview } from './review'
 import { CACHE, htmlPage, json, pageHeaders } from './http'
 import { rateLimit } from './limits'
 import { draftPhotoKey, PHOTO_NAME } from './photos'
@@ -20,6 +21,8 @@ export async function createPreview(req: Request, deps: Deps): Promise<Response>
   const now = deps.now()
   const expiresAt = now + deps.config.previewDays * DAY
   await deps.db.createPreview({ tokenHash: await sha256Hex(token), ref: draft.ref, now, expiresAt })
+  // A preview link shows the site to anyone: worth the same quiet look as publishing.
+  await flagSavedForReview(deps, draft)
   trackSite(deps, 'preview_shared', draft)
   return json({ url: `${previewOrigin(deps.config)}/${token}/`, expiresAt: new Date(expiresAt).toISOString() }, 201)
 }

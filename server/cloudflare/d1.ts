@@ -1,4 +1,5 @@
 import type { CheckoutRow, Database, DraftRow } from '../core/ports'
+import { d1ResumeReview } from './d1Resume'
 
 interface DraftDbRow {
   ref: string; record: string | null; slug: string | null; updated_at: number; published_at: number | null
@@ -46,7 +47,8 @@ export function d1Database(db: D1Database): Database {
       await db.prepare('INSERT INTO drafts (ref, key_hash, created_at, updated_at, seen_at, src, campaign) VALUES (?1, ?2, ?3, ?3, ?3, ?4, ?5)')
         .bind(ref, keyHash, now, source.src, source.campaign).run()
     },
-    draftByKey: keyHash => draftWhere('key_hash = ?1', keyHash),
+    // The browser's own key, or the second key a resume link handed to another device.
+    draftByKey: keyHash => draftWhere('key_hash = ?1 OR alt_key_hash = ?1', keyHash),
     draftByRef: ref => draftWhere('ref = ?1', ref),
     draftByPaymentIntent: pi => draftWhere('stripe_payment_intent = ?1', pi),
     async paidDraftsByEmail(email) {
@@ -87,7 +89,9 @@ export function d1Database(db: D1Database): Database {
     },
     async markPublished(ref, slug, now) {
       const [published] = await db.batch([
-        db.prepare('UPDATE drafts SET slug = ?2, published_at = ?3 WHERE ref = ?1 AND refunded_at IS NULL AND disputed_at IS NULL').bind(ref, slug, now),
+        // A resume link's email goes too: no reminder for a live site (an admin-key publish keeps no payment to clear it).
+        db.prepare(`UPDATE drafts SET slug = ?2, published_at = ?3, resume_email = NULL, resume_remind_at = NULL
+          WHERE ref = ?1 AND refunded_at IS NULL AND disputed_at IS NULL`).bind(ref, slug, now),
         db.prepare('UPDATE slugs SET held_until = NULL WHERE slug = ?2 AND ref = ?1').bind(ref, slug),
         db.prepare('DELETE FROM slugs WHERE ref = ?1 AND slug != ?2').bind(ref, slug),
       ])
@@ -102,8 +106,10 @@ export function d1Database(db: D1Database): Database {
         .bind(sessionId).first<CheckoutDbRow>())
     },
     async markPaid(ref, p) {
+      // A resume link's address was only for finishing the site, and its key only for building it: both go once it's paid for.
       return changed(await db.prepare(
-        `UPDATE drafts SET paid_at = ?2, stripe_session_id = ?3, stripe_payment_intent = ?4, amount = ?5, currency = ?6, email = ?7
+        `UPDATE drafts SET paid_at = ?2, stripe_session_id = ?3, stripe_payment_intent = ?4, amount = ?5, currency = ?6, email = ?7,
+           resume_email = NULL, resume_remind_at = NULL, prev_alt_key_hash = COALESCE(alt_key_hash, prev_alt_key_hash), alt_key_hash = NULL
          WHERE ref = ?1 AND paid_at IS NULL`,
       ).bind(ref, p.paidAt, p.sessionId, p.paymentIntent, p.amount, p.currency, p.email).run())
     },
@@ -198,6 +204,7 @@ export function d1Database(db: D1Database): Database {
       const rows = await db.prepare(`SELECT ref FROM drafts WHERE ref IN (${params(refs.length)})`).bind(...refs).all<{ ref: string }>()
       return new Set(rows.results.map(r => r.ref))
     },
+    ...d1ResumeReview(db, draftWhere),
     async hit(key, windowStart) {
       const row = await db.prepare(
         `INSERT INTO rate_limits (key, window_start, count) VALUES (?1, ?2, 1)

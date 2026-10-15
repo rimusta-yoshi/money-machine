@@ -8,6 +8,7 @@ import { LIMITS } from '../../site/limits'
 import { Icon } from '../../components/ui/Icon'
 import { TextField } from '../ui/TextField'
 import { ChecklistItemEditor } from './ChecklistItemEditor'
+import { HeadlinePicker } from './HeadlinePicker'
 import './content.css'
 
 interface Props {
@@ -28,6 +29,7 @@ export function SectionContentEditor({ site, trade, section, onContentChange, on
   }
   return (
     <div className="mm-section-content">
+      {section === 'hero' && <HeadlinePicker site={site} trade={trade} onChange={headline => onContentChange({ headline })} />}
       {business.includes('yearsInBusiness') && (
         <TextField
           label="Years in business" inputMode="numeric" maxLength={LIMITS.yearsInBusiness} placeholder="e.g. 12"

@@ -37,9 +37,16 @@ const V2_LIMITS: Limits = {
   hoursDay: 30, hoursTime: 40, jobsDone: 20, reviewAuthor: 60, reviewLocation: 60, reviewText: 400, photoAlt: 160,
 }
 
+/** The important part of a photo, in percent from the top left: crops keep it in view (object-position). */
+export const focusSchema = z.object({ x: z.number().min(0).max(100), y: z.number().min(0).max(100) }).strict()
+
 const photoSchemaFor = (L: Limits) => z.object({
   url: photoUrlSchema,
   alt: text(L.photoAlt).min(1, 'Every photo needs a short description for screen readers'),
+  /** Where the customer tapped as the important part. Absent: the centre. */
+  focus: focusSchema.optional(),
+  /** Taller than wide (the customer's own photo): hero layouts that suit a portrait photo are preferred. */
+  tall: z.literal(true).optional(),
 })
 
 const reviewSchemaFor = (L: Limits) => z.object({
@@ -78,6 +85,11 @@ const contentSchemaFor = (L: Limits) => z.object({
   services: z.array(text(LIMITS.service).min(1)).max(MAX_SERVICES).optional(),
   /** A note under the credentials, e.g. "Certificates available on request", only when ticked or written. */
   certsNote: text(LIMITS.certsNote).min(1).nullable().optional(),
+  /**
+   * The hero's headline, when the customer picked a suggestion or wrote their own. Absent or
+   * null: the trade's tagline, as before. Page title, meta and LocalBusiness data never use it.
+   */
+  headline: text(LIMITS.headline).min(1).nullable().optional(),
   photos: z.object({
     hero: photoSchemaFor(L).nullable(),
     about: photoSchemaFor(L).nullable(),

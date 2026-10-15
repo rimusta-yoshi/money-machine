@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { builderUrl, siteOrigin } from './config'
-import { authDraft, storedRecord } from './drafts'
+import { authDraft, bearerKey, storedRecord } from './drafts'
 import { trackSite } from './events'
 import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, Payments } from './ports'
 import { checkReady, sitePhotoFiles, suggestion, validSlug } from './publish'
-import { sameSecret } from './tokens'
+import { flagForReview } from './review'
+import { DRAFT_KEY, sameSecret, sha256Hex } from './tokens'
 
 const MINUTE = 60 * 1000
 /** Stripe needs at least 30 minutes; a minute more allows for clocks that differ. */
@@ -57,6 +58,8 @@ export async function createCheckout(req: Request, deps: Deps): Promise<Response
   if (!email.success) throw new HttpError(422, 'invalid_email', "That email doesn't look right. Check for a missing @ or dot.")
   // A missing photo is found now, not after the card is charged.
   await sitePhotoFiles(deps, draft.ref, site)
+  // Quietly, for a person to look at: never in the way of paying.
+  await flagForReview(deps, draft.ref, site)
 
   const now = deps.now()
   if (!(await deps.db.claimSlug(slug, draft.ref, now, now + HOLD_MINUTES * MINUTE))) {
@@ -64,6 +67,10 @@ export async function createCheckout(req: Request, deps: Deps): Promise<Response
   }
   // One held address per site: trying another lets the last one go.
   await deps.db.releaseHolds(draft.ref, slug)
+  // Checking out on the device a resume link opened: its key becomes the main one, so it keeps
+  // editing once paid (the second key stops working then).
+  const key = bearerKey(req)
+  if (DRAFT_KEY.test(key)) await deps.db.promoteKey(draft.ref, await sha256Hex(key))
   const c = deps.config
   const expiresAt = now + CHECKOUT_MINUTES * MINUTE
   const session = await payments.createCheckout({

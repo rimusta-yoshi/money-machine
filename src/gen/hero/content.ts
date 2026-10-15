@@ -29,7 +29,7 @@ export interface HeroContent {
 export function heroView(c: PageContent): HeroContent {
   const { business: b, trade: t } = c
   return {
-    headline: t.tagline,
+    headline: c.headline || t.tagline,
     sub: offerLine(c),
     eyebrow: b.location ? `${t.name} · ${b.location}` : t.name,
     place: b.location,

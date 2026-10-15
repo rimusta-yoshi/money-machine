@@ -9,6 +9,8 @@ const STORAGE_KEY = 'localblocks.draft'
 /** A draft key (this browser's own) or an edit link's token (edit.<ref>.<number>.<signature>). */
 const KEY_SHAPE = /^([A-Za-z0-9_-]{43}|edit\.[0-9a-f]{32}\.\d{1,9}\.[A-Za-z0-9_-]{43})$/
 const REFUND_SHAPE = /^refund\.[0-9a-f]{32}\.[A-Za-z0-9_-]{43}$/
+/** resume.<ref>.<number>.<sent, seconds>.<signature> */
+const RESUME_SHAPE = /^resume\.[0-9a-f]{32}\.\d{1,9}\.\d{1,12}\.[A-Za-z0-9_-]{43}$/
 
 export function storedDraftKey(storage: Pick<Storage, 'getItem'> | undefined = globalThis.localStorage): string | null {
   try {
@@ -68,6 +70,12 @@ export const domainTokenFromHash = (hash: string): string | null => {
 
 /** The token from a refund link's hash (#refund=<token>). */
 export const refundTokenFromHash = (hash: string): string | null => fromHash(hash, 'refund', REFUND_SHAPE)
+
+/**
+ * The token from a resume link's hash (#resume=<token>, "finish on your computer"). Never a key
+ * itself: the server swaps it for one.
+ */
+export const resumeTokenFromHash = (hash: string): string | null => fromHash(hash, 'resume', RESUME_SHAPE)
 
 /** Drops a used token from the address bar, so it isn't bookmarked or shared by accident. */
 export function clearHash(): void {

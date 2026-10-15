@@ -101,11 +101,12 @@ describe('admin dashboard', () => {
     // A custom range the wrong way round is refused, a right one loads.
     await page.getByRole('button', { name: 'Custom' }).click()
     await page.getByLabel('From').fill('2030-01-02')
-    await page.getByLabel('To').fill('2030-01-01')
+    await page.getByLabel('To', { exact: true }).fill('2030-01-01')
     await page.getByText('Choose a start date on or before the end date.').waitFor()
     await page.getByRole('button', { name: 'Today' }).click()
     await page.getByRole('button', { name: 'Trade' }).click()
-    await page.getByRole('cell', { name: 'Plumber' }).first().waitFor()
+    // Which trades the random sample data has today (under the ad filter) varies: any trade row will do.
+    await page.getByRole('cell', { name: /^(Plumber|Painter|Roofer|Electrician|Landscaper)$/ }).first().waitFor()
     expect(errors).toEqual([])
     await close()
   })

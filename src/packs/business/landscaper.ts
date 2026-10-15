@@ -22,6 +22,15 @@ export const landscaper = definePack({
     ctaNote: 'No obligation',
     offer: 'Free estimates',
   },
+  /** Hero headline suggestions in the builder ({town} is the customer's location). */
+  headlines: [
+    'Gardens you’ll want to spend time in.',
+    'Patios, lawns and planting, done properly.',
+    'Outdoor spaces built to last.',
+    'Your local landscaper in {town}.',
+    '{town} gardens, designed and built.',
+    'Landscaping across {town} and nearby.',
+  ],
   services: [
     { name: 'Lawn care', description: 'Regular mowing, edging, feeding and scarifying, so the lawn looks good all season.' },
     { name: 'Garden design', description: 'A plan that suits how you use the garden, the soil you’ve got and the time you have.' },

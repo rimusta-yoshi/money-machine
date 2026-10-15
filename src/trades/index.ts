@@ -13,6 +13,7 @@ export function toTradeConfig(pack: PackCore & { id: TradeId }): TradeConfig {
     name: pack.name,
     emoji: pack.emoji,
     tagline: pack.copy.tagline,
+    headlines: pack.headlines,
     colorScheme: pack.look.colours,
     // Planned sections wait until they're built (pack:check reports them).
     sections: pack.sections.flatMap(s => (isBuilt(s.type) ? [{ type: s.type }] : [])),

@@ -109,7 +109,7 @@ export function landingText(p: Pack): string[] {
 
 function copyProblems(p: Pack): string[] {
   const errors: string[] = []
-  const all = [p.name, p.plural, ...Object.values(p.copy), ...p.badges, ...p.services.map(s => s.name), ...landingText(p), p.landing.title]
+  const all = [p.name, p.plural, ...Object.values(p.copy), ...p.headlines, ...p.badges, ...p.services.map(s => s.name), ...landingText(p), p.landing.title]
   for (const t of all) if (UNFINISHED.test(t)) errors.push(`${label(p)}: unfinished text: "${t.slice(0, 80)}"`)
   const same = (xs: string[], what: string) => {
     const lower = xs.map(x => x.toLowerCase())
@@ -118,6 +118,7 @@ function copyProblems(p: Pack): string[] {
   }
   same(p.services.map(s => s.name), 'services')
   same(p.badges, 'badges')
+  same(p.headlines, 'headlines')
   same(p.landing.faqs.map(f => f.q), 'FAQ questions')
   same(p.landing.examples.map(e => e.name), 'example names')
   const themes = p.landing.examples.map(e => e.theme)

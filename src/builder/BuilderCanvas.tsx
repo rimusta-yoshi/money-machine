@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
-import type { CSSProperties } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useReducer, useCallback } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { BusinessInfo, SectionType, TradeConfig } from '../types'
 import { sectionPresent, specKey, THEMES } from '../gen'
 import type { Generated, PageContent, ResolvedSection, SectionKey } from '../gen'
@@ -13,7 +13,10 @@ import { withSample } from '../sample/content'
 import { GeneratedSection } from '../components/sections/GeneratedSection'
 import { Icon } from '../components/ui/Icon'
 import { ControlRail } from './ControlRail'
-import { MobileSheet } from './MobileSheet'
+import { PhoneBar } from './phone/PhoneBar'
+import { PhoneEditor } from './phone/PhoneEditor'
+import { PHONE_FLOW_START, phoneFlow, previewHeight } from './phone/phoneFlow'
+import { useVisualViewport } from './phone/useVisualViewport'
 import type { LayoutState, SectionNavProps } from './sectionNav'
 import { useSectionPicker } from './useSectionPicker'
 import { useNarrow } from './useNarrow'
@@ -38,13 +41,13 @@ interface Props {
   onDone: () => void
   /** Back to step 2. */
   onChangeLook: () => void
-  /** Phones: the sheet is folded away to see the preview (the top bar's Preview button). */
-  sheetFolded: boolean
+  /** Phones: "Email me a link to finish on my computer", shown with a section's fields. */
+  resume?: ReactNode
 }
 
 const DESK_W = 1200
 
-export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onBusinessChange, onDone, onChangeLook, sheetFolded }: Props) {
+export function BuilderCanvas({ trade, site, content: preview, mobile, initialSection, onPick, onContentChange, onBusinessChange, onDone, onChangeLook, resume }: Props) {
   const sections = siteSections(trade, site)
   const [activeIdx, setActiveIdx] = useState(() => Math.max(0, sections.findIndex(s => s.type === initialSection)))
   const [zoom, setZoom] = useState(1)
@@ -54,6 +57,17 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
   const stackScrollRef = useRef<HTMLElement | null>(null)
   const zoomInnerRef = useRef<HTMLDivElement | null>(null)
   const touchStartX = useRef<number | null>(null)
+  // Phones: one section at a time, its layouts in a slim bar, its fields only on "Edit".
+  const [flow, dispatchFlow] = useReducer(phoneFlow, PHONE_FLOW_START)
+  const editing = isNarrowDevice && flow.mode === 'edit'
+  const viewport = useVisualViewport(editing)
+  const editRef = useRef<HTMLButtonElement | null>(null)
+  const refocusEdit = useRef(false)
+  /** The part of the section the focused field shows, kept in view above the fields. */
+  const watched = useRef<string | null>(null)
+  const barRef = useRef<HTMLDivElement | null>(null)
+  /** When Done was pressed: the bar's Next sits where Done was, so a double tap mustn't skip a section. */
+  const doneAt = useRef(0)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
   // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
@@ -89,7 +103,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     buildDebug.current = { section: activeType, batchSeed: picker.batchSeed, index: picker.index, shown: picker.specs, loading: picker.loading, samples: samples.size > 0 }
   })
 
-  const effectiveMobile = mobile || isNarrowDevice
+  const effectiveMobile = mobile || (isNarrowDevice && !(editing && flow.size === 'computer'))
 
   useLayoutEffect(() => {
     if (effectiveMobile) return
@@ -113,16 +127,53 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     const el = bandRefs.current[activeIdx]
     if (!el) return
     if (isNarrowDevice) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (!editing) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
       return
     }
     const sc = stackScrollRef.current
     if (!sc) return
     const offset = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 22
     sc.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' })
-  }, [activeIdx, effectiveMobile, zoom, isNarrowDevice])
+  }, [activeIdx, effectiveMobile, zoom, isNarrowDevice, editing])
 
-  if (sections.length === 0) return null
+  /** While editing on a phone: scrolls the preview above the fields to what the focused field changes. */
+  const reveal = useCallback((selector: string | null) => {
+    watched.current = selector
+    const pane = stackScrollRef.current
+    const band = bandRefs.current[activeIdx]
+    if (!pane || !band) return
+    const target = (selector && band.querySelector(selector)) || band
+    // A little of what's above stays in view too, so the edited part keeps its context.
+    const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 32
+    pane.scrollTo({ top: Math.max(0, offset) })
+  }, [activeIdx])
+  // On opening the fields, when the keyboard opens or closes, the preview size changes, or the
+  // section redraws with an edit. Not on every render, so the preview can still be scrolled by hand.
+  useEffect(() => {
+    if (editing) reveal(watched.current)
+  }, [editing, viewport.height, viewport.top, flow.size, site.content, picker.shown, reveal])
+
+  // Back on the bar after the fields close: focus returns to its Edit button.
+  useEffect(() => {
+    if (!editing && refocusEdit.current) {
+      refocusEdit.current = false
+      editRef.current?.focus()
+    }
+  })
+
+  // The bar's height, so notices float above it rather than over it.
+  useLayoutEffect(() => {
+    // The wrapper holds a fixed panel, so it has no height of its own: measure the panel.
+    const bar = barRef.current?.firstElementChild as HTMLElement | null | undefined
+    if (!isNarrowDevice || !bar) return
+    const root = document.documentElement
+    const set = () => root.style.setProperty('--phone-bar-h', `${bar.offsetHeight}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(bar)
+    return () => { ro.disconnect(); root.style.removeProperty('--phone-bar-h') }
+  }, [isNarrowDevice, editing])
+
 
   const present = (type: SectionKey) => byType.has(type)
   const isConfirmed = (type: SectionKey) => !!site.sections[type]
@@ -144,10 +195,12 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     if (newIdx === activeIdx || busy) return
     confirmActive()
     setActiveIdx(newIdx)
+    dispatchFlow({ type: 'moved' })
   }
   const finish = () => {
     if (busy) return
     confirmActive()
+    dispatchFlow({ type: 'moved' })
     onDone()
   }
   // Sections waiting for content, or not built yet, show a blank band until visited.
@@ -191,6 +244,16 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     onChangeLook,
   }
 
+  /** Done: the fields close and the next section opens on its bar (or on to go live). */
+  const doneEditing = () => {
+    if (busy) return
+    doneAt.current = Date.now()
+    refocusEdit.current = true
+    dispatchFlow({ type: 'close' })
+    if (navProps.allDone) finish()
+    else navigateTo(nextIdx)
+  }
+
   const openUpload = (slot: PhotoSlotId, sIdx: number) => {
     if (sIdx !== activeIdx) navigateTo(sIdx)
     uploadFor.current = slot
@@ -214,10 +277,14 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
       openUpload(slot, sIdx)
       return
     }
-    if (sIdx !== activeIdx) navigateTo(sIdx)
+    if (sIdx !== activeIdx) {
+      // Moving by tapping the site: the next Next is a fresh choice, not a double tap on Done.
+      doneAt.current = 0
+      navigateTo(sIdx)
+    }
   }
 
-  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX }
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = editing ? null : e.touches[0].clientX }
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return
     const delta = e.changedTouches[0].clientX - touchStartX.current
@@ -225,9 +292,14 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     if (Math.abs(delta) >= 50) picker.cycle(delta < 0 ? 1 : -1)
   }
 
+  if (sections.length === 0) return null
+
   return (
-    <div className={`mm-stack-layout${isNarrowDevice ? ' narrow-device' : ''}`}>
-      <section aria-label="Preview of your site" className="mm-stack-view" ref={stackScrollRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+    <div
+      className={`mm-stack-layout${isNarrowDevice ? ' narrow-device' : ''}${editing ? ' phone-edit' : ''}`}
+      style={editing ? { '--vv-top': `${viewport.top}px`, '--vvh': `${viewport.height}px`, '--pv-h': `${previewHeight(viewport.height)}px` } as CSSProperties : undefined}
+    >
+      <section aria-label="Preview of your site" className="mm-stack-view" ref={stackScrollRef} tabIndex={editing ? 0 : undefined} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <div
           className="mm-zoom-outer"
           style={!effectiveMobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
@@ -247,7 +319,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                 return (
                   <div
                     key={sec.type}
-                    className={`mm-band ${state}${showPlaceholder(i) ? ' blank' : ''}`}
+                    className={`mm-band ${state}${showPlaceholder(i) ? ' blank' : ''}${editing && !isActive ? ' phone-off' : ''}`}
                     ref={el => { bandRefs.current[i] = el }}
                     onClick={e => onBandClick(e, i)}
                     role={isActive ? undefined : 'button'}
@@ -257,10 +329,13 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
                     }}
                     aria-label={isActive ? undefined : `Edit ${label} section`}
                   >
-                    <div className="mm-band-tag">
-                      {state === 'done' && <><Icon.Check size={10} /> </>}
-                      {isActive ? `${label} · editing` : label}
-                    </div>
+                    {/* Phones: no pills over the site; the section's name is in the bar. */}
+                    {!isNarrowDevice && (
+                      <div className="mm-band-tag">
+                        {state === 'done' && <><Icon.Check size={10} /> </>}
+                        {isActive ? `${label} · editing` : label}
+                      </div>
+                    )}
                     {/* Unvisited sections, those waiting for content too, stay blank until opened: nothing looks chosen in advance. */}
                     {showPlaceholder(i) ? (
                       <div className="mm-band-blank">
@@ -292,7 +367,29 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
         </div>
       </section>
 
-      {isNarrowDevice ? <MobileSheet {...navProps} folded={sheetFolded} /> : <ControlRail {...navProps} />}
+      {isNarrowDevice ? (
+        <div ref={barRef} className="bd-phone">
+          {editing ? (
+            <PhoneEditor
+              {...navProps}
+              size={flow.size}
+              onSize={size => dispatchFlow({ type: 'size', size })}
+              onDone={doneEditing}
+              onClose={() => { refocusEdit.current = true; dispatchFlow({ type: 'close' }) }}
+              onFieldFocus={reveal}
+              viewportHeight={viewport.height}
+              resume={resume}
+            />
+          ) : (
+            <PhoneBar
+              ref={editRef}
+              {...navProps}
+              onNext={() => { if (Date.now() - doneAt.current > 400) navProps.onNext() }}
+              onFinish={() => { if (Date.now() - doneAt.current > 400) navProps.onFinish() }}
+              onEdit={() => { watched.current = null; dispatchFlow({ type: 'edit' }) }} />
+          )}
+        </div>
+      ) : <ControlRail {...navProps} />}
       <input
         ref={uploadRef}
         type="file"

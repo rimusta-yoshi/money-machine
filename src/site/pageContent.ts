@@ -31,6 +31,7 @@ export function pageContent(site: Record_, trade: TradeConfig, features: Feature
     badges: c.badges ?? [],
     whyUs: (c.whyUs ?? []).map(w => [w.title, w.text] as const),
     certsNote: c.certsNote?.trim() || null,
+    headline: c.headline?.trim() || null,
     areas: c.areas ?? [],
     hours: c.hours ?? [],
     emergency: c.emergency === true,

@@ -129,3 +129,31 @@ export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email
     "If you didn't ask for this, you can ignore it.",
   ])
 }
+
+/*
+ * "Finish on your computer". Nothing the customer typed goes in these (not even the business
+ * name), so the form can't be used to send anyone words of someone else's choosing.
+ */
+const resumeLines = (days: number): Line[] => [
+  `The link works once, for ${days} days, and stops working if you ask for a newer one. Keep it to yourself: anyone with it can edit your unfinished site.`,
+  "If you didn't ask for this, you can ignore it.",
+]
+
+/** The link to carry on with an unpaid site on another device. */
+export function resumeEmail(c: Config, to: string, link: string, days: number): Email {
+  return email(c, to, 'Finish your website on your computer', 'Finish your website on your computer', [
+    'Here is your link to carry on building your website on your computer, just where you left off.',
+    { link, label: 'Carry on building your website' },
+    ...resumeLines(days),
+  ])
+}
+
+/** The one reminder, a few days later, when they ticked "remind me". */
+export function resumeReminderEmail(c: Config, to: string, link: string, days: number): Email {
+  return email(c, to, 'Your website is waiting', 'Your website is waiting', [
+    'You asked us to remind you: your website is saved just as you left it, ready to finish.',
+    { link, label: 'Carry on building your website' },
+    'This is the only reminder we will send.',
+    ...resumeLines(days),
+  ])
+}

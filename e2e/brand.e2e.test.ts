@@ -163,8 +163,12 @@ describe.each(VIEWPORTS)('$name', vp => {
     await expect.poll(() => page.getByRole('button', { name: /^Next: / }).isEnabled(), { timeout: 30_000 }).toBe(true)
     await check(page, `build-${vp.name}`)
     if (vp.isMobile) {
-      await page.getByRole('button', { name: 'Your content' }).click()
+      // Edit opens just the hero's fields; Done moves on to the next section.
+      await page.getByRole('button', { name: 'Edit hero', exact: true }).click()
+      await page.getByRole('heading', { name: 'Your hero' }).waitFor()
       await check(page, `build-content-${vp.name}`)
+      await page.getByRole('button', { name: 'Done', exact: true }).click()
+      await page.getByRole('button', { name: 'Edit trust bar', exact: true }).waitFor({ timeout: 30_000 })
     }
 
     for (let i = 0; i < 20; i++) {
@@ -173,6 +177,12 @@ describe.each(VIEWPORTS)('$name', vp => {
       const label = await next.textContent()
       await next.click()
       if (label?.includes('go live')) break
+      // A Next just after Done is ignored (a double tap): press again until the section changes.
+      await expect.poll(async () => {
+        if (await next.textContent() !== label) return true
+        if (await next.isEnabled()) await next.click()
+        return await next.textContent() !== label
+      }, { timeout: 30_000, interval: 500 }).toBe(true)
     }
     await page.getByRole('heading', { name: /Nearly there, Hartley & Sons/ }).waitFor({ timeout: 60_000 })
     await check(page, `golive-${vp.name}`)

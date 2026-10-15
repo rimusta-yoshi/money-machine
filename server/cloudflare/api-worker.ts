@@ -3,6 +3,7 @@ import { cleanup } from '../core/cleanup'
 import { sweepDomains } from '../core/domainLifecycle'
 import { forgetOldEvents } from '../core/events'
 import { backfillFees } from '../core/fees'
+import { sendResumeReminders } from '../core/resume'
 import { depsFrom } from './env'
 import type { Env } from './env'
 
@@ -15,7 +16,7 @@ export default {
   /**
    * Daily housekeeping (wrangler cron trigger): expired preview links, holds and counters, then
    * unpaid server copies and their photos after 30 days unused, dashboard events after 13 months,
-   * and own domains whose site has ended. Every 15 minutes: own domains waiting to go live.
+   * "remind me" emails due, and own domains whose site has ended. Every 15 minutes: own domains waiting to go live.
    */
   scheduled: async (controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     const deps = depsFrom(env, ctx)
@@ -30,6 +31,9 @@ export default {
     await backfillFees(deps).catch(err => console.warn('Filling in Stripe fees failed', err))
     const done = await cleanup(deps)
     console.log(`Cleanup: ${done.drafts} unpaid drafts and ${done.orphanPhotos} orphan photos removed, ${done.freedAddresses} refunded addresses freed`)
+    // "Remind me" on an emailed resume link: the one reminder, three days on.
+    const reminded = await sendResumeReminders(deps).catch(err => { console.warn('Sending resume reminders failed', err); return 0 })
+    if (reminded) console.log(`Resume reminders: ${reminded} sent`)
     // Refunded, disputed and deleted sites' domains come off Cloudflare (the payment webhooks do it at once; this catches the rest).
     const d = await sweepDomains(deps, { daily: true })
     console.log(`Own domains: ${d.checked} checked, ${d.removed} removed, ${d.paused} paused, ${d.resumed} resumed, ${d.gaveUp} given up`)

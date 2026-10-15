@@ -48,5 +48,21 @@ export interface Stats {
   domains?: DomainStats
 }
 
+/** A site whose text has words worth a look (GET /v1/admin/review, server/core/review.ts). */
+export interface ReviewSite {
+  ref: string
+  slug: string | null
+  /** The business name, if the site was saved with one. */
+  name: string | null
+  words: string[]
+  flaggedAt: number
+  paid: boolean
+  refunded: boolean
+  /** Published at some point (paid, or with the admin key). Missing from an older server. */
+  published?: boolean
+  /** The live site, only while it's live. */
+  url: string | null
+}
+
 /** The source filter's value for visits with no source (matches server/core/admin.ts). */
 export const DIRECT = '(direct)'

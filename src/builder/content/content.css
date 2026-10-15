@@ -88,3 +88,28 @@
 .mm-line .mm-line-option { border: 0; padding: 0; min-height: 0; }
 .mm-line-option input { flex: none; width: 18px; height: 18px; margin-top: 1px; accent-color: var(--sb-night); }
 .mm-line-option b { font-weight: 700; }
+
+/* "Add your photo": the obvious next thing to do when there's no photo yet */
+.mm-photo-btn--main { min-height: 52px; padding: 0 20px; background: var(--sb-hard-hat); font-size: 16px; }
+
+/* "Tap the important part": the photo with a marker where the crop centres */
+.mm-focus { display: flex; flex-direction: column; gap: 8px; }
+.mm-focus-photo {
+  position: relative; display: inline-block; align-self: flex-start; max-width: 100%; padding: 0; border: 2px solid var(--sb-line);
+  border-radius: 12px; overflow: hidden; background: var(--sb-mist); cursor: crosshair; line-height: 0;
+}
+.mm-focus-photo img { display: block; width: auto; height: auto; max-width: 100%; max-height: 260px; }
+.mm-focus-photo:focus-visible { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+.mm-focus-dot {
+  position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; pointer-events: none;
+  border: 3px solid var(--sb-white); box-shadow: 0 0 0 2px var(--sb-night), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Hero headline suggestions */
+.mm-headline { display: flex; flex-direction: column; gap: 14px; }
+.mm-headline-list { display: flex; flex-direction: column; gap: 8px; }
+.mm-headline-opt {
+  min-height: 48px; padding: 10px 12px; border: 2px solid var(--sb-rule); border-radius: 12px; background: var(--sb-mist);
+  font: inherit; font-size: 15px; font-weight: 500; line-height: 1.35; text-align: left; color: var(--sb-night); cursor: pointer;
+}
+.mm-headline-opt.on { border-color: var(--sb-night); background: var(--sb-white); font-weight: 700; }

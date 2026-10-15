@@ -38,18 +38,28 @@ export const RATE = {
   domainStatus: { limit: 300, windowSec: 3600 },
   /** The admin dashboard (also slows down guessing the admin key). */
   admin: { limit: 120, windowSec: 3600 },
+  /** "Email me a link to finish on my computer": each one sends an email (each draft also has 3 a day: resume.ts). */
+  resumeLink: { limit: 10, windowSec: 3600 },
+  /** Opening a resume link (each one hands out a draft key). */
+  resumeOpen: { limit: 30, windowSec: 3600 },
 } as const
 
 export type RateKey = keyof typeof RATE
 
-/** Counts this request and refuses it with 429 once the caller is over the limit. */
-export async function rateLimit(deps: Deps, req: Request, action: RateKey): Promise<void> {
-  const { limit, windowSec } = RATE[action]
+export interface Window { limit: number; windowSec: number }
+
+/** Counts one use of `key` in a fixed window. Within the limit: null; over it: seconds until the window ends. */
+export async function overLimit(deps: Deps, key: string, { limit, windowSec }: Window): Promise<number | null> {
   const nowSec = Math.floor(deps.now() / 1000)
   const windowStart = nowSec - (nowSec % windowSec)
-  const count = await deps.db.hit(`${action}:${deps.clientIp(req)}`, windowStart)
-  if (count > limit) {
-    const retry = String(windowStart + windowSec - nowSec)
-    throw new HttpError(429, 'rate_limited', 'Too many requests. Please wait a little and try again.', {}, { 'Retry-After': retry })
+  const count = await deps.db.hit(key, windowStart)
+  return count > limit ? windowStart + windowSec - nowSec : null
+}
+
+/** Counts this request and refuses it with 429 once the caller is over the limit. */
+export async function rateLimit(deps: Deps, req: Request, action: RateKey): Promise<void> {
+  const retry = await overLimit(deps, `${action}:${deps.clientIp(req)}`, RATE[action])
+  if (retry !== null) {
+    throw new HttpError(429, 'rate_limited', 'Too many requests. Please wait a little and try again.', {}, { 'Retry-After': String(retry) })
   }
 }

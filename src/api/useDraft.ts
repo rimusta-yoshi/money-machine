@@ -4,7 +4,7 @@ import type { Site } from '../site/schema'
 import type { Source } from '../analytics/source'
 import { ApiError } from './client'
 import type { Api, DraftState } from './client'
-import { clearHash, editTokenFromHash, forgetDraftKey, rememberDraftKey, storedDraftKey } from './draftKey'
+import { clearHash, editTokenFromHash, forgetDraftKey, rememberDraftKey, resumeTokenFromHash, storedDraftKey } from './draftKey'
 import { isDataUrl, sitePhotos } from '../publish/photos'
 import { forgetLocalSite, loadLocalSite, saveLocalSite, withoutStoredPhotos } from './localSite'
 import { uploadPhotos } from './uploadPhotos'
@@ -40,8 +40,9 @@ const message = (err: unknown) => (err instanceof ApiError ? err.message : 'Your
 
 /**
  * The site's saving. Edits are kept in this browser only (photos uploaded as they're added);
- * the server gets a copy just before a preview link, a checkout or a re-publish. On start it
- * reopens an edit link (#edit=…, from the welcome email), else this browser's own copy.
+ * the server gets a copy just before a preview link, a checkout, a re-publish or an emailed
+ * resume link. On start it reopens an edit link (#edit=…, from the welcome email) or a resume
+ * link (#resume=…, "finish on your computer"), else this browser's own copy.
  * With no API configured it still keeps the site in the browser.
  */
 export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: Options) {
@@ -110,6 +111,11 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
         setNotice({ id: Date.now(), text: 'That edit link has been replaced. Open the newest one from your email to publish changes.' })
         return
       }
+      // A resume link's key that a newer link (or paying) replaced: the site is still there, photos and all.
+      if (err.code === 'key_replaced') {
+        setNotice({ id: Date.now(), text: err.message })
+        return
+      }
       // Cleared after 30 days unused, photos and all: the site carries on without them.
       const local = loadLocalSite()
       if (local && sitePhotos(local).some(photo => !isDataUrl(photo.url))) {
@@ -151,6 +157,7 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
           if (here) openLocal(here.site, here.key)
         } else {
           forgetDraftKey()
+          if (err.code === 'key_replaced') setNotice({ id: Date.now(), text: err.message })
         }
         return
       }
@@ -167,18 +174,42 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
     if (c) (openLink ? c.open : c.keep)()
   }, [])
 
-  // On start: an edit link wins, then this browser's copy, then a copy only the server has.
+  /**
+   * A resume link: the server swaps its token for a key of this device's own, which then opens
+   * like an edit link (asking first if this browser holds a different site). If it can't, this
+   * browser's own site opens as usual, with the server's reason.
+   */
+  const openResume = useCallback((token: string, local: Site | null, k: string | null) => {
+    if (!api) return
+    // A key this browser holds is sent along: if it already opens that site, it's kept.
+    const held = k && !k.startsWith('edit.') ? k : null
+    api.openResumeLink(token, held).then(({ key: fresh }) => {
+      clearHash()
+      // This browser's own site: carry on with it as kept here (it may be newer than the server's copy).
+      if (local && fresh === held) { openLocal(local, held); return }
+      void reopen(fresh, true, local && k !== fresh ? { site: local, key: k } : null)
+    }, err => {
+      clearHash()
+      setStatus({ state: 'error', message: err instanceof ApiError ? err.message : 'We couldn’t open that link. Check your connection and try again.' })
+      if (local) openLocal(local, k)
+      else if (k) void reopen(k, false)
+    })
+  }, [api, reopen, openLocal])
+
+  // On start: an edit or resume link wins, then this browser's copy, then a copy only the server has.
   const started = useRef(false)
   useEffect(() => {
     if (started.current) return
     started.current = true
     const fromLink = editTokenFromHash(window.location.hash)
+    const resume = resumeTokenFromHash(window.location.hash)
     const local = loadLocalSite()
     const k = storedDraftKey()
     if (fromLink) { void reopen(fromLink, true, local && k !== fromLink ? { site: local, key: k } : null); return }
+    if (resume && api) { openResume(resume, local, k); return }
     if (local) { openLocal(local, k); return }
     if (k) void reopen(k, false)
-  }, [reopen, openLocal])
+  }, [api, reopen, openLocal, openResume])
 
   const ensureKey = useCallback(async (): Promise<string> => {
     if (keyRef.current) return keyRef.current
@@ -276,6 +307,15 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
     return res
   }, [api, sendToServer])
 
+  /**
+   * "Email me a link to finish on my computer": sends the latest record, then emails the link.
+   * Resolves to the message to show; rejects with an ApiError whose message can be shown as is.
+   */
+  const emailResumeLink = useCallback(async (email: string, remind: boolean): Promise<string> => {
+    const k = await sendToServer()
+    return api!.sendResumeLink(k, email, remind)
+  }, [api, sendToServer])
+
   const slugStatus = useCallback(async (slug: string) => {
     if (!api) return null
     return api.slugStatus(await ensureKey(), slug)
@@ -313,9 +353,9 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
   return useMemo(
     () => ({
       enabled: !!api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict,
-      saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite,
+      saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite, emailResumeLink,
     }),
-    [api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict, saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite],
+    [api, key, status, published, account, notice, dismissNotice, conflict, resolveConflict, saveNow, retry, createPreview, checkout, publish, slugStatus, forget, exportSite, emailResumeLink],
   )
 }
 

@@ -43,6 +43,8 @@
 .ad-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .ad-panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; padding: 22px 24px; border-radius: 22px; background: var(--sb-white); }
 .ad-grid > .ad-panel--wide:not(:first-child) { grid-column: 1 / -1; }
+/* A row of its own (Sites to review), full width above the numbers. */
+.ad-grid--single { grid-template-columns: minmax(0, 1fr); margin-bottom: 16px; }
 
 /* ---- Tables ---- */
 .ad-scroll { overflow-x: auto; }

@@ -1,4 +1,11 @@
-export interface PagePhoto { url: string; alt: string }
+export interface PagePhoto {
+  url: string
+  alt: string
+  /** The important part, in percent from the top left: crops keep it in view. */
+  focus?: { x: number; y: number }
+  /** Taller than wide (a customer's own photo). */
+  tall?: boolean
+}
 export interface PageReview { text: string; author: string; location: string; rating: number }
 
 /**
@@ -30,6 +37,8 @@ export interface PageContent {
   whyUs: readonly (readonly [string, string])[]
   /** A note under the credentials, only if the customer added it. */
   certsNote: string | null
+  /** The hero headline the customer picked or wrote; absent or null: the trade's tagline. */
+  headline?: string | null
   areas: readonly string[]
   hours: readonly { day: string; time: string }[]
   emergency: boolean

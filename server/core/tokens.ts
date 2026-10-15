@@ -32,28 +32,36 @@ export async function sameSecret(a: string, b: string): Promise<boolean> {
 }
 
 /** What a signed link lets its holder do. */
-export type LinkPurpose = 'edit' | 'refund'
+export type LinkPurpose = 'edit' | 'refund' | 'resume'
 
 const hmacKey = (secret: string): Promise<CryptoKey> =>
   crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
 
 /**
- * Link tokens, signed with LINK_SECRET: refund.<ref>.<signature>, and edit.<ref>.<n>.<signature>
- * where n numbers the site's edit links in the order they were issued (0 is the welcome email's).
+ * Link tokens, signed with LINK_SECRET: refund.<ref>.<signature>, edit.<ref>.<n>.<signature>
+ * where n numbers the site's edit links in the order they were issued (0 is the welcome email's),
+ * and resume.<ref>.<n>.<t>.<signature> (an unpaid site, "finish on your computer") where n is the
+ * site's resume link count when it was sent and t the time it was sent (seconds).
  */
-export const LINK_TOKEN = /^(?:(refund)\.([0-9a-f]{32})|(edit)\.([0-9a-f]{32})\.(\d{1,9}))\.([A-Za-z0-9_-]{43})$/
+export const LINK_TOKEN = /^(?:(refund)\.([0-9a-f]{32})|(edit)\.([0-9a-f]{32})\.(\d{1,9})|(resume)\.([0-9a-f]{32})\.(\d{1,9})\.(\d{1,12}))\.([A-Za-z0-9_-]{43})$/
 
-export interface LinkClaim { purpose: LinkPurpose; ref: string; n: number }
+/** n: the edit or resume link's number (0 for a refund link). issuedAt: a resume link's sending time (ms). */
+export interface LinkClaim { purpose: LinkPurpose; ref: string; n: number; issuedAt?: number }
 
 /** What a token claims to be (not yet checked), or null if it isn't one. */
 export function parseLink(token: string): LinkClaim | null {
   const m = LINK_TOKEN.exec(token)
   if (!m) return null
-  return m[1] ? { purpose: 'refund', ref: m[2], n: 0 } : { purpose: 'edit', ref: m[4], n: Number(m[5]) }
+  if (m[1]) return { purpose: 'refund', ref: m[2], n: 0 }
+  if (m[3]) return { purpose: 'edit', ref: m[4], n: Number(m[5]) }
+  return { purpose: 'resume', ref: m[7], n: Number(m[8]), issuedAt: Number(m[9]) * 1000 }
 }
 
-export async function signLink(secret: string, purpose: LinkPurpose, ref: string, n = 0): Promise<string> {
-  const body = purpose === 'edit' ? `edit.${ref}.${n}` : `refund.${ref}`
+/** Signs a link. A resume link also carries its sending time (`issuedAt`, ms; kept to the second). */
+export async function signLink(secret: string, purpose: LinkPurpose, ref: string, n = 0, issuedAt = 0): Promise<string> {
+  const body = purpose === 'edit' ? `edit.${ref}.${n}`
+    : purpose === 'resume' ? `resume.${ref}.${n}.${Math.floor(issuedAt / 1000)}`
+      : `refund.${ref}`
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(body))
   return `${body}.${base64url(new Uint8Array(sig))}`
 }
@@ -63,5 +71,5 @@ export async function verifyLink(secret: string, purpose: LinkPurpose, token: st
   const claim = parseLink(token)
   if (!claim || claim.purpose !== purpose) return null
   // Compared as the exact signed string, so no other spelling of the signature passes.
-  return (await sameSecret(token, await signLink(secret, purpose, claim.ref, claim.n))) ? claim : null
+  return (await sameSecret(token, await signLink(secret, purpose, claim.ref, claim.n, claim.issuedAt))) ? claim : null
 }

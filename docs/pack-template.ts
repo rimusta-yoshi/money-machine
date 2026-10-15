@@ -33,6 +33,16 @@ export const TODO_ID = definePack({
     ctaNote: 'TODO: a short reassurance, e.g. No obligation',
     offer: 'TODO: a plural noun phrase, e.g. Free quotes',
   },
+  // Six to ten hero headline suggestions (60 characters max). {town} becomes the customer's
+  // location; at least three must have no {town}. The builder offers three per site.
+  headlines: [
+    'TODO: e.g. Sparkling windows, every time.',
+    'TODO',
+    'TODO',
+    'TODO: e.g. Your local window cleaner in {town}.',
+    'TODO',
+    'TODO',
+  ],
   // Three to eight. Names up to 32 characters; descriptions are for the /websites-for/ page.
   services: [
     { name: 'TODO', description: 'TODO' },
