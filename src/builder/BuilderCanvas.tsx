@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect, useMemo, useReducer } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useMemo, useReducer, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { BusinessInfo, SectionType, TradeConfig } from '../types'
 import { sectionPresent, specKey, THEMES } from '../gen'
@@ -66,6 +66,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
   /** The part of the section the focused field shows, kept in view above the fields. */
   const watched = useRef<string | null>(null)
   const barRef = useRef<HTMLDivElement | null>(null)
+  /** When Done was pressed: the bar's Next sits where Done was, so a double tap mustn't skip a section. */
+  const doneAt = useRef(0)
 
   const activeType = sections[activeIdx]?.type ?? 'hero'
   // Sample photos and text are view-only: they never reach the record, so they can't be saved or published.
@@ -135,7 +137,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
   }, [activeIdx, effectiveMobile, zoom, isNarrowDevice, editing])
 
   /** While editing on a phone: scrolls the preview above the fields to what the focused field changes. */
-  const reveal = (selector: string | null) => {
+  const reveal = useCallback((selector: string | null) => {
     watched.current = selector
     const pane = stackScrollRef.current
     const band = bandRefs.current[activeIdx]
@@ -144,11 +146,12 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     // A little of what's above stays in view too, so the edited part keeps its context.
     const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 32
     pane.scrollTo({ top: Math.max(0, offset) })
-  }
-  // On opening the fields, when the keyboard opens or closes, and when the preview size changes.
+  }, [activeIdx])
+  // On opening the fields, when the keyboard opens or closes, the preview size changes, or the
+  // section redraws with an edit. Not on every render, so the preview can still be scrolled by hand.
   useEffect(() => {
     if (editing) reveal(watched.current)
-  })
+  }, [editing, viewport.height, viewport.top, flow.size, site.content, picker.shown, reveal])
 
   // Back on the bar after the fields close: focus returns to its Edit button.
   useEffect(() => {
@@ -160,7 +163,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
 
   // The bar's height, so notices float above it rather than over it.
   useLayoutEffect(() => {
-    const bar = barRef.current
+    // The wrapper holds a fixed panel, so it has no height of its own: measure the panel.
+    const bar = barRef.current?.firstElementChild as HTMLElement | null | undefined
     if (!isNarrowDevice || !bar) return
     const root = document.documentElement
     const set = () => root.style.setProperty('--phone-bar-h', `${bar.offsetHeight}px`)
@@ -243,6 +247,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
   /** Done: the fields close and the next section opens on its bar (or on to go live). */
   const doneEditing = () => {
     if (busy) return
+    doneAt.current = Date.now()
     refocusEdit.current = true
     dispatchFlow({ type: 'close' })
     if (navProps.allDone) finish()
@@ -372,7 +377,12 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
               resume={resume}
             />
           ) : (
-            <PhoneBar ref={editRef} {...navProps} onEdit={() => { watched.current = null; dispatchFlow({ type: 'edit' }) }} />
+            <PhoneBar
+              ref={editRef}
+              {...navProps}
+              onNext={() => { if (Date.now() - doneAt.current > 600) navProps.onNext() }}
+              onFinish={() => { if (Date.now() - doneAt.current > 600) navProps.onFinish() }}
+              onEdit={() => { watched.current = null; dispatchFlow({ type: 'edit' }) }} />
           )}
         </div>
       ) : <ControlRail {...navProps} />}

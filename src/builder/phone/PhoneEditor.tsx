@@ -60,7 +60,8 @@ export function PhoneEditor(props: Props) {
         {props.resume}
       </div>
       <div className="bd-phone-edit-foot">
-        <button type="button" className="sb-main-btn bd-next" onClick={props.onDone} disabled={props.layout.loading}>
+        {/* aria-disabled, not disabled: focus stays on the button while the layouts catch up. */}
+        <button type="button" className="sb-main-btn bd-next" onClick={() => { if (!props.layout.loading) props.onDone() }} aria-disabled={props.layout.loading || undefined}>
           {props.layout.loading ? 'Updating layouts…' : 'Done'}
         </button>
       </div>

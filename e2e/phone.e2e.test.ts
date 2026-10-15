@@ -108,7 +108,7 @@ async function done(page: Page, then: ReturnType<Page['getByRole']>) {
     if (await then.isVisible()) return true
     if (await button.isVisible() && await button.isEnabled()) await button.click({ timeout: 2000 }).catch(() => undefined)
     return then.isVisible()
-  }, { timeout: 30_000, intervals: [500] }).toBe(true)
+  }, { timeout: 30_000, interval: 500 }).toBe(true)
 }
 
 const nextReady = async (page: Page) => {
@@ -203,6 +203,15 @@ it('builds a site on a phone, one section at a time', async () => {
   expect(await page.getByRole('heading', { name: 'Your hero' }).count()).toBe(0)
   await (await nextReady(page)).click()
   await editTrust.waitFor({ timeout: 30_000 })
+
+  // The bar never covers the end of the site: scrolled to the bottom, the last section clears it.
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await page.waitForTimeout(300)
+  const ends = await page.evaluate(() => ({
+    site: [...document.querySelectorAll('.mm-band')].at(-1)!.getBoundingClientRect().bottom,
+    bar: document.querySelector('.bd-bar')!.getBoundingClientRect().top,
+  }))
+  expect(ends.site).toBeLessThanOrEqual(ends.bar)
 
   // "Email me a link to finish on my computer": saved and emailed; the link opens it on a computer.
   await editTrust.click()

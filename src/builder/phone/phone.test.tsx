@@ -109,8 +109,11 @@ describe('Edit <section> on a phone', () => {
   })
 
   it('waits for the layouts to catch up before Done', () => {
-    editor({ layout: { index: 0, count: 6, label: 'Split', loading: true } })
-    expect((screen.getByRole('button', { name: 'Updating layouts…' }) as HTMLButtonElement).disabled).toBe(true)
+    const { props } = editor({ layout: { index: 0, count: 6, label: 'Split', loading: true } })
+    const button = screen.getByRole('button', { name: 'Updating layouts…' })
+    expect(button.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(button)
+    expect(props.onDone).not.toHaveBeenCalled()
   })
 })
 
