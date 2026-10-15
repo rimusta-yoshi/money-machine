@@ -53,7 +53,7 @@ export function ResumeLink({ send, initialEmail = '' }: Props) {
       >
         <p className="mm-note">We’ll save your site as it is and email you a link to carry on from any computer.</p>
         <TextField
-          label="Your email"
+          label="Email the link to"
           type="email"
           autoComplete="email"
           inputMode="email"
@@ -66,7 +66,7 @@ export function ResumeLink({ send, initialEmail = '' }: Props) {
           <input type="checkbox" checked={remind} onChange={e => setRemind(e.target.checked)} />
           Remind me once in a few days if I haven’t finished
         </label>
-        <button type="submit" className="sb-main-btn bd-resume-send" aria-disabled={state.s === 'sending' || undefined}>
+        <button type="submit" className="sb-line-btn bd-resume-send" aria-disabled={state.s === 'sending' || undefined}>
           {state.s === 'sending' ? 'Sending…' : 'Email me the link'}
         </button>
         <p className={`bd-resume-status${state.s === 'error' ? ' is-error' : ''}`} role="status" aria-live="polite">

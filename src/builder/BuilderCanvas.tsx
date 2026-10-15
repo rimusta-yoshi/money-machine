@@ -290,7 +290,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
       className={`mm-stack-layout${isNarrowDevice ? ' narrow-device' : ''}${editing ? ' phone-edit' : ''}`}
       style={editing ? { '--vv-top': `${viewport.top}px`, '--vvh': `${viewport.height}px`, '--pv-h': `${previewHeight(viewport.height)}px` } as CSSProperties : undefined}
     >
-      <section aria-label="Preview of your site" className="mm-stack-view" ref={stackScrollRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+      <section aria-label="Preview of your site" className="mm-stack-view" ref={stackScrollRef} tabIndex={editing ? 0 : undefined} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <div
           className="mm-zoom-outer"
           style={!effectiveMobile && innerH > 0 ? { height: Math.ceil(innerH * zoom) } as CSSProperties : undefined}
@@ -368,6 +368,7 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
               onDone={doneEditing}
               onClose={() => { refocusEdit.current = true; dispatchFlow({ type: 'close' }) }}
               onFieldFocus={reveal}
+              viewportHeight={viewport.height}
               resume={resume}
             />
           ) : (

@@ -165,7 +165,7 @@ describe('Email me a link to finish on my computer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Email me the link' }))
     expect(send).not.toHaveBeenCalled()
     expect(screen.getByText(/Check your email address/)).toBeTruthy()
-    fireEvent.change(screen.getByLabelText('Your email'), { target: { value: 'joe@example.com' } })
+    fireEvent.change(screen.getByLabelText('Email the link to'), { target: { value: 'joe@example.com' } })
     fireEvent.click(screen.getByLabelText(/Remind me once/))
     fireEvent.click(screen.getByRole('button', { name: 'Email me the link' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe('We’ve sent a link to joe@example.com.'))

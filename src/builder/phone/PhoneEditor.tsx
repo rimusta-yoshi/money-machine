@@ -16,6 +16,8 @@ interface Props extends SectionNavProps {
   onFieldFocus: (selector: string | null) => void
   /** "Email me a link to finish on my computer", when saving to the server is on. */
   resume?: ReactNode
+  /** The visible screen's height: it shrinks when the keyboard opens. */
+  viewportHeight?: number
 }
 
 /**
@@ -30,6 +32,12 @@ export function PhoneEditor(props: Props) {
 
   // Opening moves focus into the fields' panel, so keyboard and screen-reader users land here.
   useEffect(() => { headingRef.current?.focus() }, [])
+  // The keyboard opened (or closed): keep the field being typed in on screen.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const field = document.activeElement
+    if (field instanceof HTMLElement && bodyRef.current?.contains(field)) field.scrollIntoView({ block: 'nearest' })
+  }, [props.viewportHeight])
 
   return (
     <section
@@ -45,7 +53,7 @@ export function PhoneEditor(props: Props) {
           <button type="button" aria-pressed={size === 'computer'} onClick={() => props.onSize('computer')}>Computer</button>
         </div>
       </div>
-      <div className="bd-phone-edit-body">
+      <div className="bd-phone-edit-body" ref={bodyRef}>
         <SectionContentEditor site={site} trade={trade} section={sections[activeIdx].type} onContentChange={props.onContentChange} onBusinessChange={props.onBusinessChange} />
         <p className="mm-note">Watch your site update above as you type.</p>
         <button type="button" className="sb-link-btn bd-phone-look" onClick={props.onChangeLook}>Change colours and style</button>

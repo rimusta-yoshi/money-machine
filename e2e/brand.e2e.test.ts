@@ -163,8 +163,12 @@ describe.each(VIEWPORTS)('$name', vp => {
     await expect.poll(() => page.getByRole('button', { name: /^Next: / }).isEnabled(), { timeout: 30_000 }).toBe(true)
     await check(page, `build-${vp.name}`)
     if (vp.isMobile) {
-      await page.getByRole('button', { name: 'Your content' }).click()
+      // Edit opens just the hero's fields; Done moves on to the next section.
+      await page.getByRole('button', { name: 'Edit hero' }).click()
+      await page.getByRole('heading', { name: 'Your hero' }).waitFor()
       await check(page, `build-content-${vp.name}`)
+      await page.getByRole('button', { name: 'Done' }).click()
+      await page.getByRole('button', { name: 'Edit trust bar' }).waitFor({ timeout: 30_000 })
     }
 
     for (let i = 0; i < 20; i++) {
