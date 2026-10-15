@@ -30,7 +30,7 @@ describe('PhotoEditor', () => {
   it('resizes a chosen photo and saves it with the default description', async () => {
     const onChange = vi.fn()
     render(<PhotoEditor photo={null} defaultAlt="Joe Pipes at work in Leeds" onChange={onChange} {...deps} />)
-    choose(/Choose a photo/, jpeg())
+    choose(/Add your photo/, jpeg())
     await waitFor(() => expect(onChange).toHaveBeenCalledWith({ url: URL1, alt: 'Joe Pipes at work in Leeds' }))
   })
 
@@ -62,8 +62,8 @@ describe('PhotoEditor', () => {
     let release: (url: string) => void = () => {}
     const slowStore: PhotoStore = { put: () => new Promise(r => { release = r }) }
     render(<PhotoEditor photo={null} defaultAlt="x" onChange={vi.fn()} codec={codec} store={slowStore} />)
-    const input = screen.getByLabelText(/Choose a photo/) as HTMLInputElement
-    choose(/Choose a photo/, jpeg())
+    const input = screen.getByLabelText(/Add your photo/) as HTMLInputElement
+    choose(/Add your photo/, jpeg())
     await waitFor(() => expect(input.getAttribute('aria-disabled')).toBe('true'))
     expect(input.disabled).toBe(false)
     expect(document.getElementById(input.getAttribute('aria-describedby')!)?.textContent).toMatch(/Preparing/)
@@ -98,7 +98,7 @@ describe('PhotoEditor', () => {
   it('tells the customer when a file isn’t a photo', async () => {
     const onChange = vi.fn()
     render(<PhotoEditor photo={null} defaultAlt="x" onChange={onChange} {...deps} />)
-    choose(/Choose a photo/, new File(['%PDF'], 'quote.pdf', { type: 'application/pdf' }))
+    choose(/Add your photo/, new File(['%PDF'], 'quote.pdf', { type: 'application/pdf' }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/isn’t a photo/))
     expect(onChange).not.toHaveBeenCalled()
   })
@@ -133,7 +133,7 @@ describe('GalleryEditor', () => {
 describe('photo editing in the builder', () => {
   it('offers a photo picker on the hero instead of a “coming soon” note', () => {
     render(<SectionContentEditor site={createSite(plumber, 1)} trade={plumber} section="hero" onContentChange={vi.fn()} />)
-    expect(screen.getByLabelText(/Choose a photo/)).toBeTruthy()
+    expect(screen.getByLabelText(/Add your photo/)).toBeTruthy()
     expect(screen.queryByText(/arrive with publishing/)).toBeNull()
   })
 })

@@ -143,8 +143,8 @@ button.mm-sample-tag:focus-visible { outline: calc(3px / var(--zoom, 1)) solid v
 .bd-next { padding: 18px 24px; font-size: 15px; box-shadow: 0 6px 0 var(--sb-night); }
 .bd-foot { flex-wrap: wrap; }
 
-/* ---- Phone: preview on top, controls in a bottom sheet ---- */
-.bd-sheet { display: none; }
+/* ---- Phone: one section at a time. A slim bar to swipe layouts; "Edit" opens just its fields. ---- */
+.bd-phone { display: none; }
 @media (max-width: 767px) {
   .bt-bar { padding: 10px 16px; flex-wrap: nowrap; }
   .bt-bar .sb-logo-word { display: none; }
@@ -154,30 +154,72 @@ button.mm-sample-tag:focus-visible { outline: calc(3px / var(--zoom, 1)) solid v
   .bt-root--build { background: var(--sb-mist); }
   .bt-root--build .bt-bar { position: sticky; top: 0; z-index: 40; }
   .bt-root--build .mm-band { scroll-margin-top: 76px; }
-  .bt-build { padding: 12px 12px 62vh; }
-  .bt-build.sheet-folded { padding-bottom: 110px; }
+  .bt-build { padding: 12px 12px calc(var(--phone-bar-h, 200px) + 16px); }
   .mm-stack-layout { display: block; }
   .mm-stack-view { height: auto; min-height: 0; overflow: visible; padding: 0; background: transparent; border-radius: 0; }
   .mm-stack-site { border-radius: 16px; box-shadow: none; }
   .prev-mobile .mm-zoom-outer { width: 100%; }
-  .bd-sheet {
-    display: flex; flex-direction: column; gap: 14px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
-    max-height: 60vh; overflow-y: auto; background: var(--sb-white); border-radius: 26px 26px 0 0;
-    padding: 16px 16px calc(20px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -8px 30px rgba(28, 26, 36, 0.08);
-  }
-  .bd-sheet.folded { gap: 0; }
-  .bd-sheet .bd-blocks > span { height: 8px; }
-  .bd-sheet .bd-arrow { width: 50px; height: 50px; }
-  .bd-sheet-name { margin: 0; font-family: var(--sb-font-display); font-weight: 900; font-size: 20px; letter-spacing: -0.02em; }
-  .bd-sheet .bd-layout > span { font-size: 15px; }
-  .bd-sheet-row { display: flex; gap: 8px; }
-  .bd-sheet-row > * { flex: 1 1 0; min-height: 48px; }
-  .bd-sheet .bd-different { background: var(--sb-mist); }
-  .bd-sheet-body { display: flex; flex-direction: column; gap: 12px; }
-  .bd-sheet-body[hidden] { display: none; }
-  .bd-sheet .bd-next { position: sticky; bottom: 0; width: 100%; min-height: 58px; font-size: 16px; }
+  /* No pills over the site: only an outline marks the section being built. */
+  .narrow-device .mm-band.todo, .narrow-device .mm-band.done { opacity: 1; }
+  .narrow-device .mm-example-label.mm-example-label--picked { padding-top: 12px; font-size: 15px; }
   .bs-h1 { font-size: 28px; }
+
+  .bd-phone { display: block; }
+  .bd-bar {
+    display: flex; flex-direction: column; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: var(--sb-white); border-radius: 22px 22px 0 0;
+    padding: 12px 16px calc(14px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -8px 30px rgba(28, 26, 36, 0.08);
+  }
+  .bd-bar-row { display: flex; align-items: center; gap: 8px; }
+  .bd-bar .bd-arrow { width: 48px; height: 48px; }
+  .bd-bar-edit {
+    flex: 1 1 auto; min-height: 48px; border: 2px solid var(--sb-night); border-radius: 14px; background: var(--sb-white);
+    font: inherit; font-weight: 700; font-size: 16px; color: var(--sb-night);
+  }
+  .bd-bar-meta { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 24px; }
+  .bd-bar-line { margin: 0; font-size: 14px; line-height: 1.35; color: var(--sb-muted); text-align: center; }
+  .bd-bar-more {
+    flex: none; min-height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: var(--sb-mist);
+    font: inherit; font-weight: 700; font-size: 14px; color: var(--sb-night);
+  }
+  .bd-bar-more:disabled { cursor: progress; color: var(--sb-muted); }
+  .bd-bar .bd-next { width: 100%; min-height: 54px; padding: 12px 18px; font-size: 16px; box-shadow: 0 5px 0 var(--sb-night); }
+
+  /* Editing: the section on top (inside the visible screen, above the keyboard), its fields below. */
+  .phone-edit .mm-band.phone-off { display: none; }
+  .phone-edit .mm-band.active::after { display: none; }
+  .phone-edit .mm-stack-view {
+    position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--pv-h, 40vh); z-index: 55;
+    overflow-y: auto; overscroll-behavior: contain; padding: 8px; background: var(--sb-mist);
+  }
+  .bd-phone-edit {
+    position: fixed; left: 0; right: 0; z-index: 56; display: flex; flex-direction: column;
+    top: calc(var(--vv-top, 0px) + var(--pv-h, 40vh)); height: calc(var(--vvh, 100vh) - var(--pv-h, 40vh));
+    background: var(--sb-white); border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgba(28, 26, 36, 0.10);
+  }
+  .bd-phone-edit-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px 6px; }
+  .bd-phone-edit-title { margin: 0; font-family: var(--sb-font-display); font-weight: 900; font-size: 18px; letter-spacing: -0.02em; }
+  .bd-phone-edit-title:focus { outline: none; }
+  .bd-phone-edit-title:focus-visible { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+  .bd-phone-size button { padding: 8px 10px; font-size: 14px; }
+  .bd-phone-edit-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
+  .bd-phone-look { align-self: flex-start; min-height: 44px; }
+  .bd-phone-edit-foot { padding: 10px 16px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--sb-rule); }
+  .bd-phone-edit-foot .bd-next { width: 100%; min-height: 54px; font-size: 16px; box-shadow: 0 5px 0 var(--sb-night); }
 }
+
+/* "Email me a link to finish on my computer" */
+.bd-resume { display: flex; flex-direction: column; gap: 10px; }
+.bd-resume-toggle { min-height: 48px; }
+.bd-resume-form { display: flex; flex-direction: column; gap: 12px; }
+.bd-resume-form[hidden] { display: none; }
+.bd-resume-remind { display: flex; gap: 10px; align-items: flex-start; min-height: 44px; font-size: 15px; line-height: 1.4; cursor: pointer; }
+.bd-resume-remind input { flex: none; width: 20px; height: 20px; margin-top: 1px; accent-color: var(--sb-night); }
+.bd-resume-send { min-height: 52px; font-size: 15px; }
+.bd-resume-send[aria-disabled="true"] { opacity: 0.7; cursor: progress; }
+.bd-resume-status { margin: 0; font-size: 15px; font-weight: 600; color: var(--sb-lawn-ink); }
+.bd-resume-status:empty { display: none; }
+.bd-resume-status.is-error { color: var(--sb-error); }
 
 /* ---- Notices ---- */
 .mm-fit-notice { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; max-width: min(520px, calc(100vw - 32px)); }
@@ -198,3 +240,8 @@ button.mm-sample-tag:focus-visible { outline: calc(3px / var(--zoom, 1)) solid v
 .mm-verify-spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: var(--sb-white); }
 @media (prefers-reduced-motion: no-preference) { .mm-verify-spin { animation: mm-spin .8s linear infinite; } }
 @keyframes mm-spin { to { transform: rotate(360deg); } }
+
+/* Phones: notices float above the builder's bar, not over it. */
+@media (max-width: 767px) {
+  .bt-root--build .mm-fit-notice, .bt-root--build .mm-verify { bottom: calc(var(--phone-bar-h, 0px) + 12px); }
+}

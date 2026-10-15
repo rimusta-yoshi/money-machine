@@ -3,7 +3,8 @@ import type { RefObject } from 'react'
 import type { Photo } from '../../site/schema'
 import type { ImageCodec } from '../../photos/resize'
 import type { PhotoStore } from '../../photos/store'
-import { usePhotoPicker } from './usePhotoPicker'
+import { isTall, usePhotoPicker } from './usePhotoPicker'
+import { FocusPicker } from './FocusPicker'
 import { LIMITS } from '../../site/limits'
 import type { PickState } from './usePhotoPicker'
 import { SAMPLE_PHOTOS_WHILE_BUILDING } from '../usePreviewContent'
@@ -39,13 +40,15 @@ interface FilePickProps {
   statusId: string
   invalid: boolean
   inputRef: RefObject<HTMLInputElement | null>
+  /** The big, obvious button (no photo yet). */
+  main?: boolean
 }
 
 /**
  * A real file input, shown as a button, so keyboards and screen readers get a native control.
  * While busy it is aria-disabled rather than disabled, so focus stays put.
  */
-function FilePick({ label, onFile, busy, statusId, invalid, inputRef }: FilePickProps) {
+function FilePick({ label, onFile, busy, statusId, invalid, inputRef, main }: FilePickProps) {
   const id = useId()
   return (
     <span className="mm-photo-pick">
@@ -65,7 +68,7 @@ function FilePick({ label, onFile, busy, statusId, invalid, inputRef }: FilePick
           if (!busy) onFile(file)
         }}
       />
-      <label htmlFor={id} className="mm-add-btn mm-photo-btn">{label}</label>
+      <label htmlFor={id} className={`mm-add-btn mm-photo-btn${main ? ' mm-photo-btn--main' : ''}`}>{label}</label>
     </span>
   )
 }
@@ -120,9 +123,12 @@ interface PhotoEditorProps extends PhotoDeps {
   onChange: (photo: Photo | null) => void
 }
 
-/** One photo (hero or about): pick, resize, describe, replace or remove. */
+/** Shown under "Add your photo" while there's none: carrying on is fine. */
+const CarryOnNote = () => <p className="mm-note">No photo to hand? Carry on. We’ll remind you before you go live.</p>
+
+/** One photo (hero or about): pick, resize, describe, mark its important part, replace or remove. */
 export function PhotoEditor({ photo, defaultAlt, onChange, store, codec }: PhotoEditorProps) {
-  const { state, pick } = usePhotoPicker(store, codec)
+  const { state, pickPhoto } = usePhotoPicker(store, codec)
   const statusId = useId()
   const latest = useLatest({ defaultAlt, onChange })
   const fileRef = useRef<HTMLInputElement>(null)
@@ -138,11 +144,11 @@ export function PhotoEditor({ photo, defaultAlt, onChange, store, codec }: Photo
   })
 
   const choose = async (file: File | undefined) => {
-    const url = await pick(file)
-    if (!url) return
-    // A new image gets a fresh description: the old one described a different photo.
+    const picked = await pickPhoto(file)
+    if (!picked) return
+    // A new image gets a fresh description (the old one described a different photo) and no focal point yet.
     focusAltNext.current = true
-    latest.current.onChange({ url, alt: latest.current.defaultAlt })
+    latest.current.onChange({ url: picked.url, alt: latest.current.defaultAlt, ...(isTall(picked) ? { tall: true as const } : {}) })
   }
   const remove = () => {
     onChange(null)
@@ -157,9 +163,11 @@ export function PhotoEditor({ photo, defaultAlt, onChange, store, codec }: Photo
           <AltField alt={photo.alt} onChange={alt => onChange({ ...photo, alt })} inputRef={altRef} />
         </div>
       )}
+      {photo && <FocusPicker photo={photo} onFocus={focus => onChange({ ...photo, focus })} />}
       <div className="mm-photo-actions">
         <FilePick
-          label={photo ? 'Replace photo' : 'Choose a photo'}
+          main={!photo}
+          label={photo ? 'Replace photo' : 'Add your photo'}
           onFile={choose}
           busy={state.status === 'working'}
           statusId={statusId}
@@ -168,7 +176,7 @@ export function PhotoEditor({ photo, defaultAlt, onChange, store, codec }: Photo
         />
         {photo && <button type="button" className="mm-add-btn" onClick={remove}>Remove</button>}
       </div>
-      {!photo && <SampleNote />}
+      {!photo && <CarryOnNote />}
       <Status id={statusId} state={state} />
     </div>
   )

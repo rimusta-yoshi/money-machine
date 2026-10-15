@@ -31,6 +31,7 @@ import { takeTesterCodeFromUrl } from './builder/finish/testerCode'
 import { BRAND } from './brand/config'
 import { SaveStatusChip } from './builder/save/SaveStatusChip'
 import { ShareCard } from './builder/save/ShareCard'
+import { ResumeLink } from './builder/save/ResumeLink'
 import { useScreen } from './builder/account/screens'
 import { PaidScreen } from './builder/account/PaidScreen'
 import { RefundScreen } from './builder/account/RefundScreen'
@@ -94,7 +95,6 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     return id ? siteReducer(null, { type: 'pickTrade', trade: tradeById[id] }) : null
   })
   const [mobile, setMobile] = useState(false)
-  const [sheetFolded, setSheetFolded] = useState(false)
   const [focusSection, setFocusSection] = useState<SectionType | undefined>(undefined)
   const narrow = useNarrow()
   const trade = site ? tradeById[site.tradeId] : null
@@ -157,7 +157,6 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     if (step === 'basics' && next !== 'basics') trackStep('basics_done', facts())
     if (step === 'look' && (next === 'build' || next === 'finish')) trackStep('look_picked', facts())
     if (next === 'finish') trackStep('build_done', facts())
-    setSheetFolded(false)
     setStep(next)
   }
   const reset = () => {
@@ -197,7 +196,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
   }
 
   const buildRight = narrow
-    ? <button type="button" className="bt-fold" aria-pressed={sheetFolded} onClick={() => setSheetFolded(f => !f)}>Preview</button>
+    ? null
     : (
       <div role="group" aria-label="Preview size" className="bt-size">
         <button type="button" aria-pressed={!mobile} onClick={() => setMobile(false)}>Desktop</button>
@@ -226,7 +225,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
       )}
 
       {step === 'build' && (
-        <main className={`bt-build${mobile && !narrow ? ' prev-mobile' : ''}${sheetFolded ? ' sheet-folded' : ''}`}>
+        <main className={`bt-build${mobile && !narrow ? ' prev-mobile' : ''}`}>
           <BuilderCanvas
             key={focusSection ?? 'start'}
             trade={trade}
@@ -242,7 +241,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
             onBusinessChange={onBusinessChange}
             onDone={() => { void verify().then(checked => checked && go('finish')) }}
             onChangeLook={() => go('look')}
-            sheetFolded={sheetFolded}
+            resume={draft.enabled && !draft.account.paid ? <ResumeLink send={draft.emailResumeLink} initialEmail={site.business.email} /> : undefined}
           />
         </main>
       )}
