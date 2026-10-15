@@ -204,6 +204,11 @@ function Builder({ cancelled }: { cancelled: boolean }) {
       </div>
     )
 
+  // Phones: save the site and email a link to carry on at a computer (unpaid sites only).
+  const resumeLink = draft.enabled && !draft.account.paid
+    ? <ResumeLink send={draft.emailResumeLink} initialEmail={site.business.email} />
+    : undefined
+
   return (
     <div className={`bt-root sb-ui bt-root--${step}`}>
       <TopBar step={step} onGoStep={go} live={live} right={<>{status}{step === 'build' && buildRight}{step !== 'finish' && publishChanges}</>} />
@@ -241,7 +246,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
             onBusinessChange={onBusinessChange}
             onDone={() => { void verify().then(checked => checked && go('finish')) }}
             onChangeLook={() => go('look')}
-            resume={draft.enabled && !draft.account.paid ? <ResumeLink send={draft.emailResumeLink} initialEmail={site.business.email} /> : undefined}
+            resume={resumeLink}
           />
         </main>
       )}
@@ -261,6 +266,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
           verify={verify}
           onReset={reset}
           share={draft.enabled ? <ShareCard draft={draft} /> : null}
+          resume={narrow ? resumeLink : undefined}
         />
       )}
 

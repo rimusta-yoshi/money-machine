@@ -141,7 +141,8 @@ export function BuilderCanvas({ trade, site, content: preview, mobile, initialSe
     const band = bandRefs.current[activeIdx]
     if (!pane || !band) return
     const target = (selector && band.querySelector(selector)) || band
-    const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 8
+    // A little of what's above stays in view too, so the edited part keeps its context.
+    const offset = target.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop - 32
     pane.scrollTo({ top: Math.max(0, offset) })
   }
   // On opening the fields, when the keyboard opens or closes, and when the preview size changes.

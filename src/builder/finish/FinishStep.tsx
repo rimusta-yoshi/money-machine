@@ -35,6 +35,8 @@ interface Props {
   onReset: () => void
   /** The preview link, when the builder has a server. */
   share?: ReactNode
+  /** Phones: "Email me a link to finish on my computer". */
+  resume?: ReactNode
 }
 
 const Tick = () => (
@@ -44,7 +46,7 @@ const Tick = () => (
 )
 
 /** Final step: what's ready, photos worth adding, anything still hidden, and the go-live panel. */
-export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, cancelled, shop, onReset, share }: Props) {
+export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEditStep, draft, adminPublish, domain, verify, cancelled, shop, onReset, share, resume }: Props) {
   const shareId = useId()
   const [sharing, setSharing] = useState(false)
   const b = site.business
@@ -113,6 +115,7 @@ export function FinishStep({ trade, site, onBusinessChange, onEditSection, onEdi
           <button type="button" className="sb-text-btn bg-reset" onClick={onReset}>Start a new site</button>
         </div>
         {share && <div id={shareId} hidden={!sharing}>{share}</div>}
+        {resume}
         <LegalLinks />
       </section>
 

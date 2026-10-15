@@ -43,7 +43,7 @@ describe('the phone bar', () => {
     const onEdit = vi.fn()
     const { container } = render(<PhoneBar {...props} onEdit={onEdit} />)
     expect(screen.getByRole('button', { name: 'Edit hero' })).toBeTruthy()
-    expect(screen.getByText('Hero · Photo on top · 1 of 6 · swipe to change')).toBeTruthy()
+    expect(container.querySelector('.bd-bar-line')?.textContent).toBe('Hero · Photo on top · 1 of 6 · swipe to change')
     fireEvent.click(screen.getByRole('button', { name: 'Next layout' }))
     expect(props.onCycleLayout).toHaveBeenCalledWith(1)
     fireEvent.click(screen.getByRole('button', { name: 'Previous layout' }))
@@ -57,8 +57,8 @@ describe('the phone bar', () => {
   })
 
   it('announces the layout to screen readers, and describes the Edit button with it', () => {
-    render(<PhoneBar {...nav()} onEdit={vi.fn()} />)
-    const line = screen.getByText(/swipe to change/)
+    const { container } = render(<PhoneBar {...nav()} onEdit={vi.fn()} />)
+    const line = container.querySelector('.bd-bar-line')!
     expect(line.getAttribute('aria-live')).toBe('polite')
     expect(screen.getByRole('button', { name: 'Edit hero' }).getAttribute('aria-describedby')).toBe(line.id)
   })

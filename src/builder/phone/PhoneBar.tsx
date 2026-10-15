@@ -28,7 +28,9 @@ export const PhoneBar = forwardRef<HTMLButtonElement, Props>(function PhoneBar(p
         <button type="button" className="bd-arrow" onClick={() => props.onCycleLayout(1)} aria-label="Next layout" disabled={!canCycle}>›</button>
       </div>
       <div className="bd-bar-meta">
-        <p id={lineId} className="bd-bar-line" aria-live="polite">{barLine(name, layout)}</p>
+        <p id={lineId} className="bd-bar-line" aria-live="polite">
+          <b>{name}</b>{barLine(name, layout).slice(name.length)}
+        </p>
         {props.onNewOptions && layout.count > 0 && (
           <button type="button" className="bd-bar-more" onClick={props.onNewOptions} disabled={layout.loading} aria-label="Show me different layouts">
             {layout.loading ? 'Making…' : 'New ones'}
