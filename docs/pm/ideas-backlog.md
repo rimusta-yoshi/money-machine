@@ -55,3 +55,9 @@
 
 ## Other verticals
 - Hairdressers, barbers, dog walkers, cleaners: mostly wave 2. Subscription only for verticals with genuine ongoing costs.
+
+## Own domains: costs and referral income (15 Oct 2026)
+- Own domains included in the £99 for now (Cloudflare for SaaS: first 100 free, then ~$0.10/month each, ~£950/yr per 1,000 domains).
+- Revisit at ~500 sales with real data on how many connect a domain. If needed: £10 one-off when connecting (covers ~10 years), refundable within 14 days like the £99 (refund disconnects). Never monthly (Stripe's ~20p fee makes micro-charges lose money); never change what existing customers already paid for.
+- Referral income as a cushion: domain affiliates (IONOS first, also covers 123-reg/Fasthosts; GoDaddy and Namecheap one-off ~10–20%), and business email referrals (Google Workspace UK: £6 per mailbox on Starter, paid after 90 days; Microsoft 365 via registrar affiliates). rob applies; links stay swappable in config; label "We may earn a small commission".
+- Terms (legal check): describe what's included at the time of purchase, so pricing can change for new customers.
