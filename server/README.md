@@ -673,8 +673,9 @@ npm run cf:deploy:app
 (`cf:deploy` deploys the API worker, then the site worker, which adds the `*/*` route and the
 database binding.) Then **Workers & Pages** → `siteblocks-sites` → **Settings → Domains & Routes**
 should list `*.localblocks.co.uk/*` and `*/*`; `siteblocks-api` keeps `api.` and `preview.`
-(more specific routes win), and `siteblocks-app` keeps its `localblocks.co.uk` custom domain
-(custom domains win over routes). Check `https://localblocks.co.uk/`,
+(more specific routes win), and `siteblocks-app` keeps its `localblocks.co.uk` custom domain plus a
+`localblocks.co.uk/*` route. Routes run *before* custom domains, so without that route `*/*` takes
+the homepage (it did on 15 Oct 2026). The first time, deploy the app before the site worker. Check `https://localblocks.co.uk/`,
 `https://api.localblocks.co.uk/health` and a site address still work.
 
 **6. Try it** with a domain you own: open a paid test site's edit link → **Use your own domain**,
