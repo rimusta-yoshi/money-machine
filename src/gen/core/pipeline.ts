@@ -90,7 +90,8 @@ export const isPresent = (def: AnyDef, content: unknown): boolean => allowed(def
 /** Archetypes this theme uses and this content allows, with their weights. */
 function themeWeights(def: AnyDef, content: unknown, style: SiteStyle): Record<string, number> {
   const table = def.weights[style.theme] ?? {}
-  return Object.fromEntries(allowed(def, content).map(k => [k, table[k] ?? 0]).filter(([, w]) => (w as number) > 0))
+  const tilt = def.tilt?.(content as never) ?? null
+  return Object.fromEntries(allowed(def, content).map(k => [k, (table[k] ?? 0) * (tilt?.[k] ?? 1)]).filter(([, w]) => (w as number) > 0))
 }
 
 /**

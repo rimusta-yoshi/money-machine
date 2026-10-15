@@ -22,6 +22,15 @@ export const electrician = definePack({
     ctaNote: 'No obligation',
     offer: 'Free quotes',
   },
+  /** Hero headline suggestions in the builder ({town} is the customer's location). */
+  headlines: [
+    'Safe, tidy electrical work, done right.',
+    'Rewires, sockets and fault-finding sorted.',
+    'Qualified electricians who turn up on time.',
+    'Your local electrician in {town}.',
+    '{town} electricians you can trust.',
+    'Electrical work across {town}, done safely.',
+  ],
   services: [
     { name: 'Fuse board upgrades', description: 'Old fuse boxes swapped for a modern consumer unit with RCD protection, tested and certified.' },
     { name: 'Rewiring', description: 'Full and part rewires, planned room by room so you’re never left without power for long.' },

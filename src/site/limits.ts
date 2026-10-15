@@ -28,6 +28,8 @@ export const LIMITS = {
   certsNote: 80,
   /** One service, e.g. "EV charger installation"; shown as a card title and in the footer. */
   service: 32,
+  /** The hero's headline, picked from suggestions or written by the customer. */
+  headline: 60,
 } as const
 
 export type LimitKey = keyof typeof LIMITS

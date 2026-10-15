@@ -4,7 +4,7 @@ import { pick } from '../rng'
 import type { PageContent, PagePhoto } from '../content'
 import { defineSection, specSchema } from '../core/define'
 import type { BodyContext } from '../core/define'
-import { head, img } from '../core/markup'
+import { focusAttr, head, img } from '../core/markup'
 import { rollBreak, rollCrop, rollMotif, rollRot } from '../core/punch'
 import { balancedItems, itemRowSizes } from '../core/rows'
 import { THEMES } from '../themes'
@@ -61,7 +61,7 @@ function mosaicCells(photos: readonly PagePhoto[], wide: 'first' | 'last'): stri
 function figure(p: PagePhoto): string {
   const src = safeImageUrl(p.url)
   if (!src) return ''
-  return `<div class="sb-photo"><img src="${esc(src)}" alt="${esc(p.alt)}" loading="lazy" decoding="async"></div><p class="sb-cap" aria-hidden="true">${esc(p.alt)}</p>`
+  return `<div class="sb-photo"><img src="${esc(src)}" alt="${esc(p.alt)}"${focusAttr(p)} loading="lazy" decoding="async"></div><p class="sb-cap" aria-hidden="true">${esc(p.alt)}</p>`
 }
 
 export const gallery = defineSection<GallerySpec, GalleryView>({

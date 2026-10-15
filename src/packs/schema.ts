@@ -108,6 +108,14 @@ export const coreSchema = z.object({
     /** What's on offer, plural noun phrase ("Free quotes"): "Free quotes across Leeds." */
     offer: line(40),
   }).strict(),
+  /**
+   * Hero headline suggestions the builder offers (three at a time, varied per site). `{town}` is
+   * replaced with the customer's location; lines with it are skipped when there's no location or
+   * it would run too long, so at least three must work without it. Never used for the page title.
+   */
+  headlines: z.array(z.string().trim().min(1).max(LIMITS.headline).regex(/^[^{}]*(\{town\}[^{}]*)?$/, 'Only {town}, once, may be filled in'))
+    .min(6).max(10)
+    .refine(hs => hs.filter(h => !h.includes('{town}')).length >= 3, 'At least three headlines without {town}'),
   /** Pre-filled services (names as shown on the site; descriptions for the "Websites for" page). */
   services: z.array(z.object({ name: line(LIMITS.service), description: line(160) }).strict()).min(3).max(MAX_SERVICES),
   /** Trust badges offered in the builder (Gas Safe, NICEIC…). Never added for the customer. */

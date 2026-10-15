@@ -22,6 +22,15 @@ export const painter = definePack({
     ctaNote: 'No obligation',
     offer: 'Free quotes',
   },
+  /** Hero headline suggestions in the builder ({town} is the customer's location). */
+  headlines: [
+    'Painting and decorating, done with care.',
+    'Clean lines, tidy rooms, fair prices.',
+    'A finish you’ll be proud to show off.',
+    'Your local decorator in {town}.',
+    '{town} painting and decorating, done right.',
+    'Interiors and exteriors across {town}.',
+  ],
   services: [
     { name: 'Interior painting', description: 'Walls, ceilings and woodwork, with the cutting-in done properly and the carpets kept clean.' },
     { name: 'Exterior painting', description: 'Render, windows, doors and fascias, prepared well so the paint lasts more than one winter.' },

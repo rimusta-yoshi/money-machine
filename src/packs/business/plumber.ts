@@ -22,6 +22,15 @@ export const plumber = definePack({
     ctaNote: 'No obligation',
     offer: 'Free quotes',
   },
+  /** Hero headline suggestions in the builder ({town} is the customer's location). */
+  headlines: [
+    'Plumbing and heating, done properly.',
+    'Leaks fixed, boilers sorted, no fuss.',
+    'Honest plumbing at a fair price.',
+    'Your local plumber in {town}.',
+    '{town} plumbing and heating you can trust.',
+    'Boilers, leaks and bathrooms in {town}.',
+  ],
   services: [
     { name: 'Leak repairs', description: 'Dripping taps, weeping joints and the leak coming through the kitchen ceiling.' },
     { name: 'Boiler repairs', description: 'No heating, no hot water, pressure dropping: the jobs that can’t wait till next week.' },

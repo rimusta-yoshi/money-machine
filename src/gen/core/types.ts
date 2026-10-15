@@ -143,6 +143,11 @@ export interface SectionDef<S extends AnySpec = AnySpec, C = unknown> {
   archetypes: Record<string, Archetype<C, never>>
   /** How likely each archetype is per theme. Missing or 0 means the theme never uses it. */
   weights: Record<ThemeKey, Record<string, number>>
+  /**
+   * Content-driven nudges to the theme's weights (archetype → multiplier), e.g. portrait-friendly
+   * heroes for a tall photo. null or absent: the weights as they are, so output is unchanged.
+   */
+  tilt?: (content: C) => Readonly<Record<string, number>> | null
   schema: z.ZodType<S>
   /** Used when a saved spec no longer fits and nothing else does. Allowed in every theme; its gate is the section's presence gate. */
   fallback: S

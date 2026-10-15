@@ -68,6 +68,8 @@ interface SectionOpts<S extends AnySpec, C> {
   /** Leaves out content a neighbour already shows (see the rhythm's `omit`). */
   trim?: (c: C, omit: ReadonlySet<Facet>) => C
   body: (spec: S, c: C, ctx: BodyContext) => Body
+  /** See SectionDef.tilt. */
+  tilt?: (c: C) => Readonly<Record<string, number>> | null
   /** The heading, the longest texts and the heading's column width, for the estimator. */
   words: (spec: S, c: C, style: SiteStyle) => { title: string; texts: readonly string[]; col?: number; px?: { d: number; m: number } }
 }
@@ -80,6 +82,7 @@ export function defineSection<S extends AnySpec, C>(o: SectionOpts<S, C>): Secti
     view: o.view,
     archetypes: o.archetypes as unknown as SectionDef<S, C>['archetypes'],
     weights: o.weights as Record<ThemeKey, Record<string, number>>,
+    tilt: o.tilt,
     schema: o.schema,
     fallback: o.fallback,
     safe: [o.fallback, ...(o.safe ?? [])],

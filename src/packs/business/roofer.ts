@@ -22,6 +22,15 @@ export const roofer = definePack({
     ctaNote: 'No obligation, and we come to you',
     offer: 'Free roof inspections',
   },
+  /** Hero headline suggestions in the builder ({town} is the customer's location). */
+  headlines: [
+    'Roofs fixed properly, first time.',
+    'Leaks, slates and gutters sorted.',
+    'Honest roofing from people who turn up.',
+    'Your local roofer in {town}.',
+    '{town} roofing you can rely on.',
+    'Roof repairs and new roofs in {town}.',
+  ],
   services: [
     { name: 'Roof replacement', description: 'Stripped back to the rafters and re-covered in slate, tile or the closest match to your street.' },
     { name: 'Roof repairs', description: 'Slipped slates, cracked tiles and the damp patch on the bedroom ceiling, traced and fixed.' },

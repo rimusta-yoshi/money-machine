@@ -25,6 +25,8 @@ export interface TradeConfig {
   name: string
   emoji: string
   tagline: string
+  /** Hero headline suggestions, with {town} for the location (from the pack). */
+  headlines: readonly string[]
   colorScheme: ColorScheme
   sections: SectionConfig[]
   /** The main call to action, in sentence case (e.g. "Get a free quote"). */

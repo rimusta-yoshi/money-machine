@@ -142,6 +142,16 @@ function stickers(c: HeroContent, count: number, side: 'left' | 'right'): Sticke
   return c.facts.slice(0, count).map((t, i) => ({ text: t, ink: i === 1, at: corner(spots[i], side) }))
 }
 
+/**
+ * A customer's tall (portrait) photo: favour layouts that frame it upright beside the text,
+ * and play down the wide, full-bleed ones that would crop most of it away. Sample photos
+ * are never tall, so existing output is unchanged.
+ */
+export const TALL_PHOTO_TILT: Readonly<Record<string, number>> = {
+  split: 1.5, floatcard: 2.5, sticker: 2.5, bigphone: 1.5,
+  overlay: 0.25, offset: 0.25, stacked: 0.5, editorial: 0.5,
+}
+
 /* ---------- the section ---------- */
 
 export const hero = defineSection<HeroSpec, HeroContent>({
@@ -282,6 +292,7 @@ export const hero = defineSection<HeroSpec, HeroContent>({
     'craft-heritage': { split: 1.6, overlay: 1, stacked: 1.8, typeled: 1.4, proof: 1, contact: 0.8, editorial: 4 },
     'friendly-local': { split: 2.6, stacked: 0.7, typeled: 0.6, proof: 1.2, contact: 1, sticker: 5.5 },
   },
+  tilt: c => (c.photo?.tall ? TALL_PHOTO_TILT : null),
   fallback: { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'ground', em: false } },
   safe: [
     { v: 2, section: 'hero', archetype: 'stacked', step: 2, params: { align: 'left', image: 'none', tone: 'surface', em: false } },

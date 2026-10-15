@@ -118,11 +118,20 @@ const starText = (score: number) => '★'.repeat(Math.round(score)) + '☆'.repe
 export const stars = (score: number): string =>
   `<span class="sb-stars" role="img" aria-label="Rated ${esc(score)} out of 5">${starText(score)}</span>`
 
+const pct = (n: number) => Math.round(Math.max(0, Math.min(100, n)) * 10) / 10
+
+/**
+ * The photo's important part as an object-position, so every crop keeps it in view. Empty for
+ * photos without one, so their markup is exactly as before.
+ */
+export const focusAttr = (photo: Pick<PagePhoto, 'focus'>): string =>
+  photo.focus ? ` style="object-position:${pct(photo.focus.x)}% ${pct(photo.focus.y)}%"` : ''
+
 /** A photo from the record, or nothing if its URL isn't one we allow. */
 export function img(photo: PagePhoto | null | undefined, cls = 'sb-photo', loading: 'lazy' | 'eager' = 'lazy'): string {
   const src = photo ? safeImageUrl(photo.url) : ''
   if (!photo || !src) return ''
-  return `<div class="${cls}"><img src="${esc(src)}" alt="${esc(photo.alt)}" loading="${loading}" decoding="async"></div>`
+  return `<div class="${cls}"><img src="${esc(src)}" alt="${esc(photo.alt)}"${focusAttr(photo)} loading="${loading}" decoding="async"></div>`
 }
 
 export type Corner = 'tl' | 'tr' | 'bl' | 'br'
