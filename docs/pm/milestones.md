@@ -31,6 +31,12 @@ rob, 15 Oct 2026: 500 sales is the first big milestone; 1, 10, 50 and 100 come b
 - Professional indemnity insurance, if not already in place.
 - Support: still manageable weekly, or does it need a better system?
 
+## 750–800 sales: business and product plan
+- **VAT is close** (~909 sales in any rolling 12 months at £99). Decide before it's forced: register, and either raise the price to absorb the 20% or accept lower margin.
+- **Business structure:** get an accountant (a few hundred pounds a year, worth it here). Ask about moving from sole trader to a limited company (can mean less tax at higher profits, and separates personal and business liability), VAT timing and schemes (e.g. Flat Rate), and what records they need from us.
+- **Price review:** with VAT in mind, set by real numbers: cost to win a customer (ad spend per sale, CAC), refund rate, support time, hosting and domain costs per site, profit per sale. If CAC is high and profit thin, raise the price for new customers.
+- **Product plan:** what next, from the requested types, support questions and funnel data: paid extras, more business types, the brand generator, new countries.
+
 ## Later
 - 1,000+: VAT likely; custom domains ~£950/yr; revisit infrastructure again.
 - 10,000: the dream.
