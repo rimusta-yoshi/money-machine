@@ -14,10 +14,12 @@ others.
 ## What's built
 
 - **Our template**: [`server/domainconnect/localblocks.co.uk.website.json`](../server/domainconnect/localblocks.co.uk.website.json).
-  One record: a `CNAME` from the host the customer connects (usually `www`) to
-  `domains.localblocks.co.uk`, our Cloudflare for SaaS target. No variables, no TXT validation
-  record: once the CNAME points at us, Cloudflare checks the domain and issues its certificate by
-  itself (HTTP validation). `hostRequired` is on, so it's always applied to `www` (or a subdomain),
+  Two records: a `CNAME` from the host the customer connects (usually `www`) to
+  `domains.localblocks.co.uk`, our Cloudflare for SaaS target, and a `TXT` at
+  `_cf-custom-hostname.<host>` holding Cloudflare's ownership code (the one variable, `%verify%`,
+  which we send with each request). We never serve a domain before that TXT record is there, so
+  the customer proves the domain is theirs; Cloudflare issues the certificate by itself (HTTP
+  validation) once the CNAME points at us. `hostRequired` is on, so it's always applied to `www` (or a subdomain),
   never the bare domain. `syncPubKeyDomain` is `localblocks.co.uk`: every request is signed.
 - **Discovery** (`server/core/domainConnect.ts`): when a customer types their domain we read the
   `_domainconnect` TXT record of that domain, fetch the provider's settings, and ask whether they
@@ -106,8 +108,9 @@ answer.
 > Connect.
 >
 > Our template is in this pull request to the Domain-Connect/Templates repository: <PR link>
-> It is synchronous only, adds one CNAME (the host the customer chooses, usually www, to
-> domains.localblocks.co.uk), has no variables, and requires a host. Requests are signed:
+> It is synchronous only and requires a host. It adds a CNAME (the host the customer chooses,
+> usually www, to domains.localblocks.co.uk) and a TXT record at _cf-custom-hostname.<host>
+> holding our hosting's ownership code (the one variable, %verify%). Requests are signed:
 > syncPubKeyDomain is localblocks.co.uk and the public key is at _dck1.localblocks.co.uk.
 > The redirect after applying goes to https://localblocks.co.uk/build/ (syncRedirectDomain
 > localblocks.co.uk).
@@ -135,7 +138,8 @@ answer.
 > - Logo: https://localblocks.co.uk/icon-512.png (we can send an SVG if you prefer)
 > - Default proxy status for the CNAME: DNS only (not proxied). Our target is itself on
 >   Cloudflare for SaaS (custom hostnames on localblocks.co.uk).
-> - We don't use APEXCNAME, REDIR301/302, TXT or SPF records.
+> - Besides the CNAME, one TXT record at _cf-custom-hostname.<host> (our Cloudflare for SaaS
+>   ownership check, variable %verify%). We don't use APEXCNAME, REDIR301/302 or SPF records.
 >
 > Please let us know if you need anything else.
 >

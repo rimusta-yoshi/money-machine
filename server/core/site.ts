@@ -13,7 +13,17 @@ const corsFor = (file: string): Record<string, string> => (file.startsWith('phot
 /** Fetched by the builder (Download your site), so they stay on the free address rather than redirect. */
 const SHARED_FILE = /^\/(fonts|photos)\//
 
-const moved = (host: string, url: URL): Response => Response.redirect(`https://${host}${url.pathname}${url.search}`, 301)
+/**
+ * To the customer's own domain. From the free address it's remembered by browsers for an hour
+ * only, so disconnecting a domain (or it lapsing) never strands visitors; the bare domain to www
+ * is for good.
+ */
+function moved(host: string, url: URL, o: { forGood: boolean }): Response {
+  return new Response(null, {
+    status: 301,
+    headers: { Location: `https://${host}${url.pathname}${url.search}`, 'Cache-Control': o.forGood ? 'public, max-age=86400' : 'public, max-age=3600' },
+  })
+}
 
 /**
  * The site worker: <slug>.<base> serves that site's published files from storage, as they
@@ -34,12 +44,12 @@ export async function handleSite(req: Request, deps: Deps): Promise<Response> {
       if (!checkSlug(slug).ok) return notFound('Page not found', 'There is nothing at this address.')
       // A site with its own domain live: the free address sends visitors (and search engines) there.
       const own = SHARED_FILE.test(url.pathname) ? null : await ownHostForSlug(deps, slug)
-      if (own) return moved(own, url)
+      if (own) return moved(own, url, { forGood: false })
     } else if (!host.endsWith(`.${deps.config.baseDomain}`) && host !== deps.config.baseDomain) {
       const site = await siteForHost(deps, host)
       if (!site) return notFound('No site here', 'There is nothing at this address.')
       // The bare domain (connected on Cloudflare's DNS) goes to the www address.
-      if (host !== site.hostname) return moved(site.hostname, url)
+      if (host !== site.hostname) return moved(site.hostname, url, { forGood: true })
       slug = site.slug
     }
     if (!slug) return notFound('Page not found', 'There is nothing at this address.')

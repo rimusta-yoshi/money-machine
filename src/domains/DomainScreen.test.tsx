@@ -19,7 +19,7 @@ const noViolations = async (el: Element) =>
 const pending = (o: Partial<OwnDomain> = {}): OwnDomain => ({
   hostname: 'www.smithplumbing.co.uk', domain: 'smithplumbing.co.uk', host: 'www', apex: null, status: 'pending',
   provider: 'godaddy', providerName: 'GoDaddy', records: [{ type: 'CNAME', name: 'www', value: 'domains.localblocks.co.uk' }],
-  pointsElsewhere: null, oneClick: null, liveUrl: null, checkedAt: 1, ...o,
+  pointsElsewhere: null, oneClick: null, verified: false, liveUrl: null, checkedAt: 1, ...o,
 })
 const answer = (domain: OwnDomain | null): DomainAnswer => ({ domain, freeUrl: 'https://smith.localblocks.co.uk/', available: true })
 const fakeApi = (o: Partial<Api>) => o as Api
@@ -83,13 +83,25 @@ describe('use your own domain', () => {
     expect(domain).toHaveBeenCalledWith(TOKEN)
     expect(screen.getByText(/Sign in to GoDaddy/)).toBeTruthy()
     expect(screen.queryByText(/IONOS/)).toBeNull()
-    expect(screen.getByRole('button', { name: 'Copy value: domains.localblocks.co.uk' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copy CNAME value: domains.localblocks.co.uk' })).toBeTruthy()
     expect(screen.getByText(/Optional, but worth it/)).toBeTruthy()
     await noViolations(container)
     // Back from another tab: asked again.
     await act(async () => { window.dispatchEvent(new Event('focus')) })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Check now' })) })
     expect(domain.mock.calls.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('shows the ownership TXT record next to the CNAME, and says when it isn’t seen yet', async () => {
+    const records: OwnDomain['records'] = [
+      { type: 'CNAME', name: 'www', value: 'domains.localblocks.co.uk' },
+      { type: 'TXT', name: '_cf-custom-hostname.www', value: 'abc-123' },
+    ]
+    const { container } = render(<DomainScreen api={fakeApi({ domain: vi.fn(async () => answer(pending({ records }))) })} token={TOKEN} back={null} />)
+    expect(await screen.findByRole('button', { name: 'Copy TXT value: abc-123' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copy TXT name: _cf-custom-hostname.www' })).toBeTruthy()
+    expect(screen.getByText(/Not seen yet: the TXT record/)).toBeTruthy()
+    await noViolations(container)
   })
 
   it('offers one click where the domain company supports it, with the steps behind it', async () => {

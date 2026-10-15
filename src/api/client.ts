@@ -41,9 +41,11 @@ export interface OwnDomain {
   status: 'pending' | 'active' | 'paused'
   provider: string | null
   providerName: string | null
-  records: { type: 'CNAME'; name: string; value: string }[]
+  records: { type: 'CNAME' | 'TXT'; name: string; value: string }[]
   pointsElsewhere: string | null
   oneClick: { name: string; url: string } | null
+  /** We've seen the ownership TXT record. */
+  verified: boolean
   liveUrl: string | null
   checkedAt: number | null
 }

@@ -21,7 +21,7 @@ export default {
     const deps = depsFrom(env, ctx)
     if (controller.cron === DOMAIN_CRON) {
       const d = await sweepDomains(deps, { daily: false })
-      if (d.checked || d.removed || d.paused || d.gaveUp) console.log(`Own domains: ${d.checked} checked, ${d.removed} removed, ${d.paused} paused, ${d.gaveUp} given up`)
+      if (d.checked || d.removed || d.paused || d.resumed || d.gaveUp) console.log(`Own domains: ${d.checked} checked, ${d.removed} removed, ${d.paused} paused, ${d.resumed} resumed, ${d.gaveUp} given up`)
       return
     }
     await deps.db.sweep(deps.now())
@@ -32,6 +32,6 @@ export default {
     console.log(`Cleanup: ${done.drafts} unpaid drafts and ${done.orphanPhotos} orphan photos removed, ${done.freedAddresses} refunded addresses freed`)
     // Refunded, disputed and deleted sites' domains come off Cloudflare (the payment webhooks do it at once; this catches the rest).
     const d = await sweepDomains(deps, { daily: true })
-    console.log(`Own domains: ${d.checked} checked, ${d.removed} removed, ${d.paused} paused, ${d.gaveUp} given up`)
+    console.log(`Own domains: ${d.checked} checked, ${d.removed} removed, ${d.paused} paused, ${d.resumed} resumed, ${d.gaveUp} given up`)
   },
 } satisfies ExportedHandler<Env>

@@ -93,6 +93,8 @@ export interface ApplyRequest {
   domain: string
   /** Where the record goes: www (or the subdomain they chose). */
   host: string
+  /** Cloudflare's ownership TXT value, the template's %verify% variable. */
+  verify: string
   /** Back to the builder afterwards. */
   redirectUri: string
   /** Comes back with the customer, so the page knows it's a return from their domain company. */
@@ -101,7 +103,7 @@ export interface ApplyRequest {
 
 /** The signed address that takes the customer to their DNS provider to approve our template. */
 export async function applyUrl(c: DomainConnectConfig, provider: DnsProviderInfo, r: ApplyRequest): Promise<string> {
-  const q = query([['domain', r.domain], ['host', r.host], ['redirect_uri', r.redirectUri], ['state', r.state]])
+  const q = query([['domain', r.domain], ['host', r.host], ['verify', r.verify], ['redirect_uri', r.redirectUri], ['state', r.state]])
   const sig = await signQuery(c.privateKey, q)
   // The key's name and the signature come last, outside what's signed (Cloudflare wants sig the very last).
   const path = `/v2/domainTemplates/providers/${encodeURIComponent(c.providerId)}/services/${encodeURIComponent(c.serviceId)}/apply`

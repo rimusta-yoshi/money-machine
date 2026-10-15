@@ -574,9 +574,10 @@ Migration `0004_events.sql` only adds tables and columns.
 ## Own domains (Cloudflare for SaaS)
 
 A paid, live site can be shown at the customer's own domain, included in the £99. Each domain
-is a Cloudflare **custom hostname** on the `localblocks.co.uk` zone; the customer adds one CNAME
-(`www` → `domains.localblocks.co.uk`), Cloudflare checks it and issues the certificate, and the
-site worker serves the site there. 100 custom hostnames are free, then $0.10 a month each; the
+is a Cloudflare **custom hostname** on the `localblocks.co.uk` zone; the customer adds two records,
+a CNAME (`www` → `domains.localblocks.co.uk`) and Cloudflare's ownership TXT record
+(`_cf-custom-hostname.www` → a code it gives us), Cloudflare checks them and issues the
+certificate, and the site worker serves the site there. 100 custom hostnames are free, then $0.10 a month each; the
 dashboard shows how many there are.
 
 ### How it works
@@ -594,18 +595,24 @@ dashboard shows how many there are.
 - **Bare domains**: most UK companies can't point the bare domain at us, so customers switch on
   their company's free forwarding to `www` (the steps and the email say how). When their DNS is on
   Cloudflare, the bare domain is connected too (a second custom hostname) and redirects to `www`.
-- **Status** comes from Cloudflare only: "Waiting for your domain" until the hostname and its
+- **Ownership**: nothing is served at a domain until we've seen its ownership TXT record in public
+  DNS (a CNAME alone could be anyone's: pointing someone else's domain at us must not show your
+  site there). It's checked on every refresh until seen, then kept.
+- **Status** comes from Cloudflare only (plus that TXT record): "Waiting for your domain" until the hostname and its
   certificate are both active, then "Live". The page asks at most every 15 seconds; a cron every
   15 minutes checks waiting domains, and the daily one re-checks live ones. Going live republishes
   the site under the domain (canonical link, sitemap, Open Graph), makes `<slug>.localblocks.co.uk`
-  301 to it (pages only: photos and fonts stay, for downloads), and sends one email. A domain that
+  301 to it (pages only: photos and fonts stay, for downloads; browsers keep that redirect an hour
+  only, so a disconnected domain never strands anyone), and sends one email. A domain that
   stops pointing at us goes back to "waiting" and the free address. Waiting 30 days: given up.
 - **Disconnect** (customer, or `POST /v1/admin/domains/disconnect {hostname}` with the admin key)
   removes the custom hostname and republishes on the free address.
 - **Refunds, lost disputes and deleted test sites** remove the domain from Cloudflare at once;
   **an open dispute** pauses it (off Cloudflare, kept) and a won dispute puts it back. If
   Cloudflare can't be reached the domain is marked `removing` (never served) and the cron finishes
-  the job. Table `custom_domains`, migration `0007_custom_domains.sql` (adds a table only).
+  the job; it also puts back paused domains whose site is live again. Every status change is
+  conditional on the status it was read with, and a hostname re-made for a domain that changed
+  meanwhile is removed again. Table `custom_domains`, migration `0007_custom_domains.sql` (adds a table only).
 
 ### One-off setup (in this order)
 
@@ -638,7 +645,18 @@ npx wrangler secret put CF_SAAS_TOKEN -c server/wrangler.api.jsonc
 **Zone ID** → copy. Put it in `server/wrangler.api.jsonc` as `"CF_ZONE_ID": "<it>"` (commit it,
 or send it to Claude).
 
-**5. Deploy, in this order**
+**5. Deploy, in this order: migrate 0007 → API → sites → app**
+
+First, check no site already has the address `domain` or `domains` (they're now reserved: `domains.`
+is the CNAME target). It should print an empty list; if not, tell Claude before deploying:
+
+```bash
+npx wrangler d1 execute siteblocks --remote -c server/wrangler.api.jsonc --command "SELECT slug, ref FROM slugs WHERE slug IN ('domain', 'domains')"
+```
+
+Then the migration first. (The site worker copes without the new table, and a database failure
+never takes a site down: the free address just serves as ever. But the API's own-domain
+endpoints need it.)
 
 ```bash
 npm run cf:migrate

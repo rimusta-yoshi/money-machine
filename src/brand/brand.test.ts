@@ -35,7 +35,11 @@ describe('brand', () => {
     const target = /"DOMAINS_TARGET":\s*"([^"]+)"/.exec(config('api'))?.[1]
     expect(target).toBe(`domains.${BRAND.domain}`)
     expect(template).toMatchObject({ providerId: BRAND.domain, providerName: BRAND.name, serviceId: 'website', syncPubKeyDomain: BRAND.domain, syncRedirectDomain: BRAND.domain })
-    expect(template.records).toEqual([{ type: 'CNAME', host: '@', pointsTo: target, ttl: 3600 }])
+    expect(template.records).toEqual([
+      { type: 'CNAME', host: '@', pointsTo: target, ttl: 3600 },
+      // Cloudflare's ownership check, next to the record (server/core/saas.ts).
+      { type: 'TXT', host: '_cf-custom-hostname', data: '%verify%', ttl: 3600, txtConflictMatchingMode: 'All' },
+    ])
   })
 
   it('launch is one switch: noindex in both workers is on exactly while LAUNCHED is off', () => {

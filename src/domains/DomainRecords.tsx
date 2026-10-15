@@ -29,10 +29,10 @@ export function DomainRecords({ records }: { records: OwnDomain['records'] }) {
   return (
     <div className="od-records">
       {records.map(r => (
-        <dl key={r.name} className="od-record" aria-label={`Record for ${r.name}`}>
+        <dl key={`${r.type} ${r.name}`} className="od-record" aria-label={`${r.type} record for ${r.name}`}>
           <div><dt>Type</dt><dd><code className="od-value">{r.type}</code></dd></div>
-          <div><dt>Name (or Host)</dt><dd><CopyValue label="name" value={r.name} /></dd></div>
-          <div><dt>Value (or Points to, Target)</dt><dd><CopyValue label="value" value={r.value} /></dd></div>
+          <div><dt>Name (or Host)</dt><dd><CopyValue label={`${r.type} name`} value={r.name} /></dd></div>
+          <div><dt>{r.type === 'TXT' ? 'Value (or Content, Text)' : 'Value (or Points to, Target)'}</dt><dd><CopyValue label={`${r.type} value`} value={r.value} /></dd></div>
           <div><dt>TTL</dt><dd>Leave as it is (or 1 hour)</dd></div>
         </dl>
       ))}

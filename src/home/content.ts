@@ -40,7 +40,7 @@ export const WHY_ONCE = [
 export const FAQS = [
   { q: 'Do I need to be good with computers?', a: 'No. If you can pick from a few options on your phone, you can build your site.' },
   { q: 'Are there really no monthly fees?', a: `Really. You pay ${PRICE} once and your site stays online.` },
-  { q: 'Can I use my own domain?', a: 'Yes, at no extra cost. Once your site is live, type in your domain and we’ll show you the one change to make at your domain company, step by step.' },
+  { q: 'Can I use my own domain?', a: 'Yes, at no extra cost. Once your site is live, type in your domain and we’ll show you exactly what to add at your domain company, step by step.' },
   { q: 'What if I’m not happy?', a: `Building is free, so you only pay once you’re happy. And if you change your mind within ${BRAND.guarantee.days} days of paying, we’ll give you your money back. No questions asked.` },
   { q: 'Can I change my site later?', a: 'Yes. We email you a link to update your text and photos whenever you need.' },
 ]

@@ -4,7 +4,7 @@ import { PROVIDER_NAMES, isProviderId, providerFromNameservers } from '../../src
 import { builderUrl, ourDomains, siteOrigin } from './config'
 import type { Config } from './config'
 import { applyUrl } from './domainConnect'
-import { dropDomain, refreshDomain } from './domainLifecycle'
+import { dropDomain, refreshDomain, resumeDomain } from './domainLifecycle'
 import { authDraft } from './drafts'
 import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
@@ -24,7 +24,7 @@ const RECHECK_MS = 15_000
 export const RETURN_STATE = 'domain'
 export const returnUrl = (c: Config): string => `${builderUrl(c)}?domain=back`
 
-export interface DomainRecord { type: 'CNAME'; name: string; value: string }
+export interface DomainRecord { type: 'CNAME' | 'TXT'; name: string; value: string }
 
 /** What the page shows. Never Cloudflare ids or anything about other sites. */
 export interface DomainView {
@@ -42,6 +42,8 @@ export interface DomainView {
   pointsElsewhere: string | null
   /** One-click connecting, when their DNS provider takes our template. */
   oneClick: { name: string; url: string } | null
+  /** We've seen the ownership TXT record (nothing is served at the domain before). */
+  verified: boolean
   liveUrl: string | null
   checkedAt: number | null
 }
@@ -61,19 +63,22 @@ function requireLiveSite(draft: DraftRow): void {
 export async function domainView(deps: Deps, row: DomainRow): Promise<DomainView> {
   const target = deps.saas ? deps.config.saas!.target : `domains.${deps.config.baseDomain}`
   const host = row.hostname.slice(0, -(row.domain.length + 1))
+  // The ownership record's name as the domain company wants it: relative to the domain.
+  const verifyName = row.verify?.name.endsWith(`.${row.domain}`) ? row.verify.name.slice(0, -(row.domain.length + 1)) : row.verify?.name
   const records: DomainRecord[] = [
     { type: 'CNAME', name: host, value: target },
     ...(row.apex ? [{ type: 'CNAME' as const, name: '@', value: target }] : []),
+    ...(row.verify && verifyName ? [{ type: 'TXT' as const, name: verifyName, value: row.verify.value }] : []),
   ]
   const dc = deps.config.domainConnect
-  const oneClick = row.dc && dc && row.status === 'pending'
-    ? { name: row.dc.name, url: await applyUrl(dc, row.dc, { domain: row.domain, host, redirectUri: returnUrl(deps.config), state: RETURN_STATE }) }
+  const oneClick = row.dc && dc && row.verify && row.status === 'pending'
+    ? { name: row.dc.name, url: await applyUrl(dc, row.dc, { domain: row.domain, host, verify: row.verify.value, redirectUri: returnUrl(deps.config), state: RETURN_STATE }) }
     : null
   return {
     hostname: row.hostname, domain: row.domain, host, apex: row.apex, status: row.status,
     provider: row.provider, providerName: isProviderId(row.provider) ? PROVIDER_NAMES[row.provider] : row.dc?.name ?? null,
     records, pointsElsewhere: row.dnsSeen && row.dnsSeen !== target ? row.dnsSeen : null, oneClick,
-    liveUrl: row.status === 'active' ? `https://${row.hostname}/` : null, checkedAt: row.checkedAt,
+    verified: !!row.verifiedAt, liveUrl: row.status === 'active' ? `https://${row.hostname}/` : null, checkedAt: row.checkedAt,
   }
 }
 
@@ -124,7 +129,11 @@ export async function connectDomain(req: Request, deps: Deps): Promise<Response>
     existing = await deps.domains.byRef(draft.ref)
     if (existing) throw new HttpError(503, 'still_removing', 'We’re still disconnecting your old domain. Please try again in a few minutes.')
   }
-  if (existing?.hostname === check.hostname) return answer(deps, draft, existing)
+  if (existing?.hostname === check.hostname) {
+    // Paused by a dispute that's since been won: connecting it again puts it back.
+    if (existing.status === 'paused') await resumeDomain(deps, draft.ref)
+    return answer(deps, draft, await deps.domains.byRef(draft.ref))
+  }
   if (existing) throw new HttpError(409, 'has_domain', `Your site is already connected to ${existing.hostname}. Disconnect it first to use another.`)
 
   const ns = await deps.dns.lookup(check.domain, 'NS')
@@ -140,8 +149,9 @@ export async function connectDomain(req: Request, deps: Deps): Promise<Response>
 
   try {
     const main = await saas.create(check.hostname)
+    await deps.domains.update(draft.ref, { cfId: main.id, verify: main.verify })
     const bare = apex ? await saas.create(apex) : null
-    await deps.domains.update(draft.ref, { cfId: main.id, cfApexId: bare?.id ?? null })
+    if (bare) await deps.domains.update(draft.ref, { cfApexId: bare.id })
   } catch (err) {
     console.error(`Adding ${check.hostname} to Cloudflare failed`, err)
     await dropDomain(deps, draft.ref, { republish: false })

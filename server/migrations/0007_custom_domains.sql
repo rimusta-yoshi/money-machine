@@ -14,6 +14,9 @@ CREATE TABLE custom_domains (
   dc_provider_name TEXT,               -- and its name
   dc_sync_url TEXT,                    -- and its urlSyncUX
   dns_seen TEXT,                       -- where the hostname pointed at the last check, if anywhere
+  verify_name TEXT,                    -- Cloudflare's ownership check: the TXT record's name (_cf-custom-hostname.www.example.co.uk)
+  verify_value TEXT,                   -- and its value
+  verified_at INTEGER,                 -- when we saw that TXT record: never served before this
   created_at INTEGER NOT NULL,         -- ms since epoch
   checked_at INTEGER,                  -- last asked Cloudflare
   active_at INTEGER,

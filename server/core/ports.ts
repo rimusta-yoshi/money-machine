@@ -303,6 +303,10 @@ export interface DomainRow {
   dc: DnsProviderInfo | null
   /** Where the hostname pointed at the last check (a CNAME target), if anywhere. */
   dnsSeen: string | null
+  /** Cloudflare's ownership TXT record the customer adds alongside the CNAME. */
+  verify: { name: string; value: string } | null
+  /** When we saw that TXT record in public DNS. Nothing is served at the domain before. */
+  verifiedAt: number | null
   createdAt: number
   checkedAt: number | null
   activeAt: number | null
@@ -317,7 +321,7 @@ export interface DomainWithSite extends DomainRow {
   siteLive: boolean
 }
 
-export type DomainPatch = Partial<Pick<DomainRow, 'apex' | 'cfId' | 'cfApexId' | 'status' | 'dnsSeen' | 'checkedAt' | 'activeAt'>>
+export type DomainPatch = Partial<Pick<DomainRow, 'apex' | 'cfId' | 'cfApexId' | 'status' | 'dnsSeen' | 'verify' | 'verifiedAt' | 'checkedAt' | 'activeAt'>>
 
 /** Customers' own domains, on the same database. */
 export interface DomainStore {
@@ -328,7 +332,11 @@ export interface DomainStore {
   activeHostForSlug(slug: string): Promise<string | null>
   /** Adds one (pending). False if the site has one already or the name is another site's. */
   insert(row: Pick<DomainRow, 'ref' | 'hostname' | 'domain' | 'apex' | 'provider' | 'dc' | 'createdAt'>): Promise<boolean>
-  update(ref: string, patch: DomainPatch): Promise<void>
+  /**
+   * Changes a domain, only while its status is still `expected` (when given): a page, the cron
+   * and a webhook may all be at the same domain. True if it changed.
+   */
+  update(ref: string, patch: DomainPatch, expected?: DomainStatus): Promise<boolean>
   /** Claims the "your domain is live" email. True for the one caller that should send it. */
   claimLiveEmail(ref: string, now: number): Promise<boolean>
   delete(ref: string): Promise<void>
@@ -338,6 +346,8 @@ export interface DomainStore {
   ended(limit: number): Promise<DomainWithSite[]>
   /** Domains still on Cloudflare whose site has a dispute open: to pause. */
   disputed(limit: number): Promise<DomainWithSite[]>
+  /** Paused domains whose site is live again (a dispute won): to put back. */
+  resumable(limit: number): Promise<DomainWithSite[]>
   counts(): Promise<Record<DomainStatus, number>>
   /** Every domain, newest first (the dashboard). */
   list(limit: number): Promise<DomainWithSite[]>
@@ -351,6 +361,8 @@ export interface HostnameInfo {
   status: string
   /** The HTTPS certificate: initializing, pending_validation, active… */
   sslStatus: string | null
+  /** The TXT record proving ownership (Cloudflare's ownership_verification), if it gave one. */
+  verify: { name: string; value: string } | null
 }
 
 /** Cloudflare for SaaS custom hostnames on our zone. */

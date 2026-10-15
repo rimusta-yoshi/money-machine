@@ -121,6 +121,7 @@ describe('use your own domain', () => {
       await check(page, vp, '2-steps')
 
       // Cloudflare says it's live: coming back to the page shows it.
+      cf.prove(`www.${domain}`)
       cf.goLive(`www.${domain}`)
       // (The server asks Cloudflare at most every 15 seconds: as if that long has passed.)
       await (await stack.db()).prepare('UPDATE custom_domains SET checked_at = 1').run()

@@ -30,7 +30,7 @@ Not included: buying the domain name itself, email accounts, or custom design wo
 
 ### Can I use my own domain name?
 
-Yes, and connecting it costs nothing extra. Once your site is live, open your edit link and choose **Use your own domain**. Type in your domain (like smithplumbing.co.uk) and we'll show you the one change to make at the company you bought it from, with their own steps. With some companies it's a single click to approve. It's usually working within an hour, and we email you when it is.
+Yes, and connecting it costs nothing extra. Once your site is live, open your edit link and choose **Use your own domain**. Type in your domain (like smithplumbing.co.uk) and we'll show you exactly what to add at the company you bought it from (two short records), with their own steps. With some companies it's a single click to approve. It's usually working within an hour, and we email you when it is.
 
 Your site then opens at www.yourdomain, with the padlock (https) switched on for you, and your free your-name.{{domain}} address sends people there. The domain stays yours: you keep renewing it with your domain company, usually around £10 a year.
 

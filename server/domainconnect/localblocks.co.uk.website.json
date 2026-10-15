@@ -5,8 +5,8 @@
   "serviceName": "Local Blocks website",
   "version": 1,
   "logoUrl": "https://localblocks.co.uk/icon-512.png",
-  "description": "Points your domain at the website you made with Local Blocks. Only the address you choose (usually www) changes; your email and everything else stay as they are.",
-  "variableDescription": "No variables. The record's name comes from the host you connect (usually www).",
+  "description": "Points your domain at the website you made with Local Blocks, and proves to our hosting that the domain is yours. Only the address you choose (usually www) changes; your email and everything else stay as they are.",
+  "variableDescription": "verify: the ownership code our hosting (Cloudflare) gives for this address, put in a TXT record next to it.",
   "syncBlock": false,
   "sharedProviderName": false,
   "sharedServiceName": false,
@@ -21,6 +21,13 @@
       "host": "@",
       "pointsTo": "domains.localblocks.co.uk",
       "ttl": 3600
+    },
+    {
+      "type": "TXT",
+      "host": "_cf-custom-hostname",
+      "data": "%verify%",
+      "ttl": 3600,
+      "txtConflictMatchingMode": "All"
     }
   ]
 }

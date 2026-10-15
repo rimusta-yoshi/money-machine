@@ -36,7 +36,7 @@ export function DomainWaiting({ domain, checking, onRecheck }: Props) {
   return (
     <>
       <p className="od-pill od-pill--waiting" role="status"><span aria-hidden="true" className="od-dot" />Waiting for your domain</p>
-      <p><b>{domain.hostname}</b> is ready on our side. One change at {company} puts your site there.</p>
+      <p><b>{domain.hostname}</b> is ready on our side. Two records at {company} put your site there: one points the address at us, the other shows the domain is yours.</p>
       {domain.oneClick ? (
         <>
           <a className="sb-main-btn ba-btn od-one-click" href={domain.oneClick.url}>Connect automatically with {domain.oneClick.name}</a>
@@ -51,6 +51,9 @@ export function DomainWaiting({ domain, checking, onRecheck }: Props) {
           <h2 id={id} className="od-h2">{domain.providerName ? `At ${domain.providerName}` : 'At your domain company'}</h2>
           <ManualSteps domain={domain} />
         </section>
+      )}
+      {!domain.verified && !domain.pointsElsewhere && domain.checkedAt !== null && domain.records.some(r => r.type === 'TXT') && (
+        <p className="ba-small">Not seen yet: the TXT record. Your site shows at {domain.hostname} once both records are in.</p>
       )}
       {domain.pointsElsewhere && (
         <p className="od-note">Right now {domain.hostname} points to <code>{domain.pointsElsewhere}</code>. Change that record to the one above.</p>

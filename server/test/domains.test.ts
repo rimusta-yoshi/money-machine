@@ -65,16 +65,26 @@ describe('connecting a domain', () => {
     expect(view).toMatchObject({
       hostname: 'www.smithplumbing.co.uk', domain: 'smithplumbing.co.uk', host: 'www', apex: null, status: 'pending',
       provider: 'godaddy', providerName: 'GoDaddy', oneClick: null, liveUrl: null,
-      records: [{ type: 'CNAME', name: 'www', value: TARGET }],
+      verified: false,
+      records: [
+        { type: 'CNAME', name: 'www', value: TARGET },
+        { type: 'TXT', name: '_cf-custom-hostname.www', value: cf.byName('www.smithplumbing.co.uk')!.ownership_verification.value },
+      ],
     })
     expect(cf.byName('www.smithplumbing.co.uk')).toMatchObject({ status: 'pending' })
 
-    // Waiting: the domain already shows the site (only its owner can point it here), the free address doesn't move.
-    expect((await page('https://www.smithplumbing.co.uk/')).status).toBe(200)
+    // Not served until the ownership record is seen; the free address doesn't move.
+    expect((await page('https://www.smithplumbing.co.uk/')).status).toBe(404)
     expect((await page(`https://smith-plumbing.${BASE}/`)).status).toBe(200)
+    cf.prove('www.smithplumbing.co.uk')
+    await ageChecks()
+    expect((await status(key)).domain).toMatchObject({ status: 'pending', verified: true })
+    // Waiting for Cloudflare's certificate: the domain already shows the site.
+    expect((await page('https://www.smithplumbing.co.uk/')).status).toBe(200)
 
     // Pointing somewhere else is spotted, as a hint.
     cf.point('www.smithplumbing.co.uk', 'parked.godaddy.example')
+    await ageChecks()
     expect((await status(key)).domain).toMatchObject({ status: 'pending', pointsElsewhere: 'parked.godaddy.example' })
 
     // Cloudflare validates it: the background check (no page open) puts it live.
@@ -98,6 +108,8 @@ describe('connecting a domain', () => {
     const moved = await page(`https://smith-plumbing.${BASE}/privacy.html?x=1`)
     expect(moved.status).toBe(301)
     expect(moved.headers.get('Location')).toBe('https://www.smithplumbing.co.uk/privacy.html?x=1')
+    // Browsers remember it an hour only: a disconnected domain never strands visitors.
+    expect(moved.headers.get('Cache-Control')).toBe('public, max-age=3600')
     expect((await page(`https://smith-plumbing.${BASE}/fonts/LICENSES.txt`)).status).toBe(200)
     const sitemap = await (await page('https://www.smithplumbing.co.uk/sitemap.xml')).text()
     if (sitemap.includes('<loc>')) expect(sitemap).toContain('https://www.smithplumbing.co.uk/')
@@ -160,19 +172,22 @@ describe('connecting a domain', () => {
     const { key } = await paidSite('flat-roofs')
     cf.addDomain('flatroofs.co.uk', CLOUDFLARE_NS)
     const view = ((await (await connect(key, 'flatroofs.co.uk')).json()) as View).domain!
-    expect(view).toMatchObject({ apex: 'flatroofs.co.uk', provider: 'cloudflare', records: [{ name: 'www' }, { name: '@', value: TARGET }] })
+    expect(view).toMatchObject({ apex: 'flatroofs.co.uk', provider: 'cloudflare', records: [{ name: 'www' }, { name: '@', value: TARGET }, { type: 'TXT', name: '_cf-custom-hostname.www' }] })
     expect(cf.byName('flatroofs.co.uk')).not.toBeNull()
+    cf.prove('www.flatroofs.co.uk')
     cf.goLive('www.flatroofs.co.uk')
     await status(key)
     const bare = await page('https://flatroofs.co.uk/services?a=b')
     expect(bare.status).toBe(301)
     expect(bare.headers.get('Location')).toBe('https://www.flatroofs.co.uk/services?a=b')
+    expect(bare.headers.get('Cache-Control')).toBe('public, max-age=86400')
   })
 
   it('goes back to the free address when the domain stops pointing at us', async () => {
     const { key } = await paidSite('moved-away')
     cf.addDomain('movedaway.co.uk', GODADDY)
     await connect(key, 'movedaway.co.uk')
+    cf.prove('www.movedaway.co.uk')
     cf.goLive('www.movedaway.co.uk')
     await status(key)
     expect((await page(`https://moved-away.${BASE}/`)).status).toBe(301)
@@ -181,6 +196,82 @@ describe('connecting a domain', () => {
     await cron(s, 'daily')
     expect((await status(key)).domain).toMatchObject({ status: 'pending' })
     expect((await page(`https://moved-away.${BASE}/`)).status).toBe(200)
+  })
+})
+
+describe('someone else’s domain', () => {
+  it('is never served or made live on a CNAME alone: the ownership TXT record must match', async () => {
+    const { key } = await paidSite('takeover-try')
+    cf.addDomain('victim.co.uk', GODADDY)
+    await connect(key, 'victim.co.uk')
+    // Even if the CNAME pointed at us and Cloudflare issued the certificate…
+    cf.point('www.victim.co.uk', TARGET)
+    cf.goLive('www.victim.co.uk')
+    // …a wrong TXT record isn't enough either.
+    cf.setTxt('_cf-custom-hostname.www.victim.co.uk', 'not-the-right-value')
+    await ageChecks()
+    await cron(s, 'quick')
+    expect((await status(key)).domain).toMatchObject({ status: 'pending', verified: false })
+    expect((await page('https://www.victim.co.uk/')).status).toBe(404)
+    expect((await page(`https://takeover-try.${BASE}/`)).status).toBe(200)
+    // The real record: live.
+    cf.prove('www.victim.co.uk')
+    await ageChecks()
+    expect((await status(key)).domain).toMatchObject({ status: 'active', verified: true })
+    expect((await page('https://www.victim.co.uk/')).status).toBe(200)
+  })
+})
+
+describe('Cloudflare and the database', () => {
+  it('a hostname Cloudflare lost is made again while waiting, never for a paused domain', async () => {
+    const { key, session } = await paidSite('lost-hostname')
+    cf.addDomain('losthost.co.uk', GODADDY)
+    await connect(key, 'losthost.co.uk')
+    const first = cf.byName('www.losthost.co.uk')!.id
+    cf.lose('www.losthost.co.uk')
+    await ageChecks()
+    await status(key)
+    expect(cf.byName('www.losthost.co.uk')!.id).not.toBe(first)
+
+    await send(stripe.dispute(session.paymentIntent, 'created'))
+    expect(cf.byName('www.losthost.co.uk')).toBeNull()
+    await ageChecks()
+    await cron(s, 'daily')
+    await status(key)
+    expect(cf.byName('www.losthost.co.uk')).toBeNull()
+    expect((await status(key)).domain).toMatchObject({ status: 'paused' })
+  })
+
+  it('the cron puts back a paused domain whose site is live again, and so does connecting it again', async () => {
+    const { key, session } = await paidSite('resume-later')
+    cf.addDomain('resumelater.co.uk', GODADDY)
+    await connect(key, 'resumelater.co.uk')
+    await send(stripe.dispute(session.paymentIntent, 'created'))
+    // Cloudflare down when the dispute is won: still paused.
+    cf.failApi(true)
+    try {
+      await send(stripe.dispute(session.paymentIntent, 'closed', 'won'))
+    } finally {
+      cf.failApi(false)
+    }
+    expect((await status(key)).domain).toMatchObject({ status: 'paused' })
+    await cron(s, 'quick')
+    expect((await status(key)).domain).toMatchObject({ status: 'pending' })
+    expect(cf.byName('www.resumelater.co.uk')).not.toBeNull()
+
+    // Connecting a paused domain again puts it back too.
+    const other = await paidSite('resume-connect')
+    cf.addDomain('resumeconnect.co.uk', GODADDY)
+    await connect(other.key, 'resumeconnect.co.uk')
+    await send(stripe.dispute(other.session.paymentIntent, 'created'))
+    cf.failApi(true)
+    try {
+      await send(stripe.dispute(other.session.paymentIntent, 'closed', 'won'))
+    } finally {
+      cf.failApi(false)
+    }
+    expect(((await (await connect(other.key, 'resumeconnect.co.uk')).json()) as View).domain).toMatchObject({ status: 'pending' })
+    expect(cf.byName('www.resumeconnect.co.uk')).not.toBeNull()
   })
 })
 
@@ -196,6 +287,10 @@ describe('switched off', () => {
       expect(cf.calls.length).toBe(calls)
       // The free address is served as ever (the site worker's lookup finds nothing).
       expect((await off.fetch(`https://switched-off.${BASE}/`)).status).toBe(200)
+      // Even with the table missing (sites deployed before migration 0007, or D1 failing), sites stay up.
+      await (await off.db()).prepare('DROP TABLE custom_domains').run()
+      expect((await off.fetch(`https://switched-off.${BASE}/`)).status).toBe(200)
+      expect((await off.fetch('https://www.some-domain.co.uk/')).status).toBe(404)
     } finally {
       await off.close()
     }
@@ -207,6 +302,7 @@ describe('when a site ends', () => {
     const { key, session } = await paidSite('refund-domain')
     cf.addDomain('refunddomain.co.uk', GODADDY)
     await connect(key, 'refunddomain.co.uk')
+    cf.prove('www.refunddomain.co.uk')
     cf.goLive('www.refunddomain.co.uk')
     await status(key)
     expect((await send(stripe.chargeRefunded(session.paymentIntent))).status).toBe(200)
@@ -219,6 +315,7 @@ describe('when a site ends', () => {
     const { key, session } = await paidSite('dispute-domain')
     cf.addDomain('disputedomain.co.uk', GODADDY)
     await connect(key, 'disputedomain.co.uk')
+    cf.prove('www.disputedomain.co.uk')
     cf.goLive('www.disputedomain.co.uk')
     await status(key)
     await send(stripe.dispute(session.paymentIntent, 'created'))
@@ -306,7 +403,7 @@ describe('one-click connecting (Domain Connect)', () => {
     expect(view.oneClick.name).toBe('GoDaddy')
     const url = new URL(view.oneClick.url)
     expect(`${url.origin}${url.pathname}`).toBe(`https://dcc.api.dc.godaddy.test/v2/domainTemplates/providers/${DC_PROVIDER_ID}/services/website/apply`)
-    expect(Object.fromEntries(url.searchParams)).toMatchObject({ domain: 'oneclick.co.uk', host: 'www', redirect_uri: 'https://app.localblocks.test/build/?domain=back', state: 'domain', key: '_dck1' })
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({ domain: 'oneclick.co.uk', host: 'www', verify: cf.byName('www.oneclick.co.uk')!.ownership_verification.value, redirect_uri: 'https://app.localblocks.test/build/?domain=back', state: 'domain', key: '_dck1' })
     // sig is last, over everything before key=.
     const [signed, rest] = url.search.slice(1).split('&key=')
     expect(rest).toMatch(/^_dck1&sig=[^&]+$/)

@@ -12,13 +12,18 @@ export const TARGET = 'domains.localblocks.test'
 export const DC_PROVIDER_ID = 'localblocks.test'
 export const DC_SERVICE = 'website'
 
-export interface FakeHostname { id: string; hostname: string; status: string; ssl: { status: string } }
+export interface FakeHostname {
+  id: string; hostname: string; status: string; ssl: { status: string }
+  ownership_verification: { type: 'txt'; name: string; value: string }
+}
 
 interface Zone {
   /** Nameservers; empty: the domain doesn't exist (NXDOMAIN). */
   ns: string[]
   /** CNAME answers by name. */
   cname: Record<string, string>
+  /** TXT answers by name. */
+  txt: Record<string, string>
   /** The _domainconnect TXT record's value, if the provider offers Domain Connect. */
   domainConnect?: string
 }
@@ -44,7 +49,11 @@ export function fakeCloudflare() {
     if (req.method === 'POST' && !id) {
       const { hostname } = JSON.parse(body) as { hostname: string }
       if ([...hostnames.values()].some(h => h.hostname === hostname)) return reply({ success: false, errors: [{ code: 1406, message: 'Duplicate custom hostname found.' }] }, 409)
-      const h: FakeHostname = { id: `ch${(++n).toString().padStart(6, '0')}`, hostname, status: 'pending', ssl: { status: 'initializing' } }
+      const id = `ch${(++n).toString().padStart(6, '0')}`
+      const h: FakeHostname = {
+        id, hostname, status: 'pending', ssl: { status: 'initializing' },
+        ownership_verification: { type: 'txt', name: `_cf-custom-hostname.${hostname}`, value: `own-${id}-0000-1111` },
+      }
       hostnames.set(h.id, h)
       return reply({ success: true, result: h })
     }
@@ -77,6 +86,7 @@ export function fakeCloudflare() {
     const answer = (t: number, data: string) => ({ name, type: t, TTL: 300, data })
     if (type === 'NS' && name === domain) return reply({ Status: 0, Answer: z.ns.map(ns => answer(2, `${ns}.`)) })
     if (type === 'CNAME' && z.cname[name]) return reply({ Status: 0, Answer: [answer(5, `${z.cname[name]}.`)] })
+    if (type === 'TXT' && z.txt[name]) return reply({ Status: 0, Answer: [answer(16, `"${z.txt[name]}"`)] })
     if (type === 'TXT' && name === `_domainconnect.${domain}` && z.domainConnect) return reply({ Status: 0, Answer: [answer(16, `"${z.domainConnect}"`)] })
     return reply({ Status: 0 })
   }
@@ -109,9 +119,21 @@ export function fakeCloudflare() {
   return {
     handle, hostnames, calls,
     /** A domain that exists, run by these nameservers (godaddy: ns01.domaincontrol.com…). */
-    addDomain: (domain: string, ns: string[], o: { domainConnect?: string } = {}) => { zones.set(domain, { ns, cname: {}, domainConnect: o.domainConnect }) },
+    addDomain: (domain: string, ns: string[], o: { domainConnect?: string } = {}) => { zones.set(domain, { ns, cname: {}, txt: {}, domainConnect: o.domainConnect }) },
     /** The customer adds their record: the name now points at us (or anywhere). */
     point: (name: string, to: string) => { zoneOf(name)![1].cname[name] = to },
+    /** The customer adds Cloudflare's ownership TXT record for this hostname (as Cloudflare gave it). */
+    prove: (hostname: string) => {
+      const v = [...hostnames.values()].find(x => x.hostname === hostname)!.ownership_verification
+      zoneOf(hostname)![1].txt[v.name] = v.value
+    },
+    /** Someone else's TXT record, or a wrong one. */
+    setTxt: (name: string, value: string) => { zoneOf(name)![1].txt[name] = value },
+    /** Cloudflare loses a hostname (deleted in the dashboard, say). */
+    lose: (hostname: string) => {
+      const h = [...hostnames.values()].find(x => x.hostname === hostname)
+      if (h) hostnames.delete(h.id)
+    },
     /** A DNS provider with a Domain Connect API at this host. */
     addDcProvider: (host: string, providerId: string, name: string, supports = true) => { dcProviders.set(host, { providerId, name, supports }) },
     /** Cloudflare validates the hostname and issues the certificate. */
