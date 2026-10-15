@@ -31,7 +31,7 @@
     "SUPPORT_EMAIL": "hello@localblocks.co.uk",
     // Own domains (Cloudflare for SaaS): the localblocks.co.uk zone's id (not secret; from the
     // zone's Overview page) switches it on together with the CF_SAAS_TOKEN secret. Empty: off.
-    "CF_ZONE_ID": "",
+    "CF_ZONE_ID": "1e522311bbad8ab68ac0c1cfc708ab42",
     // The CNAME target customers point their www at (server/domainconnect/ names the same).
     "DOMAINS_TARGET": "domains.localblocks.co.uk",
     // One-click connecting (Domain Connect): DNS providers that approved our template, by their
