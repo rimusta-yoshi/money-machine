@@ -7,8 +7,13 @@
   "workers_dev": false,
   "preview_urls": false,
   // A custom domain creates its own DNS record. www. is caught by the sites worker's
-  // *.localblocks.co.uk/* route, which redirects it here.
-  "routes": [{ "pattern": "localblocks.co.uk", "custom_domain": true }],
+  // *.localblocks.co.uk/* route, which redirects it here. The localblocks.co.uk/* route keeps the
+  // homepage here: routes run before a custom domain, so without it the sites worker's */* route
+  // (own domains, Cloudflare for SaaS) would answer the apex too. More specific routes win.
+  "routes": [
+    { "pattern": "localblocks.co.uk", "custom_domain": true },
+    { "pattern": "localblocks.co.uk/*", "zone_name": "localblocks.co.uk" }
+  ],
   "assets": { "directory": "../dist", "not_found_handling": "404-page", "html_handling": "auto-trailing-slash" },
   "observability": { "enabled": true }
 }
