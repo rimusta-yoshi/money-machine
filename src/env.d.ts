@@ -2,6 +2,8 @@
 
 /** PRICE_PENCE from server/wrangler.api.jsonc, filled in at build time (vite.config.ts). */
 declare const __PRICE_PENCE__: number
+/** The homepage's trade chips: every pack marked `featured`, filled in at build time (vite.config.ts) so the homepage never loads the packs. */
+declare const __FEATURED_TRADES__: { id: import('./packs').TradeId; label: string }[]
 
 interface ImportMetaEnv {
   /** The API's address, e.g. https://api.localblocks.co.uk. Unset: the builder saves nothing. */

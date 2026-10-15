@@ -2,6 +2,7 @@ import { BRAND } from '../brand/config'
 import { FOOTER_LINKS } from '../brand/footer'
 import { fillWords } from './fill'
 import type { PageWords } from './fill'
+import { esc, HOME_OG_IMAGE, socialTags } from './html'
 import { render } from './markdown'
 import type { StaticPage } from './registry'
 
@@ -10,8 +11,6 @@ import type { StaticPage } from './registry'
  * Markdown at build time: no JavaScript on the page at all. Same Block Party look as the
  * homepage: the logo bar, a coloured title tile, the text, the footer.
  */
-
-const esc = (s: string): string => s.replace(/[&<>"']/g, ch => `&#${ch.charCodeAt(0)};`)
 
 /** The logo as plain HTML: the same markup as <Logo href="/" /> (brand/Logo.tsx; a test checks they match). */
 export const logoHtml = (): string =>
@@ -50,13 +49,11 @@ export function buildPage(page: StaticPage, markdown: string, words: PageWords, 
   const head = [
     `<title>${esc(page.title)} · ${esc(BRAND.name)}</title>`,
     `<meta name="description" content="${esc(page.description)}">`,
-    `<link rel="canonical" href="${esc(url)}">`,
-    `<meta property="og:type" content="article"><meta property="og:site_name" content="${esc(BRAND.name)}">`,
-    `<meta property="og:title" content="${esc(page.title)}"><meta property="og:description" content="${esc(page.description)}"><meta property="og:url" content="${esc(url)}">`,
+    socialTags({ title: page.title, description: page.description, url, image: HOME_OG_IMAGE, imageAlt: `${BRAND.name}: websites for tradespeople`, type: 'article' }, origin),
   ].join('\n    ')
   const toc = sections.length > 2 ? contents(sections) : ''
   const html = '<div class="hp sb-ui pg"><a class="pg-skip" href="#main">Skip to main content</a><div class="hp-wrap">'
-    + `<header class="hp-top">${logoHtml()}<nav aria-label="Main" class="hp-nav"><a href="/">Home</a><a href="/build/" class="hp-nav-start">Start building</a></nav></header>`
+    + `<header class="hp-top">${logoHtml()}<nav aria-label="Main" class="hp-nav"><a href="/">Home</a><a href="/websites-for/">Every trade</a><a href="/build/" class="hp-nav-start">Start building</a></nav></header>`
     + `<main id="main" tabindex="-1" class="pg-main">`
     + `<div class="pg-hero pg-hero--${page.tone}"><p class="pg-kicker">${esc(page.kicker)}</p><h1 class="hp-h1 pg-h1">${title}</h1>${updated ? `<p class="pg-updated">${updated}</p>` : ''}</div>`
     + `<div class="pg-layout${toc ? '' : ' pg-layout--single'}">${toc}<article class="pg-text">${body}</article></div>`

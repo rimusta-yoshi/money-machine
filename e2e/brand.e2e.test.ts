@@ -5,12 +5,16 @@ import type { Browser, Page } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { FOOTER_LINKS } from '../src/brand/footer'
+import { PACKS } from '../src/packs'
 import { STATIC_PAGES } from '../src/pages/registry'
+import { HUB_PATH, typePath } from '../src/pages/types/paths'
 import { launchBrowser } from '../scripts/browser.mjs'
 
 /**
  * Accessibility in real Chrome for Local Blocks' own pages: axe with colour contrast ON over
- * the homepage and every builder step (Basics, Your look, Build, Go live), at desktop and
+ * the homepage, the plain pages and FAQ, the "Websites for…" hub and every type page, the 404
+ * page and every builder step (Basics, Your look, Build, Go live), at desktop and
  * phone width, with motion reduced and not. The generated customer-site previews inside
  * are left out here: `npm run a11y` and publish.e2e check those over every theme.
  * Screenshots land in e2e/screens (ignored by git).
@@ -102,13 +106,44 @@ describe.each(VIEWPORTS)('$name', vp => {
     } else {
       expect(await page.getByRole('navigation', { name: 'On this page' }).isVisible()).toBe(true)
     }
-    expect(await page.getByRole('navigation', { name: 'Footer' }).getByRole('link').count()).toBe(4)
+    expect(await page.getByRole('navigation', { name: 'Footer' }).getByRole('link').count()).toBe(FOOTER_LINKS.length)
+    expect(errors).toEqual([])
+    await close()
+  })
+
+  it.each([HUB_PATH, ...PACKS.map(typePath), '/404.html'])('trade page %s', async path => {
+    const { page, errors, close } = await open(`${path}?src=fb`, vp)
+    // Lazy pictures arrive before the check.
+    await page.evaluate(async () => {
+      for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 40)) }
+      window.scrollTo(0, 0)
+    })
+    await page.waitForLoadState('networkidle')
+    await check(page, `trade${path.replace(/\/+/g, '-').replace(/-$/, '').replace('.html', '')}-${vp.name}`)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    // Builder links keep the ad source; the trade pages preselect their trade.
+    const start = await page.locator('a[data-build]').first().getAttribute('href')
+    expect(start).toContain('src=fb')
+    const pack = PACKS.find(p => typePath(p) === path)
+    if (pack) expect(start).toBe(`/build/?trade=${pack.id}&src=fb`)
+    // Every picture loaded.
+    expect(await page.evaluate(() => [...document.images].every(i => i.complete && i.naturalWidth > 0))).toBe(true)
+    if (pack) {
+      await page.locator('summary').first().click()
+      expect(await axe(page)).toEqual([])
+    }
     expect(errors).toEqual([])
     await close()
   })
 
   it('every builder step', async () => {
     const { page, errors, close } = await open('/build/?trade=plumber', vp)
+    // "My business isn't listed", opened and answered.
+    await page.getByRole('button', { name: 'My business isn’t listed' }).click()
+    await page.getByLabel('What’s your business?').fill('heating engineer')
+    await page.getByRole('button', { name: 'Find the closest match' }).click()
+    await page.getByRole('button', { name: 'Start with Plumber' }).waitFor()
+    await check(page, `basics-notlisted-${vp.name}`)
     if (vp.isMobile) {
       await check(page, `basics-trade-${vp.name}`)
       await page.getByRole('button', { name: 'Continue' }).click()

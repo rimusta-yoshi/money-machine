@@ -8,7 +8,7 @@ export function NewTabLink({ href, children }: { href: string; children: string 
   return <a href={href} target="_blank" rel="noopener">{children}{NEW_TAB}</a>
 }
 
-/** The builder's footer links (privacy, terms, the hosting guide, contact), each in a new tab. */
+/** The builder's footer links (FAQ, the trades, privacy, terms, the hosting guide, contact), each in a new tab. */
 export function LegalLinks() {
   return (
     <nav aria-label="Footer" className="b-legal">

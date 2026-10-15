@@ -1,20 +1,11 @@
-export const TRADE_IDS = ['painter', 'roofer', 'electrician', 'landscaper', 'plumber'] as const
-export type TradeId = typeof TRADE_IDS[number]
+import type { TradeId } from '../packs'
+import type { SectionType } from '../packs/sections'
 
-export const SECTION_TYPES = [
-  'hero',
-  'trust_bar',
-  'services',
-  'about',
-  'why_us',
-  'gallery',
-  'certifications',
-  'testimonials',
-  'areas',
-  'contact',
-  'footer',
-] as const
-export type SectionType = typeof SECTION_TYPES[number]
+/** The trade ids come from the business-type packs (src/packs), the sections from their shared library. */
+export { TRADE_IDS } from '../packs'
+export type { TradeId } from '../packs'
+export { SECTION_TYPES } from '../packs/sections'
+export type { SectionType } from '../packs/sections'
 
 export interface ColorScheme {
   navy: string

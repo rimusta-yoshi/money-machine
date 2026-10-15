@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { plumber } from '../trades/plumber'
 import { createSite } from '../site/defaults'
 import { pageContent } from '../site/pageContent'
 import { withSamplePhotos } from '../sample/content'
 import { SampleTagged } from './SampleTags'
 import { sampleSlots } from './sampleSlots'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 

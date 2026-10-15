@@ -1,8 +1,11 @@
 # Sample photos
 
-Stock photos for **previews only**: the contact sheet (`npm run sheet`) and the builder
-preview's empty photo slots, matched to the customer's trade (`src/sample/stockPhotoFiles.ts`
-says which trade each shows and which suit a hero). They are never published on a customer's
+Stock photos for **previews only**: the contact sheet (`npm run sheet`), the builder
+preview's empty photo slots, matched to the customer's trade, and the made-up example sites on
+our own "Websites for…" pages (each business type's pack, `src/packs/business/<id>.ts`, lists
+its photos with the credits below and which suit a hero). For those examples the build copies
+the photos they show to `/photos/` on our own site, and `npm run pack:images` screenshots them;
+they're labelled as examples with sample photos, never as anyone's real work. They are never published on a customer's
 site, never offered as the customer's own, and never presented as anyone's own work (their
 alt text says "Sample photo"). They live here, outside `public/`, so they are not part of the
 production build; production loads them from our own storage (see below), and draws

@@ -18,6 +18,9 @@ export interface RecentSite {
 
 export interface LayoutRow { section: string; label: string; total: number; layouts: { id: string; label: string; n: number; share: number | null }[] }
 
+/** "My business isn't listed": one description and how often it was asked for. */
+export interface RequestedType { text: string; count: number; closest: string | null; firstAt: number; lastAt: number }
+
 export interface Stats {
   range: { from: number; to: number; src: string | null }
   funnel: FunnelRow[]
@@ -28,6 +31,8 @@ export interface Stats {
   recent: RecentSite[]
   layouts: LayoutRow[]
   sources: string[]
+  /** All time, most asked first. Missing from a server older than the dashboard. */
+  requested?: RequestedType[]
 }
 
 /** The source filter's value for visits with no source (matches server/core/admin.ts). */

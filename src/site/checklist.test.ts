@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { plumber } from '../trades/plumber'
-import { painter } from '../trades/painter'
 import { createSite } from './defaults'
 import { buildChecklist, isReadyToPublish, sectionChecklist, sectionForItem } from './checklist'
 import type { Site } from './schema'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
+const painter = tradeById.painter
 
 const ids = (site: Site, trade = plumber) => buildChecklist(site, trade).map(i => i.id)
 

@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import axe from 'axe-core'
-import { plumber } from '../trades/plumber'
 import { createSite } from '../site/defaults'
 import { pageContent } from '../site/pageContent'
 import { publishedPage } from '../site/page'
@@ -11,6 +10,9 @@ import { ExampleSection } from './ExampleSection'
 import { SuggestedLinesEditor, SuggestedNoteEditor } from './content/SuggestedLinesEditor'
 import { SectionContentEditor } from './content/SectionContentEditor'
 import { PhotoNeeds } from './finish/PhotoNeeds'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 

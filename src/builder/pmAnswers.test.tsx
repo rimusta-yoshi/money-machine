@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { plumber } from '../trades/plumber'
-import { painter } from '../trades/painter'
 import { createSite } from '../site/defaults'
 import { parseSite } from '../site/parse'
 import { siteReducer } from '../site/reducer'
@@ -10,6 +8,10 @@ import type { Site } from '../site/schema'
 import { BasicsStep } from './basics/BasicsStep'
 import { GalleryEditor } from './content/PhotoEditor'
 import { noticeText, TEXT_NOTE, textTooLong } from './useFitRepair'
+import { tradeById } from '../trades'
+
+const plumber = tradeById.plumber
+const painter = tradeById.painter
 
 afterEach(cleanup)
 

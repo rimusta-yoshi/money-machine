@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { withInferredLocks } from './locks'
 import { hashString, SECTIONS } from '../gen'
 import type { SectionKey } from '../gen'
-import { painter } from '../trades/painter'
-import { plumber } from '../trades/plumber'
 import type { TradeConfig } from '../types'
 import { createSite } from './defaults'
 import { LIMITS } from './limits'
@@ -13,6 +11,10 @@ import { parseSite } from './parse'
 import { siteSchema, siteSchemaV2, siteSchemaV3 } from './schema'
 import type { SiteV1, SiteV2, SiteV3 } from './schema'
 import { DEFAULT_THEME, styleRecord } from './style'
+import { tradeById } from '../trades'
+
+const painter = tradeById.painter
+const plumber = tradeById.plumber
 
 function v1(overrides: Partial<SiteV1> = {}, trade: TradeConfig = plumber): SiteV1 {
   const { tradeId, business, brandColor, extras, content } = createSite(trade, 1)

@@ -30,4 +30,8 @@ export const STATIC_PAGES: readonly StaticPage[] = [
     path: PAGES.hostingGuide, source: 'content/guide/host-your-own-site.md', entry: 'guide/host-your-own-site/index.html', tone: 'lawn', kicker: 'You own your site',
     title: 'Host your own site', description: 'Download your website and put it online anywhere, free, in a few minutes. Step by step, no jargon.',
   },
+  {
+    path: PAGES.faq, source: 'content/faq.md', entry: 'faq/index.html', tone: 'blue', kicker: 'Fair questions, straight answers',
+    title: 'Frequently asked questions', description: 'Paying once, what’s included, your own domain, changes, downloads, refunds, and what happens if we ever close.',
+  },
 ]

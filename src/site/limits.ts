@@ -32,5 +32,8 @@ export const LIMITS = {
 
 export type LimitKey = keyof typeof LIMITS
 
+/** Most services a site lists (the trades start with six). */
+export const MAX_SERVICES = 8
+
 /** Show the counter once this much of the limit is used, so short fields stay quiet. */
 export const COUNTER_FROM = 0.7

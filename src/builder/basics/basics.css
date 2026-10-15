@@ -74,3 +74,12 @@
 
 /* For someone who paid on another device and lost the email. */
 .bb-paid { margin: 0; font-size: 15px; }
+
+/* ---- "My business isn't listed": under the trade picker ---- */
+.bb-notlisted { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.bb-notlisted-box { align-self: stretch; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 18px; border-radius: 18px; background: var(--sb-mist); }
+.bb-notlisted-box[hidden] { display: none; }
+.bb-notlisted-box .bf-field { align-self: stretch; }
+.bb-notlisted-answer { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.bb-notlisted-answer:empty { display: none; }
+.bb-notlisted-answer p { margin: 0; font-size: 16px; line-height: 1.5; }

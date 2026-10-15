@@ -12,9 +12,8 @@
 //
 // The admin dashboard (http://localhost:5173/admin/ with npm run dev:api) needs numbers: add
 // --sample-events to fill an empty local database with 30 made-up days (scripts/sample-events.ts).
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { STOCK_PHOTO_FILES } from '../src/sample/stockPhotoFiles.ts'
 import { startStack } from '../server/test/stack.ts'
 import { seedSampleEvents } from './sample-events.ts'
 import { stripeListenArgs } from './stripe-events.mjs'
@@ -44,8 +43,10 @@ const stack = await startStack({
   vars: { APP_URL: 'http://localhost:5173', ...devVars },
 })
 const bucket = await stack.mf.getR2Bucket('BUCKET', 'api')
-for (const file of STOCK_PHOTO_FILES) {
-  await bucket.put(`samples/${file}`, readFileSync(join(process.cwd(), 'reference', 'sample-photos', file)), { httpMetadata: { contentType: 'image/jpeg' } })
+// Every sample photo (the same files npm run cf:samples uploads; the packs say which trade uses each).
+const SAMPLES = join(process.cwd(), 'reference', 'sample-photos')
+for (const file of readdirSync(SAMPLES).filter(f => f.endsWith('.jpg'))) {
+  await bucket.put(`samples/${file}`, readFileSync(join(SAMPLES, file)), { httpMetadata: { contentType: 'image/jpeg' } })
 }
 const sample = process.argv.includes('--sample-events') ? `
 ${await seedSampleEvents(stack, ADMIN, BASE)}` : ''

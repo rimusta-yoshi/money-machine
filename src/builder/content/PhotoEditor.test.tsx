@@ -2,13 +2,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import axe from 'axe-core'
-import { plumber } from '../../trades/plumber'
 import { createSite } from '../../site/defaults'
 import { defaultAlt } from '../../site/photoAlt'
 import type { ImageCodec } from '../../photos/resize'
 import type { PhotoStore } from '../../photos/store'
 import { GalleryEditor, PhotoEditor } from './PhotoEditor'
 import { SectionContentEditor } from './SectionContentEditor'
+import { tradeById } from '../../trades'
+
+const plumber = tradeById.plumber
 
 afterEach(cleanup)
 
