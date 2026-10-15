@@ -2,6 +2,14 @@
 
 Two tracks meet at "switch on live payments". The build track runs in Stripe test mode; this list is the launch track, mostly rob's admin.
 
+## Free help first: NUA Ideas Factory (rob is an alumnus)
+Cavendish House, 28-32 St Andrews Street, Norwich NR2 4AE · 01603 753285. One-to-one business advice for NUA graduates, plus a membership with hot desks and meeting rooms (alumni terms unpublished, so ask). Before paying for any of these, ask them:
+- [ ] Can a member use the building as a business address (terms, footer, Stripe)? Could replace the paid virtual address.
+- [ ] A check of the terms and privacy policy, or a referral to someone who does it cheaply.
+- [ ] An accountant introduction; sole trader vs limited company; VAT timing (see milestones.md).
+- [ ] Grants or start-up funding for creative digital businesses.
+- [ ] Local businesses (or students) to try the builder before launch.
+
 ## Key dates and facts
 - **Business start date: 10 October 2026** (Local Blocks, sole trader). Used on the Monzo Business application; use the same date when registering with HMRC (or the first-sale date if HMRC asks for that).
 - Domain localblocks.co.uk bought Oct 2026 (UK Sole Trader, rob's name). Stripe sandbox account created Oct 2026 (personal email login).
