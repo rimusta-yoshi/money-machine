@@ -89,6 +89,28 @@ export function disputeWonEmail(c: Config, to: string, siteUrl: string): Email {
   ])
 }
 
+export interface DomainLive {
+  /** https://www.example.co.uk/ */
+  url: string
+  /** The free address, which now sends visitors there. */
+  freeUrl: string
+  /** example.co.uk, when it isn't connected itself and needs forwarding at the domain company. */
+  bareToForward: string | null
+}
+
+/** Sent once, when the customer's own domain first goes live. */
+export function domainLiveEmail(c: Config, to: string, d: DomainLive): Email {
+  return email(c, to, `Your domain is live: ${bare(d.url)}`, 'Your domain is live', [
+    'Your site now opens at your own domain, with a secure (https) connection.',
+    { link: d.url, label: bare(d.url) },
+    `Your free address, ${bare(d.freeUrl)}, sends visitors there too, so old links keep working.`,
+    ...(d.bareToForward
+      ? [`One last thing, if you haven't already: so ${d.bareToForward} (without the www) works too, switch on forwarding at your domain company and send it to ${d.url.replace(/\/$/, '')}. It's free, and their help pages call it "domain forwarding".`]
+      : []),
+    'Your domain stays yours: keep renewing it with your domain company.',
+  ])
+}
+
 export interface EditLinks { siteUrl: string; editLink: string; refund: { link: string; until: number } | null }
 
 export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email {

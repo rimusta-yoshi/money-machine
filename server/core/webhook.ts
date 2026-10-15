@@ -11,6 +11,7 @@ import { siteOrigin } from './config'
 import { trackSite } from './events'
 import { recordFeeLater } from './fees'
 import { putLive, suggestion, takeDownOwn } from './publish'
+import { dropDomain, pauseDomain, resumeDomain } from './domainLifecycle'
 import { verifyStripeSignature } from './stripe'
 
 /**
@@ -144,6 +145,8 @@ async function disputeOpened(deps: Deps, dispute: Dispute): Promise<void> {
   const first = await deps.db.markDisputed(draft.ref, deps.now())
   if (first) trackSite(deps, 'disputed', draft)
   await takeDownOwn(deps, draft)
+  // Their own domain comes off Cloudflare meanwhile, kept to put back if the dispute is won.
+  await pauseDomain(deps, draft.ref)
   // Once per dispute, whichever delivery gets here first.
   if (first && draft.payment && draft.slug) {
     await sendQuietly(deps.mailer, disputeOpenedEmail(deps.config, draft.payment.email, `${siteOrigin(deps.config, draft.slug)}/`))
@@ -159,11 +162,14 @@ async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
     // Counted once per site: here too, in case the "opened" event never arrived.
     trackSite(deps, 'disputed', draft)
     await takeDownOwn(deps, draft)
+    await dropDomain(deps, draft.ref, { republish: false })
     return
   }
   const first = await deps.db.endDispute(draft.ref, true, deps.now())
   const site = storedRecord(draft)
   if (draft.refundedAt || draft.disputeLostAt || !draft.slug || !site) return
+  // Back on Cloudflare, waiting to be live again (the check then puts the site up under it).
+  await resumeDomain(deps, draft.ref)
   const url = await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
   if (first && draft.payment) await sendQuietly(deps.mailer, disputeWonEmail(deps.config, draft.payment.email, url))
 }

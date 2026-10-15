@@ -1,4 +1,5 @@
-// The site worker: <slug>.<base>, published customer sites served from R2. No database.
+// The site worker: <slug>.<base> and customers' own domains, published sites served from R2.
+// Reads the database only to know which site an own domain shows.
 // Deploy: npm run cf:deploy (see server/README.md).
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
@@ -7,11 +8,22 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "*.localblocks.co.uk/*", "zone_name": "localblocks.co.uk" }],
+  // Customers' own domains reach this worker through Cloudflare for SaaS: "*/*" catches every
+  // custom hostname on the zone. The more specific routes still win (api. and preview. on the
+  // API worker; the apex is the app worker's custom domain). See server/README.md "Own domains".
+  "routes": [
+    { "pattern": "*.localblocks.co.uk/*", "zone_name": "localblocks.co.uk" },
+    { "pattern": "*/*", "zone_name": "localblocks.co.uk" }
+  ],
   "vars": {
     "BASE_DOMAIN": "localblocks.co.uk",
-    "NOINDEX": "true"
+    "NOINDEX": "true",
+    // Seconds an own domain's site is remembered between database reads.
+    "HOST_CACHE_SECONDS": "60"
   },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "siteblocks", "database_id": "400a2f77-8ebe-4878-8576-c9747999bc80", "migrations_dir": "migrations" }
+  ],
   "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],
   "assets": { "directory": "../public/fonts", "binding": "ASSETS", "run_worker_first": true },
   "observability": { "enabled": true }

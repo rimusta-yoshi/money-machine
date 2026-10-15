@@ -278,9 +278,124 @@ export interface Mailer {
   send(email: Email): Promise<void>
 }
 
+/**
+ * A customer's own domain: pending (waiting for their DNS record), active (live), paused (a
+ * payment dispute is open: off Cloudflare, kept here to put back) or removing (Cloudflare
+ * still to be told: the cron retries).
+ */
+export type DomainStatus = 'pending' | 'active' | 'paused' | 'removing'
+
+/** A customer's own domain (table custom_domains). One per site. */
+export interface DomainRow {
+  ref: string
+  /** What visitors use and we serve: www.example.co.uk (or the subdomain they chose). */
+  hostname: string
+  /** The registered domain: example.co.uk. */
+  domain: string
+  /** The bare domain when it's connected too (DNS on Cloudflare only): it redirects to hostname. */
+  apex: string | null
+  cfId: string | null
+  cfApexId: string | null
+  status: DomainStatus
+  /** The domain company, from its nameservers (src/domains/providers.ts), if known. */
+  provider: string | null
+  /** One-click connecting (Domain Connect), when the DNS provider offers our template. */
+  dc: DnsProviderInfo | null
+  /** Where the hostname pointed at the last check (a CNAME target), if anywhere. */
+  dnsSeen: string | null
+  createdAt: number
+  checkedAt: number | null
+  activeAt: number | null
+  liveEmailAt: number | null
+}
+
+/** A domain with its site's address and payment email, for the site worker, the cron and the dashboard. */
+export interface DomainWithSite extends DomainRow {
+  slug: string | null
+  email: string | null
+  /** The site has a live, paying customer: paid, published, not refunded, no dispute. */
+  siteLive: boolean
+}
+
+export type DomainPatch = Partial<Pick<DomainRow, 'apex' | 'cfId' | 'cfApexId' | 'status' | 'dnsSeen' | 'checkedAt' | 'activeAt'>>
+
+/** Customers' own domains, on the same database. */
+export interface DomainStore {
+  byRef(ref: string): Promise<DomainRow | null>
+  /** The domain whose hostname or bare domain this is, with its site. */
+  byHost(host: string): Promise<DomainWithSite | null>
+  /** The live domain of the site at this address, if it has one. */
+  activeHostForSlug(slug: string): Promise<string | null>
+  /** Adds one (pending). False if the site has one already or the name is another site's. */
+  insert(row: Pick<DomainRow, 'ref' | 'hostname' | 'domain' | 'apex' | 'provider' | 'dc' | 'createdAt'>): Promise<boolean>
+  update(ref: string, patch: DomainPatch): Promise<void>
+  /** Claims the "your domain is live" email. True for the one caller that should send it. */
+  claimLiveEmail(ref: string, now: number): Promise<boolean>
+  delete(ref: string): Promise<void>
+  /** Domains in these states not checked since `before`, oldest check first. */
+  due(statuses: readonly DomainStatus[], before: number, limit: number): Promise<DomainWithSite[]>
+  /** Domains to take off Cloudflare: their site is gone, refunded or lost a dispute, or they're being removed. */
+  ended(limit: number): Promise<DomainWithSite[]>
+  /** Domains still on Cloudflare whose site has a dispute open: to pause. */
+  disputed(limit: number): Promise<DomainWithSite[]>
+  counts(): Promise<Record<DomainStatus, number>>
+  /** Every domain, newest first (the dashboard). */
+  list(limit: number): Promise<DomainWithSite[]>
+}
+
+/** What Cloudflare says about one custom hostname. */
+export interface HostnameInfo {
+  id: string
+  hostname: string
+  /** pending, active, moved, deleted, blocked… */
+  status: string
+  /** The HTTPS certificate: initializing, pending_validation, active… */
+  sslStatus: string | null
+}
+
+/** Cloudflare for SaaS custom hostnames on our zone. */
+export interface CustomHostnames {
+  create(hostname: string): Promise<HostnameInfo>
+  /** Null if Cloudflare has no such hostname (any more). */
+  get(id: string): Promise<HostnameInfo | null>
+  find(hostname: string): Promise<HostnameInfo | null>
+  /** Removing one that's already gone is fine. */
+  remove(id: string): Promise<void>
+}
+
+export type DnsType = 'NS' | 'TXT' | 'CNAME'
+
+/** Public DNS lookups (DNS over HTTPS). */
+export interface Dns {
+  /** nxdomain: the name doesn't exist; error: couldn't tell. */
+  lookup(name: string, type: DnsType): Promise<{ status: 'ok' | 'nxdomain' | 'error'; answers: string[] }>
+}
+
+/** A DNS provider that offers one-click connecting (Domain Connect) with our template. */
+export interface DnsProviderInfo {
+  /** Their Domain Connect id, as their settings give it. */
+  providerId: string
+  /** What to call them: "GoDaddy". */
+  name: string
+  /** Their urlSyncUX: where the customer approves the change. */
+  syncUx: string
+}
+
+/** Domain Connect discovery: who runs a domain's DNS, and whether they take our template. */
+export interface DomainConnect {
+  /** Null when the provider doesn't support it, isn't switched on for us, or can't be reached. */
+  discover(domain: string): Promise<DnsProviderInfo | null>
+}
+
 export interface Deps {
   config: Config
   db: Database
+  domains: DomainStore
+  /** Null when own domains aren't switched on (no Cloudflare token). */
+  saas: CustomHostnames | null
+  dns: Dns
+  /** Null when one-click connecting is switched off for every provider. */
+  domainConnect: DomainConnect | null
   insights: Insights
   blobs: Blobs
   assets: Assets

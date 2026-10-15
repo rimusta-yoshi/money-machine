@@ -11,6 +11,13 @@ export const BRAND = {
   wordmark: 'localblocks',
   /** Where everything lives; customers' free web addresses are <name>.<domain>. */
   domain: 'localblocks.co.uk',
+  /** Domains we used before (they redirect here): never accepted as a customer's own domain. */
+  pastDomains: ['siteblocks.co.uk'],
+  /**
+   * "Don't have a domain yet?": where we point people to buy one. Chosen because it offers
+   * one-click connecting (Domain Connect). No affiliate code. We never buy domains for anyone.
+   */
+  domainShop: { name: 'IONOS', url: 'https://www.ionos.co.uk/domains/domain-names' },
   /** Replies and questions land here (no noreply, no separate help address). */
   email: 'hello@localblocks.co.uk',
   /** Where abuse reports go (legal pages, the abuse notice). */

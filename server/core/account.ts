@@ -9,6 +9,7 @@ import type { Deps, DraftRow } from './ports'
 import { paymentsOn } from './checkout'
 import { trackSite } from './events'
 import { takeDownOwn } from './publish'
+import { dropDomain } from './domainLifecycle'
 import { signLink, verifyLink } from './tokens'
 
 /** After paying: the welcome email, edit links, and self-serve refunds within the guarantee. */
@@ -54,6 +55,8 @@ export async function refundedAndDown(deps: Deps, draft: DraftRow, refundId: str
   const first = await deps.db.markRefunded(draft.ref, deps.now(), refundId)
   if (first) trackSite(deps, 'refunded', draft)
   await takeDownOwn(deps, draft)
+  // Their own domain comes off too: never served, nor paid for, once refunded.
+  await dropDomain(deps, draft.ref, { republish: false })
   if (first && draft.payment) {
     await sendQuietly(deps.mailer, refundEmail(deps.config, draft.payment.email, `${siteOrigin(deps.config, draft.slug ?? '')}/`, draft.payment.amount))
   }

@@ -32,6 +32,10 @@ export const RATE = {
   download: { limit: 60, windowSec: 3600 },
   /** Preview pages render on every view. */
   previewView: { limit: 600, windowSec: 3600 },
+  /** Connecting or disconnecting an own domain (each one calls Cloudflare and the DNS). */
+  domain: { limit: 20, windowSec: 3600 },
+  /** The own-domain page: on load, on coming back to it and on "Check now". */
+  domainStatus: { limit: 300, windowSec: 3600 },
   /** The admin dashboard (also slows down guessing the admin key). */
   admin: { limit: 120, windowSec: 3600 },
 } as const

@@ -8,6 +8,7 @@ import type { Site } from '../../src/site/schema'
 import { tradeById } from '../../src/trades'
 import type { TradeConfig } from '../../src/types'
 import { siteOrigin } from './config'
+import { liveOrigin } from './domainOrigin'
 import { authDraft, storedRecord } from './drafts'
 import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
@@ -89,7 +90,8 @@ export async function putLive(deps: Deps, draft: DraftRow, slug: string, site: S
   if (!(await deps.db.claimSlug(slug, draft.ref, now))) {
     throw new HttpError(409, 'slug_taken', 'That address is taken.', { suggestion: await suggestion(deps, draft.ref, site) })
   }
-  const origin = siteOrigin(deps.config, slug)
+  // The customer's own domain once it's live (canonical, sitemap, Open Graph), else the free address.
+  const origin = await liveOrigin(deps, draft.ref, slug)
   try {
     const live = await mapPhotoUrls(site, url => `/photos/${ownPhotoName(url, deps.config, draft.ref)}`)
     // Search engines see paid sites only, and only once the launch flag allows it.

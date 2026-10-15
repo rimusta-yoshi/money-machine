@@ -5,7 +5,7 @@ import { parseSite } from '../../src/site/parse'
 import { SiteParseError } from '../../src/site/schema'
 import type { Site } from '../../src/site/schema'
 import { sitePhotos } from '../../src/publish/photos'
-import { siteOrigin } from './config'
+import { liveOrigin } from './domainOrigin'
 import { HttpError, json, readBody, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import { draftPhotoKey, draftPhotoPrefix, draftPhotoUrl, ownPhotoName, photoName } from './photos'
@@ -87,7 +87,7 @@ export async function getDraft(req: Request, deps: Deps): Promise<Response> {
   return json({
     record: storedRecord(draft),
     slug: draft.slug,
-    publishedUrl: draft.slug && !draft.refundedAt && !draft.disputedAt ? `${siteOrigin(deps.config, draft.slug)}/` : null,
+    publishedUrl: draft.slug && !draft.refundedAt && !draft.disputedAt ? `${await liveOrigin(deps, draft.ref, draft.slug)}/` : null,
     updatedAt: draft.updatedAt,
     paid: !!draft.payment,
     refunded: !!draft.refundedAt,

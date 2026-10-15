@@ -31,6 +31,24 @@ export interface Config {
   /** Signs edit and refund links. Required when payments are on. */
   linkSecret: string | null
   email: { from: string; support: string; resendKey: string | null }
+  /** Customers' own domains (Cloudflare for SaaS on our zone). Null: switched off. */
+  saas: { token: string; zoneId: string; target: string } | null
+  /** One-click connecting (Domain Connect), for the DNS providers listed. Null: off. */
+  domainConnect: DomainConnectConfig | null
+  /** How long the site worker remembers which site a domain belongs to, in seconds. */
+  hostCacheSeconds: number
+}
+
+export interface DomainConnectConfig {
+  /** Our ids in the template (server/domainconnect/). */
+  providerId: string
+  serviceId: string
+  /** Where our public key's TXT records live, under the template's syncPubKeyDomain. */
+  keyHost: string
+  /** PKCS#8 RSA private key (base64 or PEM) that signs the requests. */
+  privateKey: string
+  /** DNS providers (their Domain Connect providerId, lower case) that approved our template. */
+  providers: ReadonlySet<string>
 }
 
 const HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{2,5})?$/
@@ -62,6 +80,34 @@ function stripeSettings(env: Record<string, unknown>): Config['stripe'] {
   if (/_live_/.test(secretKey) && setting(env, 'STRIPE_ALLOW_LIVE', 'false') !== 'true') throw new Error('STRIPE_SECRET_KEY is a live key; set STRIPE_ALLOW_LIVE=true to use it')
   if (!/^whsec_\w+$/.test(webhookSecret)) throw new Error('STRIPE_WEBHOOK_SECRET must be a webhook signing secret (whsec_…)')
   return { secretKey, webhookSecret }
+}
+
+function saasSettings(env: Record<string, unknown>, baseDomain: string): Config['saas'] {
+  const token = setting(env, 'CF_SAAS_TOKEN', '')
+  const zoneId = setting(env, 'CF_ZONE_ID', '')
+  // Both are needed. The zone id is a plain var, so it can sit in the config before the token is set.
+  if (!token) return null
+  if (!/^[0-9a-f]{32}$/.test(zoneId)) throw new Error('CF_ZONE_ID must be the zone id (32 letters and digits, from the zone’s Overview page)')
+  if (token.length < 20) throw new Error('CF_SAAS_TOKEN must be a Cloudflare API token')
+  const target = setting(env, 'DOMAINS_TARGET', `domains.${baseDomain.replace(/:\d+$/, '')}`).toLowerCase()
+  if (!HOST.test(target)) throw new Error('DOMAINS_TARGET must be a hostname like domains.localblocks.co.uk')
+  return { token, zoneId, target }
+}
+
+function domainConnectSettings(env: Record<string, unknown>, baseDomain: string): Config['domainConnect'] {
+  const providers = setting(env, 'DC_PROVIDERS', '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  if (!providers.length) return null
+  const privateKey = setting(env, 'DC_PRIVATE_KEY', '')
+  // Providers can be listed before the key is set: one-click simply stays off (never the whole API).
+  if (!privateKey) return null
+  if (!/^(-----BEGIN PRIVATE KEY-----)?[A-Za-z0-9+/=\s\\n]+(-----END PRIVATE KEY-----)?\s*$/.test(privateKey)) throw new Error('DC_PRIVATE_KEY must be a PKCS#8 private key (PEM or base64)')
+  const keyHost = setting(env, 'DC_KEY_HOST', '_dck1')
+  if (!/^[a-z0-9_-]{1,63}$/i.test(keyHost)) throw new Error('DC_KEY_HOST must be one DNS label, like _dck1')
+  return {
+    providerId: setting(env, 'DC_PROVIDER_ID', baseDomain.replace(/:\d+$/, '')),
+    serviceId: setting(env, 'DC_SERVICE_ID', 'website'),
+    keyHost, privateKey, providers: new Set(providers),
+  }
 }
 
 function emailAddress(env: Record<string, unknown>, name: string, fallback: string): string {
@@ -115,6 +161,9 @@ export function parseConfig(env: Record<string, unknown>): Config {
       support: emailAddress(env, 'SUPPORT_EMAIL', `help@${baseDomain.replace(/:\d+$/, '')}`),
       resendKey: setting(env, 'RESEND_API_KEY', '') || null,
     },
+    saas: saasSettings(env, baseDomain),
+    domainConnect: domainConnectSettings(env, baseDomain),
+    hostCacheSeconds: wholeNumber(env, 'HOST_CACHE_SECONDS', '60', 0, 3600),
   }
 }
 
@@ -122,6 +171,8 @@ export const apiHost = (c: Config): string => `api.${c.baseDomain}`
 export const previewHost = (c: Config): string => `preview.${c.baseDomain}`
 export const previewOrigin = (c: Config): string => `https://${previewHost(c)}`
 export const siteOrigin = (c: Config, slug: string): string => `https://${slug}.${c.baseDomain}`
+/** Our own domains, never accepted as a customer's (the base domain, and the one we moved from). */
+export const ourDomains = (c: Pick<Config, 'baseDomain'>): string[] => [c.baseDomain.replace(/:\d+$/, ''), ...BRAND.pastDomains]
 /** The builder page, where edit, refund and lost-link screens live too. */
 export const builderUrl = (c: Config): string => `${c.appUrl}/build/`
 

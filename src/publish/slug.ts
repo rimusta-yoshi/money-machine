@@ -10,7 +10,7 @@ export const SLUG_MAX = 40
 /** Our own hosts, mail and infrastructure names, and words that would look like us. */
 export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'www', 'api', 'admin', 'preview', 'app', 'apps', 'mail', 'email', 'smtp', 'imap', 'pop', 'ftp', 'webmail', 'mx',
-  'ns', 'ns1', 'ns2', 'dns', 'autodiscover', 'autoconfig', 'blog', 'help', 'support', 'status', 'docs', 'dashboard',
+  'ns', 'ns1', 'ns2', 'dns', 'domains', 'domain', 'autodiscover', 'autoconfig', 'blog', 'help', 'support', 'status', 'docs', 'dashboard',
   'login', 'logout', 'signin', 'signup', 'register', 'account', 'accounts', 'billing', 'pay', 'payment', 'payments',
   'checkout', 'static', 'assets', 'cdn', 'img', 'images', 'media', 'files', 'fonts', 'photos', 'dev', 'staging',
   'test', 'demo', 'beta', 'root', 'security', 'abuse', 'postmaster', 'hostmaster', 'webmaster', 'privacy', 'terms',
