@@ -48,7 +48,7 @@ Cavendish House, 28-32 St Andrews Street, Norwich NR2 4AE · 01603 753285. One-t
 - [ ] Switch to live keys; set LAUNCHED on.
 
 ## Safety and operations
-- [ ] **Make the GitHub repo private** (it's public: generator code + 50 Pexels photos). Then watch GitHub Actions minutes (free private allowance ~2,000/month); full stress shards nightly/on main only.
+- [ ] **Make the GitHub repo private before go-live** (rob, 15 Oct: keep public until then for rulesets + auto-merge). On the free plan a private repo loses the ruleset (required CI checks) and auto-merge: either GitHub Pro (~$4/month) or merge only after checking CI by hand. (it's public: generator code + 50 Pexels photos). Then watch GitHub Actions minutes (free private allowance ~2,000/month); full stress shards nightly/on main only.
 - [x] Update GitHub required status checks (done 14 Oct: Lint, types and unit tests + Quick stress test).
 - [ ] Cloudflare Access on localblocks.co.uk/admin (one-time email code, rob only).
 - [ ] Cloudflare Web Analytics: add localblocks.co.uk, send token to the coding work.
