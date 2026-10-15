@@ -56,6 +56,21 @@ describe('signed links', () => {
     const refund = await signLink('s'.repeat(32), 'refund', ref)
     expect(await verifyLink('s'.repeat(32), 'refund', refund)).toEqual({ purpose: 'refund', ref, n: 0 })
   })
+
+  it('signs resume links for their purpose only', async () => {
+    const secret = 's'.repeat(32)
+    const resume = await signLink(secret, 'resume', ref)
+    expect(resume).toMatch(new RegExp(`^resume\\.${ref}\\.[\\w-]{43}$`))
+    expect(parseLink(resume)).toEqual({ purpose: 'resume', ref, n: 0 })
+    expect(await verifyLink(secret, 'resume', resume)).toEqual({ purpose: 'resume', ref, n: 0 })
+    // Neither a refund nor an edit link, and they aren't resume links.
+    expect(await verifyLink(secret, 'refund', resume)).toBeNull()
+    expect(await verifyLink(secret, 'edit', resume)).toBeNull()
+    const refund = await signLink(secret, 'refund', ref)
+    expect(await verifyLink(secret, 'resume', refund)).toBeNull()
+    expect(await verifyLink(secret, 'resume', refund.replace(/^refund/, 'resume'))).toBeNull()
+    expect(await verifyLink(secret, 'resume', resume.replace(ref, 'b'.repeat(32)))).toBeNull()
+  })
 })
 
 describe('Stripe webhook signatures', () => {

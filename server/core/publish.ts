@@ -15,6 +15,7 @@ import { rateLimit, SIZE } from './limits'
 import { draftPhotoKey, ownPhotoName } from './photos'
 import { goneKey, sitePrefix } from './storage'
 import type { Deps, DraftRow } from './ports'
+import { flagForReview } from './review'
 import { sameSecret } from './tokens'
 
 /** Publishing without paying: the admin key, for testing and support only. */
@@ -86,6 +87,8 @@ export async function sitePhotoFiles(deps: Deps, ref: string, site: Site): Promi
  */
 export async function putLive(deps: Deps, draft: DraftRow, slug: string, site: Site, o: { paid: boolean }): Promise<string> {
   const photos = await sitePhotoFiles(deps, draft.ref, site)
+  // Every way a site goes live (the paid webhook, a paid re-publish, the admin key): never in the way.
+  await flagForReview(deps, draft.ref, site)
   const now = deps.now()
   if (!(await deps.db.claimSlug(slug, draft.ref, now))) {
     throw new HttpError(409, 'slug_taken', 'That address is taken.', { suggestion: await suggestion(deps, draft.ref, site) })

@@ -6,13 +6,15 @@ import { siteReducer } from '../site/reducer'
 import type { Site } from '../site/schema'
 import { ApiError, apiBase, createApi, siteDomain } from './client'
 import type { Api } from './client'
-import { editTokenFromHash, forgetDraftKey, refundTokenFromHash, rememberDraftKey, storedDraftKey } from './draftKey'
+import { editTokenFromHash, forgetDraftKey, refundTokenFromHash, rememberDraftKey, resumeTokenFromHash, storedDraftKey } from './draftKey'
 import { loadLocalSite, saveLocalSite } from './localSite'
 import { dataUrlToBlob, uploadPhotos } from './uploadPhotos'
 import { useDraft } from './useDraft'
 
 const KEY = 'k'.repeat(43)
 const EDIT = `edit.${'a'.repeat(32)}.1.${'s'.repeat(43)}`
+const RESUME = `resume.${'a'.repeat(32)}.${'s'.repeat(43)}`
+const PHONE_KEY = 'p'.repeat(43)
 const DATA_URL = `data:image/jpeg;base64,${btoa('\xff\xd8\xff\xe0fake')}`
 const withHero = (site: Site, url: string): Site => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Boiler' } } } })
 
@@ -45,6 +47,16 @@ describe('draft key', () => {
     expect(refundTokenFromHash(`#refund=${EDIT}`)).toBeNull()
     rememberDraftKey(EDIT)
     expect(storedDraftKey()).toBe(EDIT)
+  })
+
+  it('reads a resume token from its link, and never takes one as a key', () => {
+    expect(resumeTokenFromHash(`#resume=${RESUME}`)).toBe(RESUME)
+    for (const hash of ['', '#resume', '#resume=', `#resume=${EDIT}`, `#resume=${KEY}`, `#edit=${RESUME}`, `#resume=${RESUME}x`, `#resume=resume.${'A'.repeat(32)}.${'s'.repeat(43)}`]) {
+      expect(resumeTokenFromHash(hash), hash).toBeNull()
+    }
+    expect(editTokenFromHash(`#edit=${RESUME}`)).toBeNull()
+    rememberDraftKey(RESUME)
+    expect(storedDraftKey()).toBeNull()
   })
 })
 
@@ -116,6 +128,22 @@ describe('the API client', () => {
     expect(bodies).toEqual([{ slug: 'joes' }, { slug: 'joes', testerCode: 'tester-1234' }])
   })
 
+  it('asks for a resume link with the key, and opens one with its token alone', async () => {
+    const calls: { url: string; auth: string | null; body: unknown }[] = []
+    const api = createApi('https://api.x', (async (u: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(u), auth: new Headers(init?.headers).get('Authorization'), body: JSON.parse(String(init?.body)) })
+      return new Response(JSON.stringify(String(u).endsWith('/resume') ? { key: PHONE_KEY } : { ok: true, message: "We've sent a link to jo@example.com." }), { status: 200 })
+    }) as typeof fetch)
+    expect(await api.sendResumeLink(KEY, 'jo@example.com', true)).toBe("We've sent a link to jo@example.com.")
+    expect(await api.openResumeLink(RESUME)).toEqual({ key: PHONE_KEY })
+    expect(calls).toEqual([
+      { url: 'https://api.x/v1/draft/resume-link', auth: `Bearer ${KEY}`, body: { email: 'jo@example.com', remind: true } },
+      { url: 'https://api.x/v1/draft/resume', auth: null, body: { token: RESUME } },
+    ])
+    const refusing = createApi('https://api.x', (async () => new Response(JSON.stringify({ error: 'too_many_links', message: 'Try again tomorrow.' }), { status: 429 })) as typeof fetch)
+    await expect(refusing.sendResumeLink(KEY, 'jo@example.com', false)).rejects.toMatchObject({ status: 429, code: 'too_many_links', message: 'Try again tomorrow.' })
+  })
+
   it('reads a used or expired refund link as a state to show, not an error', async () => {
     const api = createApi('https://api.x', (async () => new Response(JSON.stringify({ state: 'expired', support: 'help@x.co' }), { status: 409 })) as typeof fetch)
     expect(await api.refund('t')).toEqual({ state: 'expired', support: 'help@x.co' })
@@ -156,6 +184,8 @@ describe('useDraft', () => {
     domain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
     connectDomain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
     disconnectDomain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
+    sendResumeLink: vi.fn(async (_k: string, email: string) => `We've sent a link to ${email}.`),
+    openResumeLink: vi.fn(async () => ({ key: PHONE_KEY })),
   }) satisfies Api
 
   beforeEach(() => { localStorage.clear(); window.location.hash = '' })
@@ -294,6 +324,71 @@ describe('useDraft', () => {
     expect(api.saveDraft).toHaveBeenCalledTimes(2)
     expect(api.publish).toHaveBeenCalledWith(KEY, undefined, undefined)
     expect(result.current.published).toEqual({ slug: 'joes', url: 'https://joes.x/' })
+  })
+
+  it('emails a resume link after sending the latest record', async () => {
+    const api = fakeApi()
+    const { result } = renderHook(() => useDraft({ api, site: finishedSite(), autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
+    let said = ''
+    await act(async () => { said = await result.current.emailResumeLink('jo@example.com', true) })
+    expect(said).toBe("We've sent a link to jo@example.com.")
+    expect(api.saveDraft).toHaveBeenCalledTimes(1)
+    expect(api.sendResumeLink).toHaveBeenCalledWith(KEY, 'jo@example.com', true)
+    expect(api.saveDraft.mock.invocationCallOrder[0]).toBeLessThan(api.sendResumeLink.mock.invocationCallOrder[0])
+    const refused = { ...fakeApi(), sendResumeLink: vi.fn(async () => { throw new ApiError(409, 'already_paid', 'This site is live already.') }) }
+    const other = renderHook(() => useDraft({ api: refused, site: finishedSite(), autosave: false, onLoaded: vi.fn(), onUploaded: vi.fn() }))
+    await act(async () => { await expect(other.result.current.emailResumeLink('jo@example.com', false)).rejects.toMatchObject({ message: 'This site is live already.' }) })
+  })
+
+  it('opens a resume link on another device with a key of its own', async () => {
+    const saved = finishedSite()
+    const api = fakeApi(JSON.parse(JSON.stringify(saved)))
+    window.location.hash = `#resume=${RESUME}`
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(saved))
+    expect(api.openResumeLink).toHaveBeenCalledWith(RESUME)
+    expect(api.loadDraft).toHaveBeenCalledWith(PHONE_KEY)
+    expect(window.location.hash).toBe('')
+    expect(storedDraftKey()).toBe(PHONE_KEY)
+    expect(result.current.key).toBe(PHONE_KEY)
+    expect(loadLocalSite()).toEqual(saved)
+  })
+
+  it('asks before a resume link replaces a different site this browser is building', async () => {
+    const mine = finishedSite({ business: { name: 'Computer Ltd' } })
+    const phone = finishedSite({ business: { name: 'Phone Ltd' } })
+    for (const openLink of [false, true]) {
+      localStorage.clear()
+      saveLocalSite(mine)
+      rememberDraftKey(KEY)
+      window.location.hash = `#resume=${RESUME}`
+      const onLoaded = vi.fn()
+      const api = fakeApi(JSON.parse(JSON.stringify(phone)))
+      const { result, unmount } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+      await waitFor(() => expect(result.current.conflict).toEqual({ here: 'Computer Ltd', link: 'Phone Ltd' }))
+      expect(onLoaded).not.toHaveBeenCalled()
+      expect(storedDraftKey()).toBe(KEY)
+      act(() => result.current.resolveConflict(openLink))
+      expect(onLoaded).toHaveBeenCalledWith(openLink ? phone : mine)
+      expect(loadLocalSite()).toEqual(openLink ? phone : mine)
+      await waitFor(() => expect(storedDraftKey()).toBe(openLink ? PHONE_KEY : KEY))
+      unmount()
+    }
+  })
+
+  it('says why a resume link did not open, and carries on with this browser’s site', async () => {
+    const mine = finishedSite({ business: { name: 'Mine Ltd' } })
+    saveLocalSite(mine)
+    rememberDraftKey(KEY)
+    window.location.hash = `#resume=${RESUME}`
+    const api = { ...fakeApi(), openResumeLink: vi.fn(async () => { throw new ApiError(409, 'already_paid', 'This site is live already: open the edit link from your email.') }) }
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(result.current.status).toEqual({ state: 'error', message: 'This site is live already: open the edit link from your email.' }))
+    expect(onLoaded).toHaveBeenCalledWith(mine)
+    expect(window.location.hash).toBe('')
+    expect(storedDraftKey()).toBe(KEY)
   })
 
   it('forgets this browser’s site on Start over', async () => {

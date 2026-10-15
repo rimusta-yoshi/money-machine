@@ -32,16 +32,17 @@ export async function sameSecret(a: string, b: string): Promise<boolean> {
 }
 
 /** What a signed link lets its holder do. */
-export type LinkPurpose = 'edit' | 'refund'
+export type LinkPurpose = 'edit' | 'refund' | 'resume'
 
 const hmacKey = (secret: string): Promise<CryptoKey> =>
   crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
 
 /**
- * Link tokens, signed with LINK_SECRET: refund.<ref>.<signature>, and edit.<ref>.<n>.<signature>
- * where n numbers the site's edit links in the order they were issued (0 is the welcome email's).
+ * Link tokens, signed with LINK_SECRET: refund.<ref>.<signature>, resume.<ref>.<signature> (an
+ * unpaid site, "finish on your computer") and edit.<ref>.<n>.<signature> where n numbers the
+ * site's edit links in the order they were issued (0 is the welcome email's).
  */
-export const LINK_TOKEN = /^(?:(refund)\.([0-9a-f]{32})|(edit)\.([0-9a-f]{32})\.(\d{1,9}))\.([A-Za-z0-9_-]{43})$/
+export const LINK_TOKEN = /^(?:(refund|resume)\.([0-9a-f]{32})|(edit)\.([0-9a-f]{32})\.(\d{1,9}))\.([A-Za-z0-9_-]{43})$/
 
 export interface LinkClaim { purpose: LinkPurpose; ref: string; n: number }
 
@@ -49,11 +50,11 @@ export interface LinkClaim { purpose: LinkPurpose; ref: string; n: number }
 export function parseLink(token: string): LinkClaim | null {
   const m = LINK_TOKEN.exec(token)
   if (!m) return null
-  return m[1] ? { purpose: 'refund', ref: m[2], n: 0 } : { purpose: 'edit', ref: m[4], n: Number(m[5]) }
+  return m[1] ? { purpose: m[1] as 'refund' | 'resume', ref: m[2], n: 0 } : { purpose: 'edit', ref: m[4], n: Number(m[5]) }
 }
 
 export async function signLink(secret: string, purpose: LinkPurpose, ref: string, n = 0): Promise<string> {
-  const body = purpose === 'edit' ? `edit.${ref}.${n}` : `refund.${ref}`
+  const body = purpose === 'edit' ? `edit.${ref}.${n}` : `${purpose}.${ref}`
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(body))
   return `${body}.${base64url(new Uint8Array(sig))}`
 }

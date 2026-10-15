@@ -16,7 +16,7 @@ import { signLink, verifyLink } from './tokens'
 
 const DAY = 24 * 60 * 60 * 1000
 
-function linkSecret(c: Config): string {
+export function linkSecret(c: Config): string {
   if (!c.linkSecret) throw new HttpError(503, 'payments_closed', 'This isn’t switched on yet.')
   return c.linkSecret
 }

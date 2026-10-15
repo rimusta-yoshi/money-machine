@@ -1,6 +1,8 @@
 import { STOCK_PHOTO_FILES } from '../../src/sample/stockPhotoFiles'
 import { refund, refundStatus, requestEditLink } from './account'
 import { adminStats } from './admin'
+import { clearReview, sitesToReview } from './review'
+import { openResumeLink, sendResumeLink } from './resume'
 import { checkoutStatus, createCheckout, shopConfig } from './checkout'
 import { apiHost, previewHost } from './config'
 import { createDraft, getDraft, saveDraft, uploadPhoto } from './drafts'
@@ -35,12 +37,16 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['GET', /^\/v1\/admin\/stats$/, adminStats],
   ['GET', /^\/v1\/admin\/sites$/, listSites],
   ['POST', /^\/v1\/admin\/sites\/delete$/, deleteSites],
+  ['GET', /^\/v1\/admin\/review$/, sitesToReview],
+  ['POST', /^\/v1\/admin\/review\/clear$/, clearReview],
   ['GET', /^\/v1\/draft$/, getDraft],
   ['PUT', /^\/v1\/draft$/, saveDraft],
   ['POST', /^\/v1\/draft\/photos$/, uploadPhoto],
   ['POST', /^\/v1\/draft\/preview$/, createPreview],
   ['POST', /^\/v1\/draft\/publish$/, publish],
   ['POST', /^\/v1\/draft\/checkout$/, createCheckout],
+  ['POST', /^\/v1\/draft\/resume-link$/, sendResumeLink],
+  ['POST', /^\/v1\/draft\/resume$/, openResumeLink],
   ['GET', /^\/v1\/draft\/export$/, exportSite],
   ['GET', /^\/v1\/draft\/domain$/, domainStatus],
   ['POST', /^\/v1\/draft\/domain$/, connectDomain],

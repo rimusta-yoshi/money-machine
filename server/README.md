@@ -57,7 +57,7 @@ visitor ──<slug>.localblocks.co.uk──▶ site worker ──▶ R2 sites/<
    was and emails them that it's back; `lost` leaves it down, and the address is freed 90 days
    after the dispute closed, as after a refund.
 
-Edit and refund links are HMAC-signed with `LINK_SECRET` (rotating it invalidates every link).
+Edit, refund and resume links are HMAC-signed with `LINK_SECRET` (rotating it invalidates every link).
 Paid sites stay `noindex` while `NOINDEX` is `true`; unpaid sites published with the admin key
 are always `noindex`.
 
@@ -67,7 +67,8 @@ The builder autosaves in the browser only. The server holds a copy of the record
 preview links and checkouts (photos are uploaded as they're added, so the record kept in the
 browser stays small). The daily cron (03:17 UTC) deletes unpaid, never-published drafts not used
 for 30 days, with their photos, and photos left behind by drafts that no longer exist. Paid sites
-(refunded ones too) and published sites are never deleted automatically.
+(refunded ones too) and published sites are never deleted automatically. A resume link's email
+address and reminder (below) live on the draft's own row, so they go with it.
 
 ### Download your site
 
@@ -85,6 +86,63 @@ fonts (with their licence) to fetch from the live site. The builder fetches thos
 fonts send `Access-Control-Allow-Origin: *`) and zips everything in the browser
 (`src/publish/zip.ts`, stored, no compression), so the worker does no heavy work. The zip opens
 offline from a folder; `e2e/publish.e2e.test.ts` checks that in Chrome.
+
+### Finish on your computer (resume links)
+
+On a phone the builder offers "Email me a link to finish on my computer", with an optional
+"remind me". The builder first sends the record (`PUT /v1/draft`), then:
+
+- `POST /v1/draft/resume-link {email, remind}` (draft key) → `200 {ok: true, message: "We've sent a link to <email>."}`.
+  Unpaid sites only (`409 already_paid`), saved first (`409 not_saved`), a valid email up to 254
+  characters (`422 invalid_email`), 10 an hour per address (`429 rate_limited`) and 3 per site in
+  24 hours (`429 too_many_links`). Emails `/build/#resume=resume.<ref>.<signature>` ("Finish your
+  website on your computer"). The email has nothing the customer typed in it (not even the
+  business name), so the form can't send anyone words of someone else's choosing. Stores
+  `resume_email` and, if "remind me" was ticked, `resume_remind_at` = now + 3 days.
+- `POST /v1/draft/resume {token}` (no key: the token is the authority) → `200 {key}`: a new draft
+  key for this device, stored as `drafts.alt_key_hash` (replacing any earlier one, so opening the
+  link on a third device cuts the second off). The phone's own key keeps working. A wrong token:
+  `401 unknown_link`; a paid or refunded site: `409 already_paid` ("This site is live already:
+  open the edit link from your email."). 30 an hour per address. The builder treats `#resume=`
+  like an edit link: it asks first if this browser holds a different site.
+- **The reminder**: the daily cron sends one "Your website is waiting" email (a fresh link, same
+  rules) to drafts whose `resume_remind_at` has passed, still unpaid, unpublished and not
+  refunded, 50 a run. `resume_reminded_at` is set before sending, so there is never a second one,
+  even if they ask for the link and tick "remind me" again.
+
+The link works while the draft exists: 30 days after it was last used (`KEEP_UNPAID_DAYS`).
+Code: `server/core/resume.ts`; migration `0008_resume_and_review.sql` (adds columns only).
+
+### Review flag
+
+`server/core/reviewWords.ts` lists words worth a person's look (bank, banking, login, log in,
+sign in, verify your account, password, passcode, crypto, bitcoin, wallet, seed phrase, pin
+number, account suspended). They're matched case-insensitively as whole words in every bit of
+customer-written text a visitor sees (business name, about, location, headline, services,
+badges, why-us lines, certificates note, areas, hours, jobs done, reviews and photo
+descriptions); "embankment" or "Banksy" don't count, and "Bank holidays" in opening hours is let
+through. At checkout, when the paid webhook publishes, on a paid re-publish and on an admin-key
+publish, the words found are stored on the draft (`review_words`, `review_flagged_at`). It never
+blocks anything, never changes what the customer sees, and a failure to record it is only logged.
+Unchanged text (`review_fp`, a hash of it) isn't flagged again; changed text with listed words
+is, even after it was marked reviewed.
+
+The dashboard's **Sites to review** panel lists them: `GET /v1/admin/review` (admin key) →
+`{sites: [{ref, slug, name, words, flaggedAt, paid, refunded, url}]}`, newest first, the latest
+100 not yet reviewed. **Mark reviewed** is `POST /v1/admin/review/clear {ref}` (admin key) →
+`{ok: true}` (`404 not_flagged` if it isn't on the list).
+
+### Privacy (draft line for legal check)
+
+> If you ask us to email you a link to finish your website on another device, we keep the email
+> address you give with your unfinished site, to send that link and, only if you tick "remind
+> me", one reminder three days later. We don't use it for anything else or share it. It's deleted
+> together with your unfinished site once nobody has worked on it for 30 days, or as soon as you
+> buy the site. If you didn't ask for the link, you can ignore the email.
+
+Not on the live privacy page until checked. How it's done: `resume_email` sits on the draft's row
+(deleted by the 30-day cleanup) and is set to null when the payment is recorded (`markPaid`).
+Resend keeps its own log of sent emails for its retention period.
 
 ## Layout
 
@@ -314,7 +372,7 @@ Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
 deletes dashboard events older than 13 months (and requested business types not asked for
-since), then runs the cleanup above.
+since), then runs the cleanup above and sends the resume-link reminders that are due.
 
 ## Moving to localblocks.co.uk (October 2026)
 

@@ -6,6 +6,7 @@ import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps, Payments } from './ports'
 import { checkReady, sitePhotoFiles, suggestion, validSlug } from './publish'
+import { flagForReview } from './review'
 import { sameSecret } from './tokens'
 
 const MINUTE = 60 * 1000
@@ -57,6 +58,8 @@ export async function createCheckout(req: Request, deps: Deps): Promise<Response
   if (!email.success) throw new HttpError(422, 'invalid_email', "That email doesn't look right. Check for a missing @ or dot.")
   // A missing photo is found now, not after the card is charged.
   await sitePhotoFiles(deps, draft.ref, site)
+  // Quietly, for a person to look at: never in the way of paying.
+  await flagForReview(deps, draft.ref, site)
 
   const now = deps.now()
   if (!(await deps.db.claimSlug(slug, draft.ref, now, now + HOLD_MINUTES * MINUTE))) {

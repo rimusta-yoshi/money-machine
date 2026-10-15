@@ -38,6 +38,10 @@ export const RATE = {
   domainStatus: { limit: 300, windowSec: 3600 },
   /** The admin dashboard (also slows down guessing the admin key). */
   admin: { limit: 120, windowSec: 3600 },
+  /** "Email me a link to finish on my computer": each one sends an email (each draft also has 3 a day: resume.ts). */
+  resumeLink: { limit: 10, windowSec: 3600 },
+  /** Opening a resume link (each one hands out a draft key). */
+  resumeOpen: { limit: 30, windowSec: 3600 },
 } as const
 
 export type RateKey = keyof typeof RATE

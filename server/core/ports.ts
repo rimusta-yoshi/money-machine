@@ -44,6 +44,18 @@ export interface DraftRow {
   source: Source
 }
 
+/** A site flagged for review (server/core/reviewWords.ts). */
+export interface ReviewRow {
+  ref: string
+  slug: string | null
+  /** The business name in the saved record, if any. */
+  name: string | null
+  words: string[]
+  flaggedAt: number
+  paid: boolean
+  refunded: boolean
+}
+
 export interface CheckoutRow {
   sessionId: string
   ref: string
@@ -58,6 +70,7 @@ export interface CheckoutRow {
 /** The database: drafts, payments, preview links, claimed addresses and rate-limit counters. */
 export interface Database {
   createDraft(d: { ref: string; keyHash: string; now: number; source: Source }): Promise<void>
+  /** The draft whose key (or second key, from a resume link) has this hash. */
   draftByKey(keyHash: string): Promise<DraftRow | null>
   draftByRef(ref: string): Promise<DraftRow | null>
   draftByPaymentIntent(paymentIntent: string): Promise<DraftRow | null>
@@ -122,6 +135,27 @@ export interface Database {
   deleteDrafts(refs: readonly string[], before: number): Promise<string[]>
   /** Which of these refs still exist. */
   existingRefs(refs: readonly string[]): Promise<Set<string>>
+  /**
+   * "Email me a link": records where to send it and when to remind (null: no reminder), counting
+   * it against the draft's allowance of `perDay` sends in 24 hours. False (nothing recorded) if
+   * the allowance is used up, or the draft is paid.
+   */
+  recordResumeLink(ref: string, r: { email: string; now: number; remindAt: number | null; perDay: number }): Promise<boolean>
+  /** Gives the draft a second key (a resume link opened), replacing any earlier second key. */
+  setAltKey(ref: string, keyHash: string): Promise<void>
+  /** Unpaid, unpublished, unrefunded drafts whose one reminder is due and not yet sent. */
+  dueReminders(now: number, limit: number): Promise<{ ref: string; email: string }[]>
+  /** Claims sending a draft's reminder. True for the one caller that should send it (only ever once). */
+  claimReminder(ref: string, now: number): Promise<boolean>
+  /**
+   * Flags a site for review with the words found. Text already flagged (same fingerprint) changes
+   * nothing, so a site marked reviewed stays so until its text changes.
+   */
+  flagReview(ref: string, f: { words: string[]; fingerprint: string; now: number }): Promise<void>
+  /** Flagged sites not marked reviewed since, newest flag first. */
+  sitesToReview(limit: number): Promise<ReviewRow[]>
+  /** "Mark reviewed". False if there's no such flagged site. */
+  clearReview(ref: string, now: number): Promise<boolean>
   /** Counts one request against a key in a fixed window; returns the count so far. */
   hit(key: string, windowStart: number): Promise<number>
   /** Housekeeping: drops expired preview links, old counters, old checkouts and old event ids. */

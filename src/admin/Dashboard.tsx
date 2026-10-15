@@ -13,6 +13,7 @@ import { RecentSitesPanel } from './panels/RecentSitesPanel'
 import { LayoutPicksPanel } from './panels/LayoutPicksPanel'
 import { RequestedTypesPanel } from './panels/RequestedTypesPanel'
 import { DomainsPanel } from './panels/DomainsPanel'
+import { ReviewPanel } from './panels/ReviewPanel'
 
 interface Props {
   base: string
@@ -64,6 +65,10 @@ export function Dashboard({ base, adminKey, onRefused }: Props) {
       <Filters value={filters} onChange={apply} sources={stats?.sources ?? []} invalid={!query} onRefresh={() => apply({ ...filters })} />
       <p role="status" className="ad-note ad-status-line">{loading ? 'Loading the numbers…' : ''}</p>
       {result && 'error' in result && !loading && <p className="bf-error" role="alert">{result.error}</p>}
+      {/* All time and loaded on its own, so it shows even when the numbers don't. */}
+      <div className="ad-grid ad-grid--single">
+        <ReviewPanel base={base} adminKey={adminKey} refresh={query} onRefused={onRefused} />
+      </div>
       {stats && (
         <div className="ad-grid">
           <FunnelPanel rows={stats.funnel} afterPaying={stats.afterPaying} />
