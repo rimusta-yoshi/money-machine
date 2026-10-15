@@ -106,7 +106,12 @@ export async function startStack(o: StackOptions): Promise<Stack> {
         ...shared, name: 'api', script: apiScript, d1Databases: { DB: 'siteblocks' }, routes: [`api.${host}/*`, `preview.${host}/*`],
         bindings: { ...vars, ...o.vars }, ...(o.outbound ? { outboundService: o.outbound } : {}),
       },
-      { ...shared, name: 'sites', script: siteScript, routes: [`*.${host}/*`] },
+      // Customers' own domains come here too (Cloudflare for SaaS: the */* route). It reads the
+      // same database, and remembers nothing between requests so tests see changes at once.
+      {
+        ...shared, name: 'sites', script: siteScript, routes: [`*.${host}/*`, '*/*'], d1Databases: { DB: 'siteblocks' },
+        bindings: { ...vars, HOST_CACHE_SECONDS: '0' },
+      },
     ],
   } as never))
   const url = o.port ? (await mf.ready).toString() : (await mf.ready, null)

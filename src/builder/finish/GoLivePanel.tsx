@@ -44,7 +44,17 @@ const toStripe = (url: string) => window.location.assign(url)
 const CANCELLED = 'Payment cancelled: nothing was taken. Everything is kept, so go live whenever you’re ready.'
 const NOT_YET = 'We’re not taking orders yet. Your site is kept in this browser, so you can go live as soon as we are.'
 
-type Check = { state: 'idle' | 'checking' } | { state: 'ok'; url?: string } | { state: 'bad'; message: string; suggestion?: string | null }
+/** Once paid: connecting a domain they own (its own page, with this browser's key). */
+function OwnDomainLink() {
+  return (
+    <div className="bg-own-domain">
+      <a className="sb-line-btn" href="#domain">Use your own domain</a>
+      <p className="bg-small">Got a domain like yourname.co.uk? Connect it at no extra cost.</p>
+    </div>
+  )
+}
+
+type Check ={ state: 'idle' | 'checking' } | { state: 'ok'; url?: string } | { state: 'bad'; message: string; suggestion?: string | null }
 
 /**
  * The go-live panel: web address (checked as it's typed, and again by the server), email
@@ -148,6 +158,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
         <h2 id="live-h" className="bg-h2">It’s live.</h2>
         <p role="status">Your site is at <a href={live} target="_blank" rel="noreferrer">{live.replace(/^https:\/\//, '').replace(/\/$/, '')}</a></p>
         <p className="bg-small">Changes you make later go live, free, when you publish again.</p>
+        {draft?.account.paid && <OwnDomainLink />}
         {draft?.account.paid && <DownloadSite load={draft.exportSite} />}
       </aside>
     )
@@ -213,6 +224,7 @@ export function GoLivePanel({ site, trade, draft, adminPublish, domain, onBusine
         {!paid && <AgreeLine />}
         {!paid && <p className="bg-small bg-center">Secure card payment by Stripe. Your card details go to Stripe, never to us.</p>}
       </form>
+      {paid && draft && <OwnDomainLink />}
       {paid && draft && <DownloadSite load={draft.exportSite} />}
     </aside>
   )

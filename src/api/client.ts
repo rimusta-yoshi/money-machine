@@ -32,6 +32,31 @@ export type RefundState =
   | { state: 'expired'; support: string }
   | { state: 'disputed'; support: string }
   | { state: 'refunded'; amount: number }
+/** A customer's own domain, as GET /v1/draft/domain describes it (server/core/domains.ts). */
+export interface OwnDomain {
+  hostname: string
+  domain: string
+  host: string
+  apex: string | null
+  status: 'pending' | 'active' | 'paused'
+  provider: string | null
+  providerName: string | null
+  records: { type: 'CNAME' | 'TXT'; name: string; value: string }[]
+  pointsElsewhere: string | null
+  oneClick: { name: string; url: string } | null
+  /** We've seen the ownership TXT record. */
+  verified: boolean
+  liveUrl: string | null
+  checkedAt: number | null
+}
+export interface DomainAnswer {
+  domain: OwnDomain | null
+  freeUrl: string | null
+  /** Own domains are switched on at all (a missing value: an older server, taken as on). */
+  switchedOn?: boolean
+  /** This site can connect one: switched on, paid and live. */
+  available: boolean
+}
 export interface SlugStatus { slug: string; available: boolean; url?: string; message?: string; suggestion?: string | null }
 
 /** The API's address (VITE_API_URL), or null when this build has no server (nothing is saved). */
@@ -101,6 +126,10 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
     }),
     /** "Download your site": the site's files, ready to zip (paid, live sites only). */
     exportSite: (key: string) => call<SiteExport>('/v1/draft/export', { key }),
+    /** The site's own domain and how it's doing (paid, live sites; the edit link's key works too). */
+    domain: (key: string) => call<DomainAnswer>('/v1/draft/domain', { key }),
+    connectDomain: (key: string, domain: string) => call<DomainAnswer>('/v1/draft/domain', { ...json('POST', { domain }), key }),
+    disconnectDomain: (key: string) => call<DomainAnswer>('/v1/draft/domain/disconnect', { method: 'POST', key }),
     requestEditLink: (email: string) => call<{ message: string }>('/v1/edit-link', json('POST', { email })).then(r => r.message),
   }
 }

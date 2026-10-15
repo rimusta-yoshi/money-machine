@@ -5,6 +5,7 @@ import { cleanSource } from '../../src/analytics/source'
 import { SECTION_KEYS } from '../../src/gen/core/types'
 import { SECTIONS } from '../../src/gen/page'
 import { siteOrigin } from './config'
+import { domainStats } from './domainAdmin'
 import { HttpError, json } from './http'
 import { rateLimit } from './limits'
 import type { Deps, Dimension, MoneyTotals, StatsQuery } from './ports'
@@ -90,6 +91,7 @@ export async function adminStats(req: Request, deps: Deps): Promise<Response> {
     ins.daily(q, DAILY_STEPS, q.tz), ins.picks(q), ins.money(q), ins.recentSites(q, RECENT_SITES), ins.sources(q),
     ins.requestedTypes(REQUESTED_SHOWN),
   ])
+  const domains = await domainStats(deps)
   return json({
     range: { from: q.from, to: q.to, src: q.src === null ? DIRECT : q.src ?? null },
     funnel: funnel(counts),
@@ -105,5 +107,7 @@ export async function adminStats(req: Request, deps: Deps): Promise<Response> {
     sources,
     // All time, whatever the date range: there are few, and each one matters.
     requested,
+    // All time too: every customer domain on Cloudflare, against the free allowance.
+    domains,
   })
 }

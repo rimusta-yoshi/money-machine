@@ -56,6 +56,16 @@ export const downloadTokenFromHash = (hash: string): string | null => {
   return t?.startsWith('edit.') ? t : null
 }
 
+/**
+ * "Use your own domain" (#domain=<edit token>, from the welcome email): the token, '' for a bare
+ * #domain (the page uses the key this browser holds), or null if the hash isn't one.
+ */
+export const domainTokenFromHash = (hash: string): string | null => {
+  if (hash === '#domain') return ''
+  const t = fromHash(hash, 'domain', KEY_SHAPE)
+  return t?.startsWith('edit.') ? t : null
+}
+
 /** The token from a refund link's hash (#refund=<token>). */
 export const refundTokenFromHash = (hash: string): string | null => fromHash(hash, 'refund', REFUND_SHAPE)
 

@@ -153,6 +153,9 @@ describe('useDraft', () => {
     requestEditLink: vi.fn(async () => 'sent'),
     exportSite: vi.fn(async () => ({ name: 'joes.zip', files: [], fetch: [] })),
     shop: vi.fn(async () => ({ pricePence: 9900, currency: 'gbp', launched: true, refundDays: 14 })),
+    domain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
+    connectDomain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
+    disconnectDomain: vi.fn(async () => ({ domain: null, freeUrl: null, available: false })),
   }) satisfies Api
 
   beforeEach(() => { localStorage.clear(); window.location.hash = '' })

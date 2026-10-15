@@ -34,7 +34,10 @@ function email(c: Config, to: string, subject: string, heading: string, lines: L
  * the builder. Without a key (e.g. from a closed site's page) it asks for a new edit link.
  */
 export const downloadLinkFor = (editLink: string): string => editLink.replace('#edit=', '#download=')
-const DOWNLOAD_LINE = 'Your site is yours: download the whole thing to keep a copy or to host it anywhere else. Like the edit link, it stops working once you open a newer one.'
+/** "Use your own domain" from an edit link, the same way. */
+export const domainLinkFor = (editLink: string): string => editLink.replace('#edit=', '#domain=')
+const DOMAIN_LINE = 'Got a domain of your own, like yourname.co.uk? Connect it at no extra cost.'
+const DOWNLOAD_LINE ='Your site is yours: download the whole thing to keep a copy or to host it anywhere else. Like the edit link, it stops working once you open a newer one.'
 
 const day = (ms: number): string => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' })
 const bare = (url: string): string => url.replace(/^https?:\/\//, '').replace(/\/$/, '')
@@ -58,6 +61,8 @@ export function welcomeEmail(c: Config, w: WelcomeEmail): Email {
     { link: w.editLink, label: 'Edit your site' },
     DOWNLOAD_LINE,
     { link: downloadLinkFor(w.editLink), label: 'Download your site' },
+    DOMAIN_LINE,
+    { link: domainLinkFor(w.editLink), label: 'Use your own domain' },
     `Receipt: ${money(w.amount)} paid on ${day(w.paidAt)}, one payment, no monthly fees. Reference ${w.reference}.`,
     ...(w.receiptUrl ? [{ link: w.receiptUrl, label: 'Your Stripe receipt' }] : []),
     `${c.refundDays}-day money-back guarantee, no questions asked. Not happy? Use this link by ${refundBy} and we'll refund ${money(w.amount)} and take your site down.`,
@@ -86,6 +91,28 @@ export function disputeWonEmail(c: Config, to: string, siteUrl: string): Email {
   return email(c, to, `Your site is back: ${bare(siteUrl)}`, 'Your site is back', [
     'The dispute about your payment has been settled, so your site is live again, just as it was.',
     { link: siteUrl, label: bare(siteUrl) },
+  ])
+}
+
+export interface DomainLive {
+  /** https://www.example.co.uk/ */
+  url: string
+  /** The free address, which now sends visitors there. */
+  freeUrl: string
+  /** example.co.uk, when it isn't connected itself and needs forwarding at the domain company. */
+  bareToForward: string | null
+}
+
+/** Sent once, when the customer's own domain first goes live. */
+export function domainLiveEmail(c: Config, to: string, d: DomainLive): Email {
+  return email(c, to, `Your domain is live: ${bare(d.url)}`, 'Your domain is live', [
+    'Your site now opens at your own domain, with a secure (https) connection.',
+    { link: d.url, label: bare(d.url) },
+    `Your free address, ${bare(d.freeUrl)}, sends visitors there too, so old links keep working.`,
+    ...(d.bareToForward
+      ? [`One last thing, if you haven't already: so ${d.bareToForward} (without the www) works too, switch on forwarding at your domain company and send it to ${d.url.replace(/\/$/, '')}. It's free, and their help pages call it "domain forwarding".`]
+      : []),
+    'Your domain stays yours: keep renewing it with your domain company.',
   ])
 }
 

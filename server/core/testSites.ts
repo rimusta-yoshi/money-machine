@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { requireAdminKey } from './admin'
 import { siteOrigin } from './config'
+import { dropDomain } from './domainLifecycle'
 import { HttpError, json, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import type { Deps } from './ports'
@@ -51,6 +52,8 @@ export async function deleteSites(req: Request, deps: Deps): Promise<Response> {
   const refs = 'all' in parsed.data ? [...known] : parsed.data.refs.filter(r => known.has(r))
   const deleted: { ref: string; addresses: string[] }[] = []
   for (const ref of refs) {
+    // Off Cloudflare first, while the row still says which hostname it was.
+    await dropDomain(deps, ref, { republish: false })
     const slugs = await deps.db.deleteDraft(ref)
     // Its files: the live site, any "no longer available" marker and its uploaded photos.
     for (const slug of slugs) await deps.blobs.delete([...(await deps.blobs.list(sitePrefix(slug))), goneKey(slug)])

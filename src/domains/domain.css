@@ -1,0 +1,49 @@
+/* ============================================================
+   "Use your own domain" (src/domains/DomainScreen.tsx), inside the account card
+   ============================================================ */
+/* Lays its children straight into the card (its gaps), and marks links as links. */
+.od-page { display: contents; }
+.sb-ui .od-page a:not(.sb-main-btn):not(.sb-line-btn) { color: var(--sb-pipe); text-decoration: underline; text-underline-offset: 3px; }
+.sb-ui .od-page a:not(.sb-main-btn):not(.sb-line-btn):hover { color: var(--sb-pipe-hover); }
+.ba-card .od-h2 { margin: 0; font-size: 18px; font-weight: 700; }
+.od-aside { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid #DCDCE2; }
+
+/* Status: a small block of colour and the word, never colour alone. */
+.ba-card .od-pill { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; font-weight: 700; font-size: 15px; background: var(--sb-white); }
+.od-dot { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+.od-pill--waiting .od-dot { background: var(--sb-hard-hat); box-shadow: 0 0 0 1px var(--sb-night); }
+.od-pill--live { color: var(--sb-lawn-ink); }
+.od-pill--live .od-dot { background: var(--sb-lawn); }
+
+.od-one-click { align-self: stretch; text-align: center; }
+
+.od-steps { margin: 0; padding-left: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 17px; line-height: 1.5; }
+.od-steps li { padding-left: 4px; }
+.od-steps li::marker { font-weight: 800; }
+.od-details summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; gap: 10px; color: var(--sb-pipe); list-style: none; }
+.od-details summary::-webkit-details-marker { display: none; }
+.od-details summary::before { content: ''; flex: none; width: 8px; height: 8px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; transform: rotate(-45deg); transition: transform .15s ease; }
+.od-details[open] summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .od-details summary::before { transition: none; } }
+.od-details[open] summary { margin-bottom: 8px; }
+
+/* The record to add: label above value, each value with its own Copy button. */
+.od-records { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+.od-record { margin: 0; padding: 14px 16px; border-radius: var(--sb-r-input); background: var(--sb-white); border: 2px solid var(--sb-line); display: grid; gap: 10px; }
+.od-record > div { display: grid; gap: 2px; min-width: 0; }
+.od-record dt { font-size: 14px; font-weight: 700; color: var(--sb-muted); }
+.od-record dd { margin: 0; min-width: 0; }
+.od-copy { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.od-value { font: 600 16px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; overflow-wrap: anywhere; }
+.od-copy-btn {
+  appearance: none; cursor: pointer; min-height: 44px; min-width: 64px; padding: 6px 14px; border-radius: 10px;
+  border: 2px solid var(--sb-night); background: var(--sb-white); color: var(--sb-night); font: inherit; font-weight: 700; font-size: 15px;
+}
+.od-copied { font-size: 14px; font-weight: 700; color: var(--sb-lawn-ink); }
+.od-copied:empty { display: none; }
+
+.ba-card .od-note { padding: 12px 14px; border-radius: var(--sb-r-input); background: var(--sb-white); border-left: 6px solid var(--sb-hard-hat); }
+.od-note code { overflow-wrap: anywhere; }
+.od-disconnect { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid #DCDCE2; }
+.od-disconnect > button { align-self: flex-start; }
+.od-buttons { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; }

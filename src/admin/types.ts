@@ -21,6 +21,17 @@ export interface LayoutRow { section: string; label: string; total: number; layo
 /** "My business isn't listed": one description and how often it was asked for. */
 export interface RequestedType { text: string; count: number; closest: string | null; firstAt: number; lastAt: number }
 
+/** Customers' own domains (all time), against Cloudflare's free allowance. */
+export interface DomainStats {
+  counts: Record<'pending' | 'active' | 'paused' | 'removing', number>
+  freeLimit: number
+  onCloudflare: number
+  recent: {
+    hostname: string; apex: string | null; status: 'pending' | 'active' | 'paused' | 'removing'; provider: string | null; oneClick: boolean
+    createdAt: number; activeAt: number | null; siteUrl: string | null
+  }[]
+}
+
 export interface Stats {
   range: { from: number; to: number; src: string | null }
   funnel: FunnelRow[]
@@ -33,6 +44,8 @@ export interface Stats {
   sources: string[]
   /** All time, most asked first. Missing from a server older than the dashboard. */
   requested?: RequestedType[]
+  /** Missing from a server older than the dashboard. */
+  domains?: DomainStats
 }
 
 /** The source filter's value for visits with no source (matches server/core/admin.ts). */
