@@ -82,6 +82,7 @@ async function answer(deps: Deps, draft: DraftRow, row: DomainRow | null): Promi
     // One being removed is already disconnected, as far as the customer is concerned.
     domain: row && row.status !== 'removing' ? await domainView(deps, row) : null,
     freeUrl: draft.slug ? `${siteOrigin(deps.config, draft.slug)}/` : null,
+    switchedOn: !!deps.saas,
     // Whether the form can be used at all: switched on, and a live paid site.
     available: !!deps.saas && !!draft.payment && !!draft.slug && !!draft.publishedAt && !draft.refundedAt && !draft.disputedAt,
   })

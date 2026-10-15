@@ -76,6 +76,7 @@ function DomainBody({ answer, back, own }: { answer: DomainAnswer; back: DomainR
   }
 
   if (!d) {
+    if (answer.switchedOn === false) return <p>Connecting your own domain isn’t switched on yet. Please check back soon.</p>
     if (!answer.available) return <p>You can connect your own domain once your site is live and paid for.</p>
     return <DomainForm freeUrl={answer.freeUrl} busy={own.busy} onConnect={own.connect} />
   }

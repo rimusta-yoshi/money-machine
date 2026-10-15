@@ -6,10 +6,12 @@ import type { Deps } from './ports'
  * customer's own domain once it's live, else the free <slug>.<base> address.
  */
 export async function liveOrigin(deps: Deps, ref: string, slug: string): Promise<string> {
-  const own = await deps.domains.byRef(ref).catch(err => {
+  try {
+    const own = await deps.domains.byRef(ref)
+    if (own?.status === 'active') return `https://${own.hostname}`
+  } catch (err) {
     // Never in the way of publishing: the free address is always right.
     console.warn(`Could not read ${ref}'s own domain`, err)
-    return null
-  })
-  return own?.status === 'active' ? `https://${own.hostname}` : siteOrigin(deps.config, slug)
+  }
+  return siteOrigin(deps.config, slug)
 }

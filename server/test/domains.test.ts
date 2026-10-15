@@ -57,7 +57,7 @@ describe('connecting a domain', () => {
   it('connects a paid site’s domain, waits for it, then puts the site live under it', async () => {
     const { key, email } = await paidSite('smith-plumbing')
     cf.addDomain('smithplumbing.co.uk', GODADDY)
-    expect(await status(key)).toEqual({ domain: null, available: true, freeUrl: `https://smith-plumbing.${BASE}/` })
+    expect(await status(key)).toEqual({ domain: null, switchedOn: true, available: true, freeUrl: `https://smith-plumbing.${BASE}/` })
 
     const res = await connect(key, 'https://SmithPlumbing.co.uk/')
     expect(res.status, await res.clone().text()).toBe(200)
@@ -182,6 +182,24 @@ describe('connecting a domain', () => {
     expect((await status(key)).domain).toMatchObject({ status: 'pending' })
     expect((await page(`https://moved-away.${BASE}/`)).status).toBe(200)
   })
+})
+
+describe('switched off', () => {
+  it('without the Cloudflare token the page says so, and nothing reaches Cloudflare', async () => {
+    const off = await startStack({ baseDomain: BASE, adminToken: ADMIN, vars: { ...PAYMENT_VARS, CF_ZONE_ID: DOMAIN_VARS.CF_ZONE_ID }, outbound })
+    try {
+      const oc = client(off)
+      const { key } = await paidSite('switched-off', off, oc)
+      expect(await status(key, oc)).toMatchObject({ domain: null, switchedOn: false, available: false })
+      const calls = cf.calls.length
+      expect(((await (await connect(key, 'example.co.uk', oc)).json()) as { error: string }).error).toBe('domains_closed')
+      expect(cf.calls.length).toBe(calls)
+      // The free address is served as ever (the site worker's lookup finds nothing).
+      expect((await off.fetch(`https://switched-off.${BASE}/`)).status).toBe(200)
+    } finally {
+      await off.close()
+    }
+  }, 60_000)
 })
 
 describe('when a site ends', () => {

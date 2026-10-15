@@ -47,7 +47,14 @@ export interface OwnDomain {
   liveUrl: string | null
   checkedAt: number | null
 }
-export interface DomainAnswer { domain: OwnDomain | null; freeUrl: string | null; available: boolean }
+export interface DomainAnswer {
+  domain: OwnDomain | null
+  freeUrl: string | null
+  /** Own domains are switched on at all (a missing value: an older server, taken as on). */
+  switchedOn?: boolean
+  /** This site can connect one: switched on, paid and live. */
+  available: boolean
+}
 export interface SlugStatus { slug: string; available: boolean; url?: string; message?: string; suggestion?: string | null }
 
 /** The API's address (VITE_API_URL), or null when this build has no server (nothing is saved). */
