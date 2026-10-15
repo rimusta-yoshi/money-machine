@@ -14,7 +14,7 @@ interface Props {
 
 type Load = { state: 'loading' } | { state: 'ok'; sites: ReviewSite[] } | { state: 'error'; message: string }
 
-const STATUS = (s: ReviewSite): string => (s.refunded ? 'Refunded' : s.paid ? 'Paid' : s.slug ? 'Published (admin)' : 'Not paid yet')
+const STATUS = (s: ReviewSite): string => (s.refunded ? 'Refunded' : s.paid ? 'Paid' : s.published ? 'Published (admin)' : 'Not paid yet')
 const label = (s: ReviewSite): string => s.name || `Site ${s.ref.slice(0, 8).toUpperCase()}`
 
 /**
@@ -71,7 +71,7 @@ export function ReviewPanel({ base, adminKey, refresh, onRefused }: Props) {
                 <tr key={s.ref}>
                   <th scope="row">{label(s)}<span className="ad-detail"> · {s.ref.slice(0, 8).toUpperCase()}</span></th>
                   <td>{s.words.join(', ')}</td>
-                  <td><span className={`ad-status ad-status--${s.refunded ? 'refunded' : s.paid ? 'paid' : 'draft'}`}>{STATUS(s)}</span></td>
+                  <td><span className={`ad-status ad-status--${s.refunded ? 'refunded' : s.paid ? 'paid' : s.published ? 'published' : 'draft'}`}>{STATUS(s)}</span></td>
                   <td>{shortDate(s.flaggedAt)}</td>
                   <td>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{new URL(s.url).host}<span className="sb-sr-only"> (opens in a new tab)</span></a> : '–'}</td>
                   <td>

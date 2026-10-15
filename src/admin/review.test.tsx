@@ -6,9 +6,11 @@ import { ReviewPanel } from './panels/ReviewPanel'
 import type { ReviewSite } from './types'
 
 const SITE: ReviewSite = {
-  ref: 'a'.repeat(32), slug: 'joes', name: "Joe's Bank", words: ['bank', 'password'], flaggedAt: Date.UTC(2026, 9, 1), paid: true, refunded: false, url: 'https://joes.localblocks.co.uk/',
+  ref: 'a'.repeat(32), slug: 'joes', name: "Joe's Bank", words: ['bank', 'password'], flaggedAt: Date.UTC(2026, 9, 1), paid: true, refunded: false, published: true, url: 'https://joes.localblocks.co.uk/',
 }
-const OTHER: ReviewSite = { ...SITE, ref: 'b'.repeat(32), slug: null, name: null, words: ['crypto'], paid: false, url: null }
+const OTHER: ReviewSite = { ...SITE, ref: 'b'.repeat(32), slug: null, name: null, words: ['crypto'], paid: false, published: false, url: null }
+// Published with the admin key, since taken down: no link to a site that isn't there.
+const ADMIN_DOWN: ReviewSite = { ...OTHER, ref: 'c'.repeat(32), name: 'Down Ltd', slug: 'down', published: true }
 
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
 
@@ -37,22 +39,25 @@ describe('Sites to review', () => {
     const calls: string[] = []
     vi.stubGlobal('fetch', vi.fn(async (u: RequestInfo | URL) => {
       calls.push(String(u))
-      return String(u).endsWith('/clear') ? reply({ ok: true }) : reply({ sites: [SITE, OTHER] })
+      return String(u).endsWith('/clear') ? reply({ ok: true }) : reply({ sites: [SITE, OTHER, ADMIN_DOWN] })
     }))
     render(<ReviewPanel base="https://api.x" adminKey="k" refresh={1} onRefused={vi.fn()} />)
     expect(screen.getByRole('heading', { name: 'Sites to review' })).toBeTruthy()
     const table = await screen.findByRole('table')
     const rows = within(table).getAllByRole('row')
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
     expect(within(rows[1]).getByRole('rowheader').textContent).toContain("Joe's Bank")
     expect(rows[1].textContent).toContain('bank, password')
     expect(rows[1].textContent).toContain('Paid')
     expect(within(rows[2]).getByRole('rowheader').textContent).toContain('Site BBBBBBBB')
     expect(rows[2].textContent).toContain('Not paid yet')
+    expect(rows[3].textContent).toContain('Published (admin)')
+    expect(within(rows[3]).queryByRole('link')).toBeNull()
+    expect(within(rows[1]).getByRole('link').getAttribute('href')).toBe('https://joes.localblocks.co.uk/')
 
     fireEvent.click(screen.getByRole('button', { name: "Mark reviewed: Joe's Bank" }))
     await waitFor(() => expect(screen.getByRole('status').textContent).toBe("Joe's Bank marked reviewed."))
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(2)
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(3)
     expect(calls).toEqual(['https://api.x/v1/admin/review', 'https://api.x/v1/admin/review/clear'])
   })
 

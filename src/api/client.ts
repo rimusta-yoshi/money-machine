@@ -134,7 +134,11 @@ export function createApi(base: string, fetcher: typeof fetch = (...a) => fetch(
     /** "Email me a link to finish on my computer" (an unpaid, saved site): resolves to the message to show. */
     sendResumeLink: (key: string, email: string, remind: boolean) =>
       call<{ ok: boolean; message: string }>('/v1/draft/resume-link', { ...json('POST', { email, remind }), key }).then(r => r.message),
-    /** Opens a resume link (#resume=<token>): a draft key of this device's own for that site. */
-    openResumeLink: (token: string) => call<{ key: string }>('/v1/draft/resume', json('POST', { token })).then(r => ({ key: r.key })),
+    /**
+     * Opens a resume link (#resume=<token>): a draft key of this device's own for that site. With
+     * the key this browser holds: answered back as is if it already opens that site.
+     */
+    openResumeLink: (token: string, key?: string | null) =>
+      call<{ key: string }>('/v1/draft/resume', json('POST', key ? { token, key } : { token })).then(r => ({ key: r.key })),
   }
 }

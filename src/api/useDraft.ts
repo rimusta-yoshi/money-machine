@@ -111,6 +111,11 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
         setNotice({ id: Date.now(), text: 'That edit link has been replaced. Open the newest one from your email to publish changes.' })
         return
       }
+      // A resume link's key that a newer link (or paying) replaced: the site is still there, photos and all.
+      if (err.code === 'key_replaced') {
+        setNotice({ id: Date.now(), text: err.message })
+        return
+      }
       // Cleared after 30 days unused, photos and all: the site carries on without them.
       const local = loadLocalSite()
       if (local && sitePhotos(local).some(photo => !isDataUrl(photo.url))) {
@@ -152,6 +157,7 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
           if (here) openLocal(here.site, here.key)
         } else {
           forgetDraftKey()
+          if (err.code === 'key_replaced') setNotice({ id: Date.now(), text: err.message })
         }
         return
       }
@@ -175,8 +181,12 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
    */
   const openResume = useCallback((token: string, local: Site | null, k: string | null) => {
     if (!api) return
-    api.openResumeLink(token).then(({ key: fresh }) => {
+    // A key this browser holds is sent along: if it already opens that site, it's kept.
+    const held = k && !k.startsWith('edit.') ? k : null
+    api.openResumeLink(token, held).then(({ key: fresh }) => {
       clearHash()
+      // This browser's own site: carry on with it as kept here (it may be newer than the server's copy).
+      if (local && fresh === held) { openLocal(local, held); return }
       void reopen(fresh, true, local && k !== fresh ? { site: local, key: k } : null)
     }, err => {
       clearHash()

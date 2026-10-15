@@ -13,7 +13,7 @@ import { useDraft } from './useDraft'
 
 const KEY = 'k'.repeat(43)
 const EDIT = `edit.${'a'.repeat(32)}.1.${'s'.repeat(43)}`
-const RESUME = `resume.${'a'.repeat(32)}.${'s'.repeat(43)}`
+const RESUME = `resume.${'a'.repeat(32)}.3.1800000000.${'s'.repeat(43)}`
 const PHONE_KEY = 'p'.repeat(43)
 const DATA_URL = `data:image/jpeg;base64,${btoa('\xff\xd8\xff\xe0fake')}`
 const withHero = (site: Site, url: string): Site => ({ ...site, content: { ...site.content, photos: { ...site.content.photos, hero: { url, alt: 'Boiler' } } } })
@@ -51,7 +51,7 @@ describe('draft key', () => {
 
   it('reads a resume token from its link, and never takes one as a key', () => {
     expect(resumeTokenFromHash(`#resume=${RESUME}`)).toBe(RESUME)
-    for (const hash of ['', '#resume', '#resume=', `#resume=${EDIT}`, `#resume=${KEY}`, `#edit=${RESUME}`, `#resume=${RESUME}x`, `#resume=resume.${'A'.repeat(32)}.${'s'.repeat(43)}`]) {
+    for (const hash of ['', '#resume', '#resume=', `#resume=${EDIT}`, `#resume=${KEY}`, `#edit=${RESUME}`, `#resume=${RESUME}x`, `#resume=resume.${'A'.repeat(32)}.3.1800000000.${'s'.repeat(43)}`, `#resume=resume.${'a'.repeat(32)}.${'s'.repeat(43)}`, `#resume=resume.${'a'.repeat(32)}.3.${'s'.repeat(43)}`]) {
       expect(resumeTokenFromHash(hash), hash).toBeNull()
     }
     expect(editTokenFromHash(`#edit=${RESUME}`)).toBeNull()
@@ -136,9 +136,11 @@ describe('the API client', () => {
     }) as typeof fetch)
     expect(await api.sendResumeLink(KEY, 'jo@example.com', true)).toBe("We've sent a link to jo@example.com.")
     expect(await api.openResumeLink(RESUME)).toEqual({ key: PHONE_KEY })
+    expect(await api.openResumeLink(RESUME, KEY)).toEqual({ key: PHONE_KEY })
     expect(calls).toEqual([
       { url: 'https://api.x/v1/draft/resume-link', auth: `Bearer ${KEY}`, body: { email: 'jo@example.com', remind: true } },
       { url: 'https://api.x/v1/draft/resume', auth: null, body: { token: RESUME } },
+      { url: 'https://api.x/v1/draft/resume', auth: null, body: { token: RESUME, key: KEY } },
     ])
     const refusing = createApi('https://api.x', (async () => new Response(JSON.stringify({ error: 'too_many_links', message: 'Try again tomorrow.' }), { status: 429 })) as typeof fetch)
     await expect(refusing.sendResumeLink(KEY, 'jo@example.com', false)).rejects.toMatchObject({ status: 429, code: 'too_many_links', message: 'Try again tomorrow.' })
@@ -347,7 +349,7 @@ describe('useDraft', () => {
     const onLoaded = vi.fn()
     const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
     await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(saved))
-    expect(api.openResumeLink).toHaveBeenCalledWith(RESUME)
+    expect(api.openResumeLink).toHaveBeenCalledWith(RESUME, null)
     expect(api.loadDraft).toHaveBeenCalledWith(PHONE_KEY)
     expect(window.location.hash).toBe('')
     expect(storedDraftKey()).toBe(PHONE_KEY)
@@ -367,6 +369,7 @@ describe('useDraft', () => {
       const api = fakeApi(JSON.parse(JSON.stringify(phone)))
       const { result, unmount } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
       await waitFor(() => expect(result.current.conflict).toEqual({ here: 'Computer Ltd', link: 'Phone Ltd' }))
+      expect(api.openResumeLink).toHaveBeenCalledWith(RESUME, KEY)
       expect(onLoaded).not.toHaveBeenCalled()
       expect(storedDraftKey()).toBe(KEY)
       act(() => result.current.resolveConflict(openLink))
@@ -389,6 +392,36 @@ describe('useDraft', () => {
     expect(onLoaded).toHaveBeenCalledWith(mine)
     expect(window.location.hash).toBe('')
     expect(storedDraftKey()).toBe(KEY)
+  })
+
+  it('carries on with this browser’s own copy when its key already opens the linked site', async () => {
+    const mine = finishedSite({ business: { name: 'Newer Here' } })
+    saveLocalSite(mine)
+    rememberDraftKey(KEY)
+    window.location.hash = `#resume=${RESUME}`
+    const api = { ...fakeApi(JSON.parse(JSON.stringify(finishedSite({ business: { name: 'Older On Server' } })))), openResumeLink: vi.fn(async () => ({ key: KEY })) }
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(onLoaded).toHaveBeenCalledWith(mine))
+    expect(api.openResumeLink).toHaveBeenCalledWith(RESUME, KEY)
+    expect(result.current.conflict).toBeNull()
+    expect(window.location.hash).toBe('')
+    expect(loadLocalSite()).toEqual(mine)
+    expect(storedDraftKey()).toBe(KEY)
+  })
+
+  it('says a resume key was replaced by another device, keeping the photos', async () => {
+    const withPhoto = withHero(finishedSite(), 'https://preview.x/photos/a/b.jpg')
+    saveLocalSite(withPhoto)
+    rememberDraftKey(KEY)
+    const message = 'This site was opened on another device. Open the newest link from your email to carry on here.'
+    const api = { ...fakeApi(), loadDraft: vi.fn(async () => { throw new ApiError(401, 'key_replaced', message) }) }
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(result.current.notice?.text).toBe(message))
+    expect(loadLocalSite()).toEqual(withPhoto)
+    expect(onLoaded).toHaveBeenCalledTimes(1)
+    expect(storedDraftKey()).toBeNull()
   })
 
   it('forgets this browser’s site on Start over', async () => {

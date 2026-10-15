@@ -22,7 +22,7 @@ afterAll(() => s?.close(), 60_000)
 const refOf = async (key: string) =>
   (await (await s.db()).prepare('SELECT ref FROM drafts WHERE key_hash = ?1').bind(createHash('sha256').update(key).digest('hex')).first<{ ref: string }>())!.ref
 
-interface Flagged { ref: string; slug: string | null; name: string | null; words: string[]; flaggedAt: number; paid: boolean; refunded: boolean; url: string | null }
+interface Flagged { ref: string; slug: string | null; name: string | null; words: string[]; flaggedAt: number; paid: boolean; refunded: boolean; published: boolean; url: string | null }
 const toReview = async (): Promise<Flagged[]> => {
   const res = await c.call('/v1/admin/review', { admin: ADMIN })
   expect(res.status).toBe(200)
@@ -44,7 +44,7 @@ describe('the review flag', () => {
     const res = await c.checkout(d.key, `review-flag-${n}`)
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ url: expect.stringMatching(/^https:\/\/checkout\.stripe\.test\//) })
-    expect(await listed(d.ref)).toMatchObject({ name: d.name, words: ['banking', 'log in', 'password'], paid: false, refunded: false, slug: null })
+    expect(await listed(d.ref)).toMatchObject({ name: d.name, words: ['banking', 'log in', 'password'], paid: false, refunded: false, published: false, slug: null, url: null })
   })
 
   it('leaves a clean site alone, embankments and bank holidays included', async () => {
@@ -69,7 +69,7 @@ describe('the review flag', () => {
     const res = await c.call('/v1/draft/publish', { method: 'POST', key, json: {} })
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({ slug, url: `https://${slug}.${BASE}/` })
-    expect(await listed(ref)).toMatchObject({ words: ['verify your account'], paid: true, slug, url: `https://${slug}.${BASE}/` })
+    expect(await listed(ref)).toMatchObject({ words: ['verify your account'], paid: true, published: true, slug, url: `https://${slug}.${BASE}/` })
 
     expect((await clear(ref)).status).toBe(200)
     expect(await listed(ref)).toBeNull()
@@ -84,7 +84,15 @@ describe('the review flag', () => {
   it('is recorded on an admin-key publish', async () => {
     const d = await draftWith('Bitcoin wallet repairs')
     expect((await c.publish(d.key, `review-admin-${n}`, ADMIN)).status).toBe(200)
-    expect(await listed(d.ref)).toMatchObject({ words: ['bitcoin', 'wallet'], paid: false })
+    expect(await listed(d.ref)).toMatchObject({ words: ['bitcoin', 'wallet'], paid: false, published: true, url: `https://review-admin-${n}.${BASE}/` })
+  })
+
+  it('is recorded when a preview link is made, which still works as ever', async () => {
+    const d = await draftWith('Account suspended? Sign in here')
+    const res = await c.call('/v1/draft/preview', { method: 'POST', key: d.key })
+    expect(res.status).toBe(201)
+    expect(await res.json()).toMatchObject({ url: expect.stringContaining('https://preview.') })
+    expect(await listed(d.ref)).toMatchObject({ words: ['sign in', 'account suspended'], published: false, url: null })
   })
 
   it('is for admins only', async () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { finishedSite } from '../../src/publish/test/sites'
 import type { Site } from '../../src/site/schema'
+import { reviewFingerprint } from './review'
 import { REVIEW_WORDS, reviewText, reviewWords } from './reviewWords'
 
 const base = finishedSite()
@@ -74,5 +75,18 @@ describe('reviewWords', () => {
     const bare: Site = { ...base, content: { ...base.content, headline: null, reviews: null, areas: null, badges: null, hours: null, whyUs: undefined, services: undefined } as Site['content'] }
     expect(reviewWords(bare)).toEqual([])
     expect(reviewText(bare)).toContain(base.business.name)
+  })
+})
+
+describe('reviewFingerprint', () => {
+  it('changes with the text and with the word lists, and only then', async () => {
+    const site = withAbout('Bank on us')
+    const same = await reviewFingerprint(site)
+    expect(await reviewFingerprint(withAbout('Bank on us'))).toBe(same)
+    expect(await reviewFingerprint(withAbout('Bank on us!'))).not.toBe(same)
+    expect(await reviewFingerprint(site, [...REVIEW_WORDS, 'iban'])).not.toBe(same)
+    expect(await reviewFingerprint(site, REVIEW_WORDS, [])).not.toBe(same)
+    // Fields visitors don't see as text (the phone number) don't count.
+    expect(await reviewFingerprint({ ...site, business: { ...site.business, phone: '0800 000 000' } })).toBe(same)
   })
 })

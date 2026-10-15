@@ -57,12 +57,18 @@ describe('signed links', () => {
     expect(await verifyLink('s'.repeat(32), 'refund', refund)).toEqual({ purpose: 'refund', ref, n: 0 })
   })
 
-  it('signs resume links for their purpose only', async () => {
+  it('signs resume links, with their number and sending time, for their purpose only', async () => {
     const secret = 's'.repeat(32)
-    const resume = await signLink(secret, 'resume', ref)
-    expect(resume).toMatch(new RegExp(`^resume\\.${ref}\\.[\\w-]{43}$`))
-    expect(parseLink(resume)).toEqual({ purpose: 'resume', ref, n: 0 })
-    expect(await verifyLink(secret, 'resume', resume)).toEqual({ purpose: 'resume', ref, n: 0 })
+    const sent = 1_800_000_000_500
+    const resume = await signLink(secret, 'resume', ref, 3, sent)
+    expect(resume).toMatch(new RegExp(`^resume\\.${ref}\\.3\\.1800000000\\.[\\w-]{43}$`))
+    const claim = { purpose: 'resume', ref, n: 3, issuedAt: 1_800_000_000_000 }
+    expect(parseLink(resume)).toEqual(claim)
+    expect(await verifyLink(secret, 'resume', resume)).toEqual(claim)
+    // The number and the time are signed: changing either breaks the link.
+    expect(await verifyLink(secret, 'resume', resume.replace('.3.1800000000.', '.4.1800000000.'))).toBeNull()
+    expect(await verifyLink(secret, 'resume', resume.replace('.3.1800000000.', '.3.1900000000.'))).toBeNull()
+    expect(await verifyLink(secret, 'resume', resume.replace('.3.1800000000.', '.03.1800000000.'))).toBeNull()
     // Neither a refund nor an edit link, and they aren't resume links.
     expect(await verifyLink(secret, 'refund', resume)).toBeNull()
     expect(await verifyLink(secret, 'edit', resume)).toBeNull()

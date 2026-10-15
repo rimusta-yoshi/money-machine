@@ -10,9 +10,16 @@ ALTER TABLE drafts ADD COLUMN resume_sent_count INTEGER NOT NULL DEFAULT 0;
 -- When to send the one reminder ("remind me" ticked), and when it went: never more than one.
 ALTER TABLE drafts ADD COLUMN resume_remind_at INTEGER;
 ALTER TABLE drafts ADD COLUMN resume_reminded_at INTEGER;
+-- The latest resume link's number: sending one or opening one moves it on, so older links stop working.
+ALTER TABLE drafts ADD COLUMN resume_n INTEGER NOT NULL DEFAULT 0;
 -- sha256 of the second draft key a resume link hands out (the computer's); the original stays.
+-- Cleared once the site is paid for.
 ALTER TABLE drafts ADD COLUMN alt_key_hash TEXT;
 CREATE INDEX drafts_alt_key_hash ON drafts (alt_key_hash);
+-- The second key it last replaced (a newer link opened, or paid for): never opens anything, only
+-- lets that device be told why it stopped, instead of "not found".
+ALTER TABLE drafts ADD COLUMN prev_alt_key_hash TEXT;
+CREATE INDEX drafts_prev_alt_key_hash ON drafts (prev_alt_key_hash);
 CREATE INDEX drafts_resume_remind_at ON drafts (resume_remind_at);
 
 -- Words that need a person to look (server/core/reviewWords.ts), found at checkout or publish.

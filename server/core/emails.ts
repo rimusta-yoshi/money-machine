@@ -135,7 +135,7 @@ export function editLinksEmail(c: Config, to: string, sites: EditLinks[]): Email
  * name), so the form can't be used to send anyone words of someone else's choosing.
  */
 const resumeLines = (days: number): Line[] => [
-  `The link works for ${days} days after you last worked on your site. Keep it to yourself: anyone with it can edit your unfinished site.`,
+  `The link works once, for ${days} days, and stops working if you ask for a newer one. Keep it to yourself: anyone with it can edit your unfinished site.`,
   "If you didn't ask for this, you can ignore it.",
 ]
 

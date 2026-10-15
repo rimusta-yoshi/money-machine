@@ -58,6 +58,9 @@ export interface ReviewSite {
   flaggedAt: number
   paid: boolean
   refunded: boolean
+  /** Published at some point (paid, or with the admin key). Missing from an older server. */
+  published?: boolean
+  /** The live site, only while it's live. */
   url: string | null
 }
 

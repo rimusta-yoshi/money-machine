@@ -54,6 +54,10 @@ export interface ReviewRow {
   flaggedAt: number
   paid: boolean
   refunded: boolean
+  /** Published at some point (paid, or with the admin key). */
+  published: boolean
+  /** Live now: published, not refunded, no dispute open or lost. */
+  live: boolean
 }
 
 export interface CheckoutRow {
@@ -72,6 +76,13 @@ export interface Database {
   createDraft(d: { ref: string; keyHash: string; now: number; source: Source }): Promise<void>
   /** The draft whose key (or second key, from a resume link) has this hash. */
   draftByKey(keyHash: string): Promise<DraftRow | null>
+  /** The draft whose last replaced second key has this hash (a newer resume link was opened, or it was paid for). */
+  draftByReplacedKey(keyHash: string): Promise<DraftRow | null>
+  /**
+   * Makes this second key the draft's main key and the main key its second (the device that
+   * checks out keeps editing after paying). Nothing changes if it isn't the second key.
+   */
+  promoteKey(ref: string, keyHash: string): Promise<void>
   draftByRef(ref: string): Promise<DraftRow | null>
   draftByPaymentIntent(paymentIntent: string): Promise<DraftRow | null>
   /** Paid sites (refunded ones too) whose payment email is this. */
@@ -90,11 +101,17 @@ export interface Database {
    */
   claimSlug(slug: string, ref: string, now: number, heldUntil?: number | null): Promise<boolean>
   releaseSlug(slug: string, ref: string): Promise<void>
-  /** Records the address it's live at, and releases any other address the draft holds. False if the site was refunded or disputed meanwhile. */
+  /**
+   * Records the address it's live at, and releases any other address the draft holds (and any
+   * resume link email). False if the site was refunded or disputed meanwhile.
+   */
   markPublished(ref: string, slug: string, now: number): Promise<boolean>
   createCheckout(c: CheckoutRow): Promise<void>
   checkout(sessionId: string): Promise<CheckoutRow | null>
-  /** Records the payment once. True if this call recorded it, false if it was already paid. */
+  /**
+   * Records the payment once. True if this call recorded it, false if it was already paid. The
+   * second key (from a resume link) stops working, and any resume link email is forgotten.
+   */
   markPaid(ref: string, p: Payment): Promise<boolean>
   /** Claims sending the welcome email. True for the one caller that should send it. */
   claimWelcome(ref: string, now: number): Promise<boolean>
@@ -137,16 +154,23 @@ export interface Database {
   existingRefs(refs: readonly string[]): Promise<Set<string>>
   /**
    * "Email me a link": records where to send it and when to remind (null: no reminder), counting
-   * it against the draft's allowance of `perDay` sends in 24 hours. False (nothing recorded) if
-   * the allowance is used up, or the draft is paid.
+   * it against the draft's allowance of `perDay` sends in 24 hours, and numbers the new link (older
+   * ones stop working). The new link's number, or null (nothing recorded) if the allowance is used
+   * up or the draft is paid.
    */
-  recordResumeLink(ref: string, r: { email: string; now: number; remindAt: number | null; perDay: number }): Promise<boolean>
-  /** Gives the draft a second key (a resume link opened), replacing any earlier second key. */
-  setAltKey(ref: string, keyHash: string): Promise<void>
+  recordResumeLink(ref: string, r: { email: string; now: number; remindAt: number | null; perDay: number }): Promise<number | null>
+  /**
+   * Uses up resume link number n, if it's still the latest and the draft unpaid: the draft gets
+   * this second key (the one it replaces is remembered, to say why it stopped). True if it did.
+   */
+  useResumeLink(ref: string, n: number, keyHash: string): Promise<boolean>
   /** Unpaid, unpublished, unrefunded drafts whose one reminder is due and not yet sent. */
   dueReminders(now: number, limit: number): Promise<{ ref: string; email: string }[]>
-  /** Claims sending a draft's reminder. True for the one caller that should send it (only ever once). */
-  claimReminder(ref: string, now: number): Promise<boolean>
+  /**
+   * Claims sending a draft's reminder (only ever once), numbering its fresh link. The link's number
+   * for the one caller that should send it, else null.
+   */
+  claimReminder(ref: string, now: number): Promise<number | null>
   /**
    * Flags a site for review with the words found. Text already flagged (same fingerprint) changes
    * nothing, so a site marked reviewed stays so until its text changes.
