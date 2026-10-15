@@ -172,7 +172,7 @@ export const previewHost = (c: Config): string => `preview.${c.baseDomain}`
 export const previewOrigin = (c: Config): string => `https://${previewHost(c)}`
 export const siteOrigin = (c: Config, slug: string): string => `https://${slug}.${c.baseDomain}`
 /** Our own domains, never accepted as a customer's (the base domain, and the one we moved from). */
-export const ourDomains = (c: Pick<Config, 'baseDomain'>): string[] => [c.baseDomain.replace(/:\d+$/, ''), ...BRAND.pastDomains]
+export const ourDomains = (c: Pick<Config, 'baseDomain'>): string[] => [...new Set([c.baseDomain.replace(/:\d+$/, ''), BRAND.domain, ...BRAND.pastDomains])]
 /** The builder page, where edit, refund and lost-link screens live too. */
 export const builderUrl = (c: Config): string => `${c.appUrl}/build/`
 
