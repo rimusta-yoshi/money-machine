@@ -14,6 +14,7 @@ We collect only what we need to build, host and support your website. We don't u
 | --- | --- | --- | --- |
 | Your site content | Business name, trade, town, phone number, services, about text, photos | To build, show and publish your website | Contract (providing the service) |
 | Your email address | The email you give at Go live | To send your receipt, edit link and refund link, and to answer you | Contract |
+| Your email address, if you ask for a link to finish later | The email you give when you choose "Email me a link to finish on my computer", kept with your unfinished site | To send that link and, only if you tick "remind me", one reminder three days later. Nothing else, and never shared for marketing | Steps you ask for before buying; your consent for the reminder |
 | Payment details | Card payments, handled by Stripe. We see the amount, date, email and card country, never your full card number | To take payment, give refunds and handle disputes | Contract; legal obligation (tax records) |
 | Support messages | Emails you send to hello@ or abuse@ | To help you and deal with reports | Legitimate interests (running a support service) |
 | Anonymous usage counts | Which builder steps are reached, which layouts are picked, which ad a visit came from, and the kinds of business people ask us to add ("My business isn't listed"). No names, emails or IP addresses | To understand where people get stuck and improve the builder | Legitimate interests (improving the service) |
@@ -27,7 +28,7 @@ We use a small number of trusted services to run {{brand}}. They only use your d
 
 - **Cloudflare:** hosting, storage and security for the builder and all websites.
 - **Stripe:** card payments, refunds and disputes. Stripe also uses payment data under its own privacy policy, for example to prevent fraud.
-- **Resend:** sending our emails (receipts, edit links, refund confirmations).
+- **Resend:** sending our emails (receipts, edit links, refund confirmations, links to finish later). Resend keeps its own log of the emails it sends.
 - **Google (Gmail):** our support inbox.
 
 We may also share information if the law requires it, or to deal with fraud, abuse or illegal content.
@@ -40,6 +41,8 @@ Some of these companies store data outside the UK, including in the USA. When th
 | --- | --- |
 | Builder progress saved in your browser | On your device until you clear it. We can't see it |
 | Unpaid copies (previews, abandoned checkouts) and their photos | 30 days, then deleted |
+| An email address given for a link to finish later | With the unfinished site: deleted when nobody has worked on it for 30 days, or as soon as the site goes live |
+| A scrambled (hashed) copy of that address, to stop the link being sent too often | 1 day |
 | A live website and its content | While your site is live |
 | A refunded or removed website | Taken down straight away, deleted after 90 days |
 | Payment and tax records | 6 years, as UK tax law requires |
