@@ -19,7 +19,7 @@ describe('brand', () => {
     for (const name of ['api', 'site', 'app']) {
       const text = config(name)
       // The site worker's */* catches customers' own domains (Cloudflare for SaaS) on our zone.
-      for (const r of routes(text)) expect(r === BRAND.domain || r.endsWith(`.${BRAND.domain}/*`) || (name === 'site' && r === '*/*'), `${name}: ${r}`).toBe(true)
+      for (const r of routes(text)) expect(r === BRAND.domain || r.endsWith(`.${BRAND.domain}/*`) || (name === 'site' && r === '*/*') || (name === 'app' && r === `${BRAND.domain}/*`), `${name}: ${r}`).toBe(true)
       for (const z of text.matchAll(/"zone_name":\s*"([^"]+)"/g)) expect(z[1]).toBe(BRAND.domain)
       const base = /"BASE_DOMAIN":\s*"([^"]+)"/.exec(text)?.[1]
       if (base) expect(base).toBe(BRAND.domain)
@@ -28,6 +28,10 @@ describe('brand', () => {
     expect(config('api')).toContain(`"EMAIL_FROM": "${BRAND.name} <${BRAND.email}>"`)
     expect(config('api')).toContain(`"SUPPORT_EMAIL": "${BRAND.email}"`)
     expect(config('api')).not.toContain('BRAND_NAME')
+  })
+
+  it('the homepage stays on the app worker while the site worker has */* (routes run before custom domains)', () => {
+    if (routes(config('site')).includes('*/*')) expect(routes(config('app'))).toContain(`${BRAND.domain}/*`)
   })
 
   it('own domains: the Domain Connect template points where the API tells customers to', () => {
