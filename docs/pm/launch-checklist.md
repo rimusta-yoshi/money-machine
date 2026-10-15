@@ -49,12 +49,13 @@ Cavendish House, 28-32 St Andrews Street, Norwich NR2 4AE · 01603 753285. One-t
 
 ## Safety and operations
 - [ ] **Make the GitHub repo private before go-live** (rob, 15 Oct: keep public until then for rulesets + auto-merge). On the free plan a private repo loses the ruleset (required CI checks) and auto-merge: either GitHub Pro (~$4/month) or merge only after checking CI by hand. (it's public: generator code + 50 Pexels photos). Then watch GitHub Actions minutes (free private allowance ~2,000/month); full stress shards nightly/on main only.
-- [ ] Update GitHub required status checks when the CI change (feat/credit-cleanup-ci) lands, or every PR gets stuck.
+- [x] Update GitHub required status checks (done 14 Oct: Lint, types and unit tests + Quick stress test).
 - [ ] Cloudflare Access on localblocks.co.uk/admin (one-time email code, rob only).
 - [ ] Cloudflare Web Analytics: add localblocks.co.uk, send token to the coding work.
-- [ ] Abuse takedown routine: check report → take site down via admin key → reply. Banned-word check flags suspicious sites (mobile brief).
+- [x] Abuse routine written: docs/pm/abuse-routine.md. Banned-word check flags suspicious sites (mobile brief).
+- [ ] Admin "take down" action (pause a live site without a refund, and restore it): small brief after the mobile builder. Until then, a Stripe refund takes a site down.
 - [ ] Backups of D1 site records and R2 photos.
-- [ ] Delete pre-launch test sites before launch (admin delete endpoints/script on feat/credit-cleanup-ci).
+- [ ] Delete pre-launch test sites before launch (`npm run test-sites`, live since 14 Oct; refused once LAUNCHED).
 - [x] Remove the 'Bash(python -)' allow entry from .claude/settings.local.json (14 Oct).
 - [x] Billing alert on. Upgrade to Workers Paid at launch / before a big ad push.
 
