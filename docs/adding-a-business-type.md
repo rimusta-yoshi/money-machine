@@ -13,7 +13,8 @@ finished pack to copy from.
 A pack file has two exports:
 
 - `<id>` (via `definePack`): what the builder needs. Names, synonyms, category, colours and
-  starting theme, the site's own words (tagline, main button), services, badges, which sections
+  starting theme, the site's own words (tagline, main button), six to ten hero headline
+  suggestions (`{town}` becomes the customer's location; at least three without it), services, badges, which sections
   the site gets and in what order, and sample photos with their licence.
 - `<id>Landing`: the `/websites-for/<slug>/` page. Title, search description, headline, intro,
   "What a … website needs", FAQs and three made-up example businesses.
