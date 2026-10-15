@@ -8,7 +8,8 @@ without paying, for testing and support only (the public builder never shows it)
 |---|---|---|
 | `api.localblocks.co.uk` | `siteblocks-api` | The builder's API: photo uploads, preview links, address checks, checkout, the Stripe webhook, edit links, refunds, re-publishing. Also serves the builder's sample photos (`/samples/<file>`). |
 | `preview.localblocks.co.uk` | `siteblocks-api` | Preview links (`/<token>/`), rendered live from the latest save, plus draft photos. Always noindex. |
-| `<slug>.localblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders, no database. `www.` redirects to the homepage. |
+| `<slug>.localblocks.co.uk` | `siteblocks-sites` | Published sites: static files straight from R2. Never renders. `www.` redirects to the homepage. A site with its own domain live 301s there. |
+| customers' own domains | `siteblocks-sites` | The same sites at `www.<their domain>` (Cloudflare for SaaS custom hostnames, the `*/*` route). Reads D1 only to know which site a domain shows (remembered a minute). See "Own domains". |
 | `localblocks.co.uk` | `siteblocks-app` | The homepage and builder (`npm run build` output), static files only. Deploy with `npm run cf:deploy:app`; settings in `.env.production`. |
 
 ```
@@ -305,6 +306,11 @@ Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 | `LINK_SECRET` | API secret | Signs edit and refund links (32+ characters). Needed when payments are on. |
 | `TESTER_CODE` | API secret | Lets testers check out before launch (8+ characters). Unset: nobody can until `LAUNCHED` is `true`. |
 | `RESEND_API_KEY` | API secret | Sends email through Resend. Unset: emails are written to the worker's log instead (fine for testing, not for customers: the log then holds their links). |
+| `CF_SAAS_TOKEN` | API secret | Cloudflare API token for custom hostnames (own domains). Unset: own domains are off (the page says "not switched on yet"). |
+| `CF_ZONE_ID` | API config | The `localblocks.co.uk` zone's id (not secret). Needed with `CF_SAAS_TOKEN`. |
+| `DOMAINS_TARGET` | API config | What customers point their `www` at: `domains.localblocks.co.uk` (the template in `server/domainconnect/` names the same; a test checks). |
+| `DC_PROVIDERS`, `DC_KEY_HOST`, `DC_PRIVATE_KEY` | API config / secret | One-click domains (Domain Connect): see `docs/domain-connect.md`. |
+| `HOST_CACHE_SECONDS` | site config | How long the site worker remembers which site an own domain shows (`60`). |
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
 deletes dashboard events older than 13 months (and requested business types not asked for
@@ -564,6 +570,100 @@ npm run cf:deploy:app
 ```
 
 Migration `0004_events.sql` only adds tables and columns.
+
+## Own domains (Cloudflare for SaaS)
+
+A paid, live site can be shown at the customer's own domain, included in the £99. Each domain
+is a Cloudflare **custom hostname** on the `localblocks.co.uk` zone; the customer adds one CNAME
+(`www` → `domains.localblocks.co.uk`), Cloudflare checks it and issues the certificate, and the
+site worker serves the site there. 100 custom hostnames are free, then $0.10 a month each; the
+dashboard shows how many there are.
+
+### How it works
+
+- **Use your own domain** (`/build/#domain`, linked from the go-live step once paid and from the
+  welcome email as `#domain=<edit token>`): the customer types their domain. The server checks it
+  (`src/domains/domainName.ts`: a real public domain, not ours, punycode, length), looks up its
+  nameservers (public DNS over HTTPS) to tell which domain company it's with and that it exists,
+  refuses one another site has, and adds the custom hostname (`server/core/domains.ts`). One
+  domain per site; `www.<domain>` by default, or the subdomain they typed.
+- The page then shows only their company's steps (GoDaddy, IONOS, 123-reg, Fasthosts,
+  Namecheap, Cloudflare, Squarespace; general steps for anyone else, `src/domains/providerSteps.ts`)
+  with copy buttons, or **Connect automatically** where their company takes our Domain Connect
+  template (`docs/domain-connect.md`). It checks again when they come back to the tab.
+- **Bare domains**: most UK companies can't point the bare domain at us, so customers switch on
+  their company's free forwarding to `www` (the steps and the email say how). When their DNS is on
+  Cloudflare, the bare domain is connected too (a second custom hostname) and redirects to `www`.
+- **Status** comes from Cloudflare only: "Waiting for your domain" until the hostname and its
+  certificate are both active, then "Live". The page asks at most every 15 seconds; a cron every
+  15 minutes checks waiting domains, and the daily one re-checks live ones. Going live republishes
+  the site under the domain (canonical link, sitemap, Open Graph), makes `<slug>.localblocks.co.uk`
+  301 to it (pages only: photos and fonts stay, for downloads), and sends one email. A domain that
+  stops pointing at us goes back to "waiting" and the free address. Waiting 30 days: given up.
+- **Disconnect** (customer, or `POST /v1/admin/domains/disconnect {hostname}` with the admin key)
+  removes the custom hostname and republishes on the free address.
+- **Refunds, lost disputes and deleted test sites** remove the domain from Cloudflare at once;
+  **an open dispute** pauses it (off Cloudflare, kept) and a won dispute puts it back. If
+  Cloudflare can't be reached the domain is marked `removing` (never served) and the cron finishes
+  the job. Table `custom_domains`, migration `0007_custom_domains.sql` (adds a table only).
+
+### One-off setup (in this order)
+
+**1. Switch on Cloudflare for SaaS**
+
+1. https://dash.cloudflare.com → **localblocks.co.uk** → **SSL/TLS** → **Custom Hostnames**.
+2. If asked, **Enable Cloudflare for SaaS** (it needs a payment method on the account; the first
+   100 hostnames are free).
+
+**2. The fallback origin and CNAME target**
+
+1. **DNS** → **Records** → **Add record**: type **AAAA**, name `domains`, IPv6 address `100::`,
+   **Proxied** (orange cloud), TTL Auto → **Save**. (Like the wildcard record: nothing answers at
+   `100::`, the workers do.)
+2. Back in **SSL/TLS** → **Custom Hostnames** → **Fallback Origin**: type `domains.localblocks.co.uk`
+   → **Add Fallback Origin**. Wait until it says **Active** (a few minutes; refresh the page).
+
+**3. API token for custom hostnames**
+
+1. Profile icon (top right) → **My Profile** → **API Tokens** → **Create Token** → **Custom token** → **Get started**.
+2. Name: `Local Blocks custom hostnames`. **Permissions**: Zone · SSL and Certificates · Edit.
+   **Zone Resources**: Include · Specific zone · `localblocks.co.uk`. Nothing else.
+3. **Continue to summary** → **Create Token**. Copy it (shown once) and store it:
+
+```bash
+npx wrangler secret put CF_SAAS_TOKEN -c server/wrangler.api.jsonc
+```
+
+**4. The zone id** (not secret): **localblocks.co.uk** → **Overview**, right-hand column, **API** →
+**Zone ID** → copy. Put it in `server/wrangler.api.jsonc` as `"CF_ZONE_ID": "<it>"` (commit it,
+or send it to Claude).
+
+**5. Deploy, in this order**
+
+```bash
+npm run cf:migrate
+```
+
+```bash
+npm run cf:deploy
+```
+
+```bash
+npm run cf:deploy:app
+```
+
+(`cf:deploy` deploys the API worker, then the site worker, which adds the `*/*` route and the
+database binding.) Then **Workers & Pages** → `siteblocks-sites` → **Settings → Domains & Routes**
+should list `*.localblocks.co.uk/*` and `*/*`; `siteblocks-api` keeps `api.` and `preview.`
+(more specific routes win), and `siteblocks-app` keeps its `localblocks.co.uk` custom domain
+(custom domains win over routes). Check `https://localblocks.co.uk/`,
+`https://api.localblocks.co.uk/health` and a site address still work.
+
+**6. Try it** with a domain you own: open a paid test site's edit link → **Use your own domain**,
+follow the steps, and wait for "Live" (or the email).
+
+**One-click (optional, later)**: `docs/domain-connect.md` has the key, the template submission
+and the emails to the domain companies.
 
 ## Payments and email (one-off, test mode)
 

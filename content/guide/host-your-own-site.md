@@ -4,6 +4,8 @@ Your website is yours. You can download the whole thing whenever you like and pu
 
 You don't have to do any of this: we keep your site online for as long as {{brand}} runs. But it's good to know you can, and a copy on your own computer never hurts.
 
+> **Only want your own domain name?** You don't need this guide: we connect a domain you own to your site with us, at no extra cost. Open your edit link and choose **Use your own domain**.
+
 > **Before you start:** your web address will change. Your {{brand}} address (your-name.{{domain}}) only works with us. A free host gives you a new free address, or you can use a domain name of your own (step 4).
 
 ## 1. Download your site

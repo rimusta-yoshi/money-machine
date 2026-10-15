@@ -21,16 +21,20 @@ Only at the end. Building your site is free, and you can try every look first. Y
 ### What do I get for {{price}}?
 
 - A website made with our builder, with your services, photos, areas and contact details.
-- Your own web address: your-name.{{domain}}.
+- Your own web address: your-name.{{domain}}. Or connect a domain you own, at no extra cost.
 - Hosting, for as long as {{brand}} runs.
 - Free changes whenever you like, with your edit link.
 - A download of your whole site whenever you want it.
 
-Not included: a domain name of your own, email accounts, or custom design work. The [terms](/terms/) list everything.
+Not included: buying the domain name itself, email accounts, or custom design work. The [terms](/terms/) list everything.
 
 ### Can I use my own domain name?
 
-Yes, by hosting your site yourself: download it, put it on a free host, and point your domain at it. Our guide, [Host your own site](/guide/host-your-own-site/), walks through it step by step. We don't connect your own domain to our hosting yet; your site with us lives at your-name.{{domain}}.
+Yes, and connecting it costs nothing extra. Once your site is live, open your edit link and choose **Use your own domain**. Type in your domain (like smithplumbing.co.uk) and we'll show you the one change to make at the company you bought it from, with their own steps. With some companies it's a single click to approve. It's usually working within an hour, and we email you when it is.
+
+Your site then opens at www.yourdomain, with the padlock (https) switched on for you, and your free your-name.{{domain}} address sends people there. The domain stays yours: you keep renewing it with your domain company, usually around £10 a year.
+
+Don't have one yet? You can buy one from any domain company, then connect it the same way. Rather run everything yourself? Our guide, [Host your own site](/guide/host-your-own-site/), shows how to put your site on a free host instead.
 
 ### Is there a "Made with {{brand}}" link on my site?
 

@@ -18,6 +18,7 @@
 .ad-note { margin: 0; font-size: 15px; color: var(--sb-muted); }
 .ad-detail { font-size: 14px; font-weight: 500; color: var(--sb-muted); }
 .ad-empty { color: var(--sb-muted); font-size: 15px; }
+.ad-big-line { margin: 0 0 12px; font-size: 17px; }
 
 /* ---- Key form ---- */
 .ad-key { max-width: 480px; }

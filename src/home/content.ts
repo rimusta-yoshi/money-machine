@@ -22,7 +22,7 @@ export const HOW_STEPS = [
 
 /** `colour` is the icon block's brand colour. */
 export const GETS: { title: string; text: string; icon: GetIconName; colour: 'brick' | 'yellow' | 'lawn' | 'night' | 'blue' }[] = [
-  { title: 'Your own web address', text: `yourname.${BRAND.domain}, free. Or connect a domain you own.`, icon: 'globe', colour: 'brick' },
+  { title: 'Your own web address', text: `yourname.${BRAND.domain}, free. Or connect a domain you own, at no extra cost.`, icon: 'globe', colour: 'brick' },
   { title: 'Works on every phone', text: 'Your number is one tap away for every customer.', icon: 'phone', colour: 'yellow' },
   { title: 'Change it whenever', text: 'Update your text and photos with a link we email you.', icon: 'pencil', colour: 'lawn' },
   { title: 'Your colours, your photos', text: 'Use your van colour. We keep the text easy to read.', icon: 'palette', colour: 'night' },
@@ -40,7 +40,7 @@ export const WHY_ONCE = [
 export const FAQS = [
   { q: 'Do I need to be good with computers?', a: 'No. If you can pick from a few options on your phone, you can build your site.' },
   { q: 'Are there really no monthly fees?', a: `Really. You pay ${PRICE} once and your site stays online.` },
-  { q: 'Can I use my own domain?', a: 'Yes. Buy it wherever you like and follow our short guide to connect it.' },
+  { q: 'Can I use my own domain?', a: 'Yes, at no extra cost. Once your site is live, type in your domain and we’ll show you the one change to make at your domain company, step by step.' },
   { q: 'What if I’m not happy?', a: `Building is free, so you only pay once you’re happy. And if you change your mind within ${BRAND.guarantee.days} days of paying, we’ll give you your money back. No questions asked.` },
   { q: 'Can I change my site later?', a: 'Yes. We email you a link to update your text and photos whenever you need.' },
 ]
