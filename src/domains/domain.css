@@ -1,6 +1,10 @@
 /* ============================================================
    "Use your own domain" (src/domains/DomainScreen.tsx), inside the account card
    ============================================================ */
+/* Lays its children straight into the card (its gaps), and marks links as links. */
+.od-page { display: contents; }
+.sb-ui .od-page a:not(.sb-main-btn):not(.sb-line-btn) { color: var(--sb-pipe); text-decoration: underline; text-underline-offset: 3px; }
+.sb-ui .od-page a:not(.sb-main-btn):not(.sb-line-btn):hover { color: var(--sb-pipe-hover); }
 .ba-card .od-h2 { margin: 0; font-size: 18px; font-weight: 700; }
 .od-aside { display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid #DCDCE2; }
 
@@ -16,7 +20,11 @@
 .od-steps { margin: 0; padding-left: 24px; display: flex; flex-direction: column; gap: 14px; font-size: 17px; line-height: 1.5; }
 .od-steps li { padding-left: 4px; }
 .od-steps li::marker { font-weight: 800; }
-.od-details summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+.od-details summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; gap: 10px; color: var(--sb-pipe); list-style: none; }
+.od-details summary::-webkit-details-marker { display: none; }
+.od-details summary::before { content: ''; flex: none; width: 8px; height: 8px; border-right: 3px solid currentColor; border-bottom: 3px solid currentColor; transform: rotate(-45deg); transition: transform .15s ease; }
+.od-details[open] summary::before { transform: rotate(45deg); }
+@media (prefers-reduced-motion: reduce) { .od-details summary::before { transition: none; } }
 .od-details[open] summary { margin-bottom: 8px; }
 
 /* The record to add: label above value, each value with its own Copy button. */

@@ -48,8 +48,8 @@ export function DomainForm({ freeUrl, busy, onConnect }: Props) {
       <section className="od-aside" aria-labelledby={`${id}-buy`}>
         <h2 id={`${id}-buy`} className="od-h2">Don’t have a domain yet?</h2>
         <p>
-          Buy one from <NewTabLink href={BRAND.domainShop.url}>{BRAND.domainShop.name}</NewTabLink>, then come back here: they’re one of the
-          companies where connecting takes just a couple of clicks. A .co.uk is usually around £10 a year, and it’s yours, renewed with them.
+          Buy one from <NewTabLink href={BRAND.domainShop.url}>{BRAND.domainShop.name}</NewTabLink> (or any domain company you like), then come
+          back here to connect it. A .co.uk is usually around £10 a year, and it’s yours, renewed with them.
         </p>
         {BRAND.domainShop.disclosure && <p className="ba-small">{BRAND.domainShop.disclosure}</p>}
       </section>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import type { Api, DomainAnswer } from '../api/client'
 import { storedDraftKey } from '../api/draftKey'
 import { AccountShell } from '../builder/account/AccountShell'
@@ -17,7 +18,11 @@ interface Props {
 }
 
 const bare = (url: string) => url.replace(/^https?:\/\//, '').replace(/\/$/, '')
-const newLink = <a className="sb-line-btn ba-btn" href="#lost-link">Email me a new link</a>
+/** The account card, with this page's link styles. */
+const Shell = ({ children }: { children: ReactNode }) => (
+  <AccountShell title="Use your own domain"><div className="od-page">{children}</div></AccountShell>
+)
+const newLink =<a className="sb-line-btn ba-btn" href="#lost-link">Email me a new link</a>
 
 /** "Use your own domain": one page for the whole journey, opened from the edit link or the go-live step. */
 export function DomainScreen({ api, token, back }: Props) {
@@ -34,10 +39,10 @@ export function DomainScreen({ api, token, back }: Props) {
 
   if (!key) {
     return (
-      <AccountShell title="Use your own domain">
+      <Shell>
         <p>Open the edit link from your welcome email first, then choose <b>Use your own domain</b>. Lost it? We’ll email a new one to the address you paid with.</p>
         {newLink}
-      </AccountShell>
+      </Shell>
     )
   }
   return <DomainPage api={api} keyFor={key} back={back} />
@@ -47,7 +52,7 @@ function DomainPage({ api, keyFor, back }: { api: Api; keyFor: string; back: Dom
   const own = useOwnDomain(api, keyFor)
   const { state } = own
   return (
-    <AccountShell title="Use your own domain">
+    <Shell>
       {state.phase === 'loading' && <p className="ba-wait" role="status"><span className="ba-spin" aria-hidden="true" />Loading…</p>}
       {state.phase === 'error' && (
         <>
@@ -57,7 +62,7 @@ function DomainPage({ api, keyFor, back }: { api: Api; keyFor: string; back: Dom
       )}
       {state.phase === 'ready' && <DomainBody answer={state.answer} back={back} own={own} />}
       <p className="ba-small"><a href="/build/">Back to your site</a></p>
-    </AccountShell>
+    </Shell>
   )
 }
 
