@@ -41,13 +41,15 @@ const orNull = <T>(what: string, p: Promise<T | null>): Promise<T | null> => p.c
  * The site an own domain shows, or null. Only once we've seen the domain's ownership TXT record
  * (pointing a CNAME at us isn't enough to claim it), while Cloudflare finishes (pending) and
  * once it's live. Never for a site that's refunded, disputed or not live. A taken-down site's
- * domain (until its pause reaches Cloudflare) is answered with `down`, to say so.
+ * domain (paused, or still waiting for the pause to reach Cloudflare) is answered with `down`,
+ * so any request that still gets here is told the site isn't available.
  */
 export const siteForHost = (deps: Deps, host: string): Promise<HostSite | null> =>
   orNull(host, remembered(deps, `host:${host}`, async () => {
     const d = await deps.domains.byHost(host)
-    if (!d?.slug || !(d.siteLive || d.takenDown) || !d.verifiedAt || (d.status !== 'pending' && d.status !== 'active')) return null
-    return { slug: d.slug, hostname: d.hostname, down: d.takenDown }
+    if (d?.slug && d.verifiedAt && d.takenDown) return { slug: d.slug, hostname: d.hostname, down: true }
+    if (!d?.slug || !d.siteLive || !d.verifiedAt || (d.status !== 'pending' && d.status !== 'active')) return null
+    return { slug: d.slug, hostname: d.hostname, down: false }
   }))
 
 /**
