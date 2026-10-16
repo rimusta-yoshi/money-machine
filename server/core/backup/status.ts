@@ -33,6 +33,7 @@ export function health(s: BackupStatus, now: number): Health {
   if (s.dbError) problems.push(`The last database backup failed: ${s.dbError.error}`)
   if (!s.db) problems.push('No database backup has been made yet.')
   else if (now - s.db.at > DB_STALE_AFTER) problems.push('The last good database backup is more than 36 hours old.')
+  if (s.files.error) problems.push(`Backing up the photos and sites stopped: ${s.files.error}`)
   if (s.files.lastFullPassAt === null) problems.push('The photos and sites have not been backed up all the way through yet.')
   else if (now - s.files.lastFullPassAt > FILES_STALE_AFTER) problems.push('The photos and sites were last backed up all the way through more than 48 hours ago.')
   return { healthy: problems.length === 0, lastBackupAt: s.db?.at ?? null, problems }

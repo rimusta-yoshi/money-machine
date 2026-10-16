@@ -1,13 +1,13 @@
 import type { ObjectInfo, ObjectStore } from './types'
 
-/** Every object under a prefix, page by page. */
-export async function listAll(store: ObjectStore, prefix: string): Promise<ObjectInfo[]> {
+/** Every object under a prefix, page by page (`meta`: with custom metadata). */
+export async function listAll(store: ObjectStore, prefix: string, meta = false): Promise<ObjectInfo[]> {
   const out: ObjectInfo[] = []
-  let startAfter: string | undefined
-  for (;;) {
-    const page = await store.page(prefix, { startAfter })
+  let cursor: string | undefined
+  do {
+    const page = await store.page(prefix, { cursor, meta })
     out.push(...page.objects)
-    if (!page.more || !page.objects.length) return out
-    startAfter = page.objects[page.objects.length - 1].key
-  }
+    cursor = page.cursor
+  } while (cursor)
+  return out
 }

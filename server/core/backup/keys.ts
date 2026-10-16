@@ -43,6 +43,8 @@ export function parseTrashKey(trash: string): { key: string; trashedAt: number }
 
 /** Metadata on every backed-up file: when the original was written (ms). */
 export const SRC_UPLOADED = 'src_uploaded'
+/** Metadata on every backed-up file: the site (ref) it belonged to when copied, if known. */
+export const SITE_REF = 'site_ref'
 
 /** A draft's photos (drafts/<ref>/photos/…): the site's ref, else null. */
 export const photoRef = (key: string): string | null => /^drafts\/([0-9a-f]{32})\/photos\//.exec(key)?.[1] ?? null

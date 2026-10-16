@@ -41,7 +41,8 @@ any payments made in between.
 Backups are copies of the same personal information the site holds (customers' emails,
 business details, photos). They're deleted on the schedule above, automatically. When someone
 asks for their data to be deleted, it goes from the live site straight away and from the backups
-when they expire (at most 30 days for unfinished sites, 12 months for paid ones). The privacy
+when they expire (at most 30 days for unfinished sites, 12 months for paid ones; if backups ever
+stop working, the last good one is kept until they're fixed). The privacy
 policy should say this: a draft line is in the backups pull request for your legal check.
 
 ## One-off setup (Claude or the PM does this at deploy)

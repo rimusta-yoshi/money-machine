@@ -40,9 +40,11 @@ export const MONTHLY: Record<string, { where?: string; blank?: string[] } | 'ski
   rate_limits: 'skip',
 }
 
-export interface ExportResult { id: string; tables: number; rows: number }
+/** `calls`: database and storage calls made, counted against the nightly run's budget. */
+export interface ExportResult { id: string; tables: number; rows: number; calls: number }
 
-async function exportTable(db: TableReader, store: ObjectStore, prefix: string, table: string, rule: { where?: string; blank?: string[] }): Promise<ManifestTable> {
+async function exportTable(db: TableReader, store: ObjectStore, prefix: string, table: string, rule: { where?: string; blank?: string[] }): Promise<ManifestTable & { calls: number }> {
+  let calls = 0
   const parts: string[] = []
   let columns: string[] | null = null
   let rows: unknown[][] = []
@@ -52,6 +54,7 @@ async function exportTable(db: TableReader, store: ObjectStore, prefix: string, 
     if (!rows.length || !columns) return
     const key = `${prefix}${table}.${String(parts.length + 1).padStart(4, '0')}.json.gz`
     await store.write(key, await gzip(JSON.stringify({ table, columns, rows })), 'application/gzip')
+    calls++
     parts.push(key)
     rows = []
     bytes = 0
@@ -59,6 +62,7 @@ async function exportTable(db: TableReader, store: ObjectStore, prefix: string, 
   let after = Number.MIN_SAFE_INTEGER
   for (;;) {
     const page = await db.rows(table, after, PAGE, rule.where)
+    calls++
     for (const { rowid, row } of page) {
       columns ??= Object.keys(row)
       const values = columns.map(c => (rule.blank?.includes(c) ? null : row[c] ?? null))
@@ -71,7 +75,7 @@ async function exportTable(db: TableReader, store: ObjectStore, prefix: string, 
     if (page.length < PAGE) break
   }
   await flush()
-  return { name: table, rows: total, parts }
+  return { name: table, rows: total, parts, calls }
 }
 
 /** Writes one export. A failure part-way leaves no manifest, so it never counts as a backup. */
@@ -79,13 +83,16 @@ export async function exportDatabase(db: TableReader, store: ObjectStore, kind: 
   const schema = await db.schema()
   const prefix = exportPrefix(kind, id)
   const tables: ManifestTable[] = []
+  let calls = 2
   for (const name of schema.filter(s => s.type === 'table').map(s => s.name)) {
     const rule = kind === 'daily' ? (SKIP_DAILY.has(name) ? 'skip' : {}) : MONTHLY[name] ?? 'skip'
     if (rule === 'skip') continue
-    tables.push(await exportTable(db, store, prefix, name, rule))
+    const { calls: used, ...table } = await exportTable(db, store, prefix, name, rule)
+    tables.push(table)
+    calls += used
   }
   const kept = new Set(tables.map(t => t.name))
   const manifest: Manifest = { version: FORMAT_VERSION, kind, id, at: now, schema: schema.filter(s => kept.has(s.table)), tables }
   await store.write(manifestKey(kind, id), JSON.stringify(manifest), 'application/json')
-  return { id, tables: tables.length, rows: tables.reduce((n, t) => n + t.rows, 0) }
+  return { id, tables: tables.length, rows: tables.reduce((n, t) => n + t.rows, 0), calls }
 }

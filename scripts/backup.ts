@@ -4,7 +4,8 @@
 //
 //   npm run backup -- list                                   the exports there are, and whether backups are healthy
 //   npm run backup -- verify                                 checks the newest export downloads and adds up (exit 1 if not)
-//   npm run backup -- run                                    backs up now (as the nightly cron does)
+//   npm run backup -- run [--allow-deletes]                  backs up now (as the nightly cron does); --allow-deletes
+//                                                            lets a pass trash most copies (only after checking it's meant)
 //   npm run backup -- restore-db --from <when> --to-local [--site <address> | --ref <ref>]
 //                                                            into the local dev database (stop npm run dev:stack first)
 //   npm run backup -- restore-db --from <when> --to-production [--site <address> | --ref <ref>] --yes
@@ -94,7 +95,7 @@ async function verify() {
 }
 
 async function run() {
-  const r = await postJson<{ ran: Record<string, string> }>('/v1/admin/backups/run', {})
+  const r = await postJson<{ ran: Record<string, string> }>('/v1/admin/backups/run', flag('--allow-deletes') ? { allowDeletes: true } : {})
   for (const [k, v] of Object.entries(r.ran)) console.log(`${k}: ${v}`)
 }
 
@@ -121,8 +122,8 @@ async function restoreDb() {
   const from = option('--from') ?? fail('Say which backup: --from latest, an id, YYYY-MM-DD or YYYY-MM.')
   const toLocal = flag('--to-local')
   if (toLocal === flag('--to-production')) fail('Say where: --to-local (inspect first) or --to-production.')
-  // Never put a local backup into the live database.
-  if (!toLocal && local) fail('--to-production takes backups from the live API only (leave out --api).')
+  // Never put anything but the live API's backups into the live database.
+  if (!toLocal && option('--api') !== undefined) fail('--to-production takes backups from the live API only: leave out --api.')
   const chosen = pickExport(await fetchOverview(get), from)
   const d = await downloadExport(get, chosen)
   const ref = option('--ref') ?? siteRef(d.parts, option('--site'))
@@ -135,7 +136,7 @@ async function restoreDb() {
   writeFileSync(file, statements.join('\n'))
   const what = ref ? `site ${ref}'s rows` : `every table (${d.manifest.tables.map(t => `${t.name} ${t.rows}`).join(', ')})`
   console.log(`Backup ${chosen.kind} ${chosen.id}: ${what}. SQL written to ${file}`)
-  if (toLocal) return restoreLocal(statements)
+  if (toLocal) return restoreLocal(statements, mode.kind === 'site')
   if (!flag('--yes')) {
     console.log('\nNothing changed. To put this into the LIVE database, run the same command with --yes.')
     console.log(ref ? 'Only that site\'s rows are replaced.' : 'Every row of the live database is replaced by the backup\'s.')
@@ -144,15 +145,51 @@ async function restoreDb() {
   console.log('\nThe bookmark to undo this (wrangler d1 time-travel restore --bookmark=…):')
   wrangler(['d1', 'time-travel', 'info', DATABASE, '-c', CONFIG])
   wrangler(['d1', 'execute', DATABASE, '--remote', '--file', file, '-c', CONFIG, '--yes'])
-  console.log('Done. Check the site(s), then run: npm run backup -- restore-files … if their files are missing too.')
+  checkCounts(statements, ref)
+  console.log('Check the site(s), then run: npm run backup -- restore-files … if their files are missing too.')
 }
 
-async function restoreLocal(statements: string[]) {
+/** Rows each table should have after the import: the INSERTs written for it. */
+function expectedRows(statements: string[]): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const s of statements) {
+    const t = /^INSERT INTO "([^"]+)"/.exec(s)?.[1]
+    if (t) out.set(t, (out.get(t) ?? 0) + 1)
+  }
+  return out
+}
+
+/** Counts the live rows after an import and compares them with what was imported. */
+function checkCounts(statements: string[], ref: string | undefined): void {
+  const expected = expectedRows(statements)
+  // Table names are plain words and the ref is hex: no quoting needed, so the shell can't mangle it.
+  if (![...expected.keys()].every(t => /^\w+$/.test(t))) return console.log('Check the row counts by hand.')
+  const count = (t: string) => `(SELECT COUNT(*) FROM ${t}${ref ? ` WHERE ref = '${ref}'` : ''}) AS ${t}`
+  const sql = `SELECT ${[...expected.keys()].map(count).join(', ')}`
+  const windows = process.platform === 'win32'
+  const r = spawnSync('npx', ['wrangler', 'd1', 'execute', DATABASE, '--remote', '--json', '--command', windows ? `"${sql}"` : sql, '-c', CONFIG], { encoding: 'utf8', shell: windows })
+  let actual: Record<string, number> = {}
+  try {
+    actual = (JSON.parse(r.stdout) as { results: Record<string, number>[] }[])[0].results[0]
+  } catch {
+    console.log('Could not count the rows afterwards: check the site(s) by hand.')
+    return
+  }
+  const wrong = [...expected].filter(([t, n]) => actual[t] !== n)
+  if (!wrong.length) return console.log(`Row counts match the backup ✓ (${[...expected].map(([t, n]) => `${t} ${n}`).join(', ')})`)
+  console.log(`✗ Row counts differ from the backup: ${wrong.map(([t, n]) => `${t} has ${actual[t]}, expected ${n}`).join('; ')}.`)
+  console.log('Undo with the bookmark above: npx wrangler d1 time-travel restore siteblocks --bookmark=<bookmark> -c server/wrangler.api.jsonc')
+  process.exitCode = 1
+}
+
+async function restoreLocal(statements: string[], oneSite: boolean) {
   const { startStack } = await import('../server/test/stack.ts')
   const stack = await startStack({ baseDomain: 'localblocks.localhost:8787', persistTo: join(process.cwd(), '.wrangler', 'dev-stack') })
   try {
     const db = await stack.db()
-    for (let i = 0; i < statements.length; i += 50) await db.batch(statements.slice(i, i + 50).map(s => db.prepare(s)))
+    // One site goes in as one batch (all or nothing); a whole database in steps.
+    const step = oneSite ? statements.length : 50
+    for (let i = 0; i < statements.length; i += step) await db.batch(statements.slice(i, i + step).map(s => db.prepare(s)))
     console.log('Restored into the local dev database (.wrangler/dev-stack). Run npm run dev:stack to look at it.')
   } finally {
     await stack.close()

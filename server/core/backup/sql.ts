@@ -76,15 +76,25 @@ export function pieces(text: string, size: number): string[] {
   return out
 }
 
-/** INSERT for one row, with any long text added afterwards in UPDATEs on the row just inserted. */
-function insertRow(table: string, columns: string[], row: unknown[], verb: string, chunk: number): string[] {
+/** The column a table's CREATE statement makes its primary key (inline, single column), if any. */
+export function primaryKey(createSql: string): string | null {
+  return /[(,]\s*"?(\w+)"?\s+\w+[^,]*?\bPRIMARY KEY\b/i.exec(createSql)?.[1] ?? null
+}
+
+/**
+ * INSERT for one row, with any long text added afterwards in UPDATEs of that row (found by its
+ * primary key, else as the row just inserted).
+ */
+function insertRow(table: string, columns: string[], row: unknown[], pk: string | null, chunk: number): string[] {
   const long = row.map(v => typeof v === 'string' && v.length > chunk)
   const values = row.map((v, i) => (long[i] ? "''" : literal(v)))
-  const out = [`${verb} INTO ${ident(table)} (${columns.map(ident).join(', ')}) VALUES (${values.join(', ')});`]
+  const out = [`INSERT INTO ${ident(table)} (${columns.map(ident).join(', ')}) VALUES (${values.join(', ')});`]
+  const pkAt = pk === null ? -1 : columns.indexOf(pk)
+  const where = pkAt >= 0 && !long[pkAt] ? `${ident(pk!)} = ${literal(row[pkAt])}` : 'rowid = last_insert_rowid()'
   row.forEach((v, i) => {
     if (!long[i]) return
     for (const p of pieces(v as string, chunk)) {
-      out.push(`UPDATE ${ident(table)} SET ${ident(columns[i])} = ${ident(columns[i])} || ${literal(p)} WHERE rowid = last_insert_rowid();`)
+      out.push(`UPDATE ${ident(table)} SET ${ident(columns[i])} = ${ident(columns[i])} || ${literal(p)} WHERE ${where};`)
     }
   })
   return out
@@ -110,16 +120,29 @@ export type RestoreMode =
   | { kind: 'recreate' }
   /** Every row replaced, schema and migrations left as they are (production, after Time Travel can't reach). */
   | { kind: 'replace' }
-  /** One site's rows only, put back over whatever is there; nothing else touched. */
+  /** One site's rows only: its current rows deleted, the backed-up ones inserted; nobody else's touched. */
   | { kind: 'site'; ref: string }
 
 /** Tables that are never replaced in place: wrangler's own record of applied migrations. */
 const KEEP_IN_PLACE = new Set(['d1_migrations'])
+/** A site's own rows: drafts, the tables that reference it, and its own domain (no foreign key on purpose). */
+const SITE_EXTRA = new Set(['custom_domains'])
 
-/** The SQL statements that put an export back, in order. */
+const referencesDrafts = (m: Manifest, t: string): boolean =>
+  m.schema.some(s => s.type === 'table' && s.name === t && /REFERENCES\s+"?drafts"?\b/i.test(s.sql))
+
+/**
+ * The SQL statements that put an export back, in order. Child rows whose site isn't in the
+ * export are left out: tables are exported one after another, so a site deleted part-way
+ * through can leave some behind, and they would break the foreign keys. A site restore inserts
+ * plainly: if another site has since taken its address or domain, it fails rather than delete it.
+ */
 export function restoreStatements(m: Manifest, parts: Part[], mode: RestoreMode, chunk = DEFAULT_CHUNK): string[] {
   const order = parentsFirst(m)
   const byTable = new Map<string, Part[]>(order.map(t => [t, parts.filter(p => p.table === t)]))
+  const createSql = (t: string) => m.schema.find(s => s.type === 'table' && s.name === t)?.sql ?? ''
+  const draftRefs = new Set((byTable.get('drafts') ?? []).flatMap(p => p.rows.map(r => r[p.columns.indexOf('ref')])))
+  const siteTables = order.filter(t => t === 'drafts' || referencesDrafts(m, t) || SITE_EXTRA.has(t))
   const out: string[] = []
   if (mode.kind === 'recreate') {
     for (const t of [...order].reverse()) out.push(`DROP TABLE IF EXISTS ${ident(t)};`)
@@ -130,14 +153,20 @@ export function restoreStatements(m: Manifest, parts: Part[], mode: RestoreMode,
     out.push('PRAGMA defer_foreign_keys = true;')
     for (const t of [...order].reverse()) if (!KEEP_IN_PLACE.has(t)) out.push(`DELETE FROM ${ident(t)};`)
   }
+  if (mode.kind === 'site') {
+    for (const t of [...siteTables].reverse()) out.push(`DELETE FROM ${ident(t)} WHERE "ref" = ${literal(mode.ref)};`)
+  }
   for (const t of order) {
     if (mode.kind === 'replace' && KEEP_IN_PLACE.has(t)) continue
+    if (mode.kind === 'site' && !siteTables.includes(t)) continue
+    const pk = primaryKey(createSql(t))
+    const child = t !== 'drafts' && referencesDrafts(m, t)
     for (const p of byTable.get(t) ?? []) {
       const refAt = p.columns.indexOf('ref')
-      if (mode.kind === 'site' && refAt < 0) continue
       for (const row of p.rows) {
         if (mode.kind === 'site' && row[refAt] !== mode.ref) continue
-        out.push(...insertRow(t, p.columns, row, mode.kind === 'site' ? 'INSERT OR REPLACE' : 'INSERT', chunk))
+        if (child && !draftRefs.has(row[refAt])) continue
+        out.push(...insertRow(t, p.columns, row, pk, chunk))
       }
     }
   }

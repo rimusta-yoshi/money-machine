@@ -1,11 +1,12 @@
-import { MIRROR, parseTrashKey, SRC_UPLOADED, TRASH } from './keys'
 import { listAll } from './listAll'
+import { MIRROR, parseTrashKey, SITE_REF, SRC_UPLOADED, TRASH } from './keys'
 import type { Backups, ObjectInfo, ObjectStore } from './types'
 
 /**
  * Putting one site's files back from the backup bucket: its published pages (sites/<slug>/)
- * and its photos (drafts/<ref>/photos/). Files are only ever written, never deleted: a file the
- * site has now that the backup doesn't is left alone.
+ * and its photos (drafts/<ref>/photos/). Only copies made while the files belonged to that site
+ * are used, so an address that has since gone to someone else never gets the old pages. Files
+ * are only ever written, never deleted: a file the site has now that the backup doesn't is left.
  */
 
 export interface Version {
@@ -17,16 +18,20 @@ export interface Version {
   written: number
   /** When the copy was moved to the trash (deleted or rewritten); Infinity: still current. */
   until: number
+  /** The site it belonged to when copied ('' if the database didn't know). */
+  ref: string
 }
 
 const written = (o: ObjectInfo): number => Number(o.meta[SRC_UPLOADED] ?? o.uploaded)
 
 /** Every backed-up version of the files under a live prefix. */
 export async function versionsOf(store: ObjectStore, prefix: string): Promise<Version[]> {
-  const current = (await listAll(store, MIRROR + prefix)).map(o => ({ key: o.key.slice(MIRROR.length), from: o.key, written: written(o), until: Infinity }))
-  const old = (await listAll(store, TRASH + prefix)).flatMap(o => {
+  const current = (await listAll(store, MIRROR + prefix, true)).map(o => ({
+    key: o.key.slice(MIRROR.length), from: o.key, written: written(o), until: Infinity, ref: o.meta[SITE_REF] ?? '',
+  }))
+  const old = (await listAll(store, TRASH + prefix, true)).flatMap(o => {
     const t = parseTrashKey(o.key)
-    return t ? [{ key: t.key, from: o.key, written: written(o), until: t.trashedAt }] : []
+    return t ? [{ key: t.key, from: o.key, written: written(o), until: t.trashedAt, ref: o.meta[SITE_REF] ?? '' }] : []
   })
   return [...current, ...old]
 }
@@ -47,8 +52,11 @@ export function chooseVersions(versions: Version[], at?: number): Version[] {
 
 export interface FilesRestore { prefixes: string[]; files: { key: string; written: string }[]; restored: number }
 
-export async function restoreFiles(b: Backups, prefixes: string[], o: { at?: number; dryRun: boolean }): Promise<FilesRestore> {
-  const chosen = chooseVersions((await Promise.all(prefixes.map(p => versionsOf(b.store, p)))).flat(), o.at)
+/** One site's files: `slug` is its address now (from the database), if it has one. */
+export async function restoreSiteFiles(b: Backups, site: { ref: string; slug: string | null }, o: { at?: number; dryRun: boolean }): Promise<FilesRestore> {
+  const prefixes = [...(site.slug ? [`sites/${site.slug}/`] : []), `drafts/${site.ref}/photos/`]
+  const versions = (await Promise.all(prefixes.map(p => versionsOf(b.store, p)))).flat().filter(v => v.ref === site.ref)
+  const chosen = chooseVersions(versions, o.at)
   let restored = 0
   if (!o.dryRun) {
     for (const v of chosen) {

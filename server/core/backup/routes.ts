@@ -3,11 +3,10 @@ import { requireAdminKey } from '../admin'
 import { HttpError, json, readJson } from '../http'
 import { rateLimit, SIZE } from '../limits'
 import type { Deps } from '../ports'
-import { continueFilesPass } from './files'
 import { listAll } from './listAll'
-import { BUDGET, nightlyBackup } from './run'
-import { restoreFiles } from './restoreFiles'
-import { health, readStatus, writeStatus } from './status'
+import { BUDGET, nightlyBackup, runFiles } from './run'
+import { restoreSiteFiles } from './restoreFiles'
+import { health, readStatus } from './status'
 import type { Backups } from './types'
 
 /**
@@ -15,7 +14,7 @@ import type { Backups } from './types'
  *
  * GET  /v1/admin/backups                 health, last runs, the exports there are
  * GET  /v1/admin/backups/file?key=…      one export file (manifest or part), as stored
- * POST /v1/admin/backups/run             {files?: true}: back up now (or only carry the files on)
+ * POST /v1/admin/backups/run             {files?, allowDeletes?}: back up now (or only carry the files on)
  * POST /v1/admin/backups/restore-files   {slug | ref, at?, dryRun}: put one site's files back
  */
 
@@ -28,8 +27,9 @@ async function backupsFor(req: Request, deps: Deps): Promise<Backups> {
   return deps.backups
 }
 
-const MANIFEST = /^db\/(daily|monthly)\/([0-9A-Za-z.-]+)\/manifest\.json$/
-const EXPORT_FILE = /^db\/(daily|monthly)\/[0-9A-Za-z.-]+\/(manifest\.json|[a-z0-9_]+\.\d{4}\.json\.gz)$/
+/** db/daily/<2026-10-16T024700.123Z>/… or db/monthly/<2026-10>/… */
+const MANIFEST = /^db\/(daily|monthly)\/(\d{4}-\d{2}-\d{2}T\d{6}\.\d{3}Z|\d{4}-\d{2})\/manifest\.json$/
+const EXPORT_FILE = /^db\/(daily|monthly)\/(\d{4}-\d{2}-\d{2}T\d{6}\.\d{3}Z|\d{4}-\d{2})\/(manifest\.json|[a-z0-9_]+\.\d{4}\.json\.gz)$/
 
 async function overview(deps: Deps, b: Backups): Promise<Response> {
   const status = await readStatus(b.store)
@@ -54,7 +54,7 @@ export async function backupGet(req: Request, deps: Deps, sub: string): Promise<
   return sub === 'file' ? exportFile(req, b) : overview(deps, b)
 }
 
-const runBody = z.object({ files: z.boolean().optional() }).strict()
+const runBody = z.object({ files: z.boolean().optional(), allowDeletes: z.boolean().optional() }).strict()
 
 const restoreBody = z.object({
   slug: z.string().regex(/^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/).optional(),
@@ -75,22 +75,21 @@ export function restoreTime(at: string | undefined): number | undefined {
 async function run(req: Request, deps: Deps, b: Backups): Promise<Response> {
   const parsed = runBody.safeParse(await readJson(req, SIZE.smallJson))
   if (!parsed.success) throw new HttpError(422, 'invalid', 'Send {} or {"files": true}.')
-  if (!parsed.data.files) return json({ ran: await nightlyBackup(b, deps.now()) }, 200, NO_STORE)
-  const s = await readStatus(b.store)
-  const pass = await continueFilesPass(b, s.files, { now: deps.now(), budget: BUDGET.nightly })
-  await writeStatus(b.store, { ...(await readStatus(b.store)), files: pass.state })
-  return json({ ran: { files: pass.done ? 'pass finished' : 'pass continues', copied: pass.copied, trashed: pass.trashed } }, 200, NO_STORE)
+  const { files, allowDeletes } = parsed.data
+  if (!files) return json({ ran: await nightlyBackup(b, deps.now(), { allowDeletes }) }, 200, NO_STORE)
+  return json({ ran: { files: (await runFiles(b, deps.now(), BUDGET.nightly, { allowDeletes })).summary } }, 200, NO_STORE)
 }
 
 async function restore(req: Request, b: Backups): Promise<Response> {
   const parsed = restoreBody.safeParse(await readJson(req, SIZE.smallJson))
   if (!parsed.success) throw new HttpError(422, 'invalid', 'Send {"slug": …} or {"ref": …}, with "dryRun" true or false.')
   const { slug, ref, at, dryRun } = parsed.data
-  const siteRef = ref ?? (await b.db.refForSlug(slug!))
-  const siteSlug = slug ?? (await b.db.slugForRef(ref!))
-  const prefixes = [...(siteSlug ? [`sites/${siteSlug}/`] : []), ...(siteRef ? [`drafts/${siteRef}/photos/`] : [])]
-  const done = await restoreFiles(b, prefixes, { at: restoreTime(at), dryRun })
-  return json({ dryRun, ...done }, 200, NO_STORE)
+  const at_ = restoreTime(at)
+  // The site the address belongs to now: its rows must be back first (restore-db) if it was deleted.
+  const siteRef = ref ?? (await b.db.refsForSlugs([slug!])).get(slug!)
+  if (!siteRef) throw new HttpError(404, 'unknown_site', 'No site has that address in the database. Put its rows back first (npm run backup -- restore-db … --site), or give its ref.')
+  const done = await restoreSiteFiles(b, { ref: siteRef, slug: await b.db.slugForRef(siteRef) }, { at: at_, dryRun })
+  return json({ dryRun, ref: siteRef, ...done }, 200, NO_STORE)
 }
 
 export async function backupPost(req: Request, deps: Deps, sub: string): Promise<Response> {

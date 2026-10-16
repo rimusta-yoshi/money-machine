@@ -144,6 +144,25 @@ describe('backups', () => {
     expect(await back.text()).toBe(html)
   })
 
+  it('never takes an address back from a site that has it now', async () => {
+    const oldKey = await paid('taken-site')
+    const listed = (await (await get('/v1/admin/sites')).json()) as { sites: { ref: string; url: string | null }[] }
+    const oldRef = listed.sites.find(x => x.url === `https://taken-site.${BASE}/`)!.ref
+    const o = await backUpEverything()
+    expect((await post('/v1/admin/sites/delete', { refs: [oldRef] })).status).toBe(200)
+    const newKey = await paid('taken-site')
+    const newHtml = await (await site('taken-site')).text()
+
+    const d = await downloadExport(get, pickExport(o, 'latest'))
+    await expect(apply(await s.db(), restoreStatements(d.manifest, d.parts, { kind: 'site', ref: oldRef }))).rejects.toThrow(/UNIQUE/)
+    expect((await c.call('/v1/draft', { key: newKey })).status).toBe(200)
+    expect((await c.call('/v1/draft', { key: oldKey })).status).toBe(401)
+    // The address's backed-up pages were the old site's: none of them go onto the new one.
+    const plan = (await (await post('/v1/admin/backups/restore-files', { slug: 'taken-site', dryRun: false })).json()) as { files: unknown[] }
+    expect(plan.files).toEqual([])
+    expect(await (await site('taken-site')).text()).toBe(newHtml)
+  })
+
   it('rebuilds a whole database from an export, as the local copy to inspect', async () => {
     const fresh = await startStack({ baseDomain: BASE })
     try {

@@ -688,12 +688,21 @@ No secrets are in the database (only hashes of keys and links), so none are in t
   (`retention.ts`). Half an hour before the 03:17 cleanup, so anything the cleanup deletes by
   mistake was copied minutes earlier.
 - **Files, a budget at a time** (`files.ts`): the live keys and their copies are walked side by
-  side in key order, 100 at a time. A new or rewritten file (live `uploaded` later than the copy)
-  is copied; a copy whose original is gone moves to `trash/`. Each run stops after about 700
-  storage calls (250 for the catch-up), well under the Worker limits (1,000 per run on Workers
-  Free, 10,000 on Paid), and saves where it stopped in `state/status.json`. The quarter-hourly
-  cron (`*/15`) carries an unfinished pass on, so a large first backup finishes over a few hours.
-  Files are read whole (photos are at most 2 MB).
+  side in key order, 100 live keys a page. Each copy notes when the bytes it holds were written
+  (`src_uploaded`, from the read itself) and which site they belonged to (`site_ref`); a file is
+  copied again when its live write time differs. A copy whose original is gone, or about to be
+  replaced, moves to `trash/`. A run stops after about 700 storage and database calls in all
+  (what the exports used comes off that; 250 for the catch-up), checked file by file, well under
+  the Worker limits (1,000 per run on Workers Free, 10,000 on Paid), and saves where it got to in
+  `state/status.json` after every page. The quarter-hourly cron (`*/15`) carries an unfinished
+  pass on, so a large first backup finishes over a few hours. Files are read whole (photos are at
+  most 2 MB).
+- **One run at a time**: a run walking the files holds a 15-minute lease (`busyUntil`); any other
+  run (the catch-up, `npm run backup -- run`) skips the files meanwhile.
+- **Mass-delete guard**: a pass that would move more than a quarter of the copies it has seen to
+  the trash (past the first 100) stops and says so on the dashboard: a wrong bucket binding or an
+  emptied database must not empty the backups. If the deletes were meant (say, test sites cleared
+  before launch): `npm run backup -- run --allow-deletes`.
 - **The export** (`dbExport.ts`): 50 rows per query in rowid order, part files of about 4 MB
   (`<table>.0001.json.gz`: `{table, columns, rows}`), then `manifest.json` last (schema, tables,
   row counts, part keys). An export without a manifest never counts and is deleted after a day.
@@ -755,7 +764,10 @@ npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-local
 
 This finds the site's id in the backup (it may be gone from the live database), writes just its
 rows into the local dev database (stop `npm run dev:stack` first) and leaves the SQL in
-`.wrangler/backups/`: read it to check these are the right rows. Then:
+`.wrangler/backups/`: read it to check these are the right rows. The SQL deletes that site's
+current rows and inserts the backed-up ones with plain INSERTs: if another site has taken its
+address or domain since, the import fails (it never deletes the other site); tell rob, the
+address is no longer this customer's. Then:
 
 ```bash
 npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-production --yes
@@ -769,10 +781,16 @@ npm run backup -- restore-files --site joes-plumbing
 npm run backup -- restore-files --site joes-plumbing --yes
 ```
 
+The production import prints the Time Travel bookmark first (the undo), then counts the site's
+rows afterwards and says ✓ if they match the backup, or ✗ with the undo command.
+
 `restore-files` puts back the newest backed-up copy of each of the site's pages and photos
 (deleted ones too), or with `--from 2026-10-15` (end of that day, UTC) or `--from <ISO time>`
-the files as they were then. It only writes files, never deletes any. Then check the site, and
-re-publish it from the edit link if its pages should match the restored record.
+the files as they were then. An address is looked up in the live database, so put the rows back
+first; only copies made while the files belonged to that site are used, so an address that has
+gone to someone else never gets the old pages. It only writes files, never deletes any. Then
+check the site, and re-publish it from the edit link if its pages should match the restored
+record.
 
 **C. The database is lost or damaged beyond 30 days, or Time Travel can't help.** Check the
 export locally first (this replaces the local dev database):
@@ -794,9 +812,9 @@ command above. The SQL is also left in `.wrangler/backups/` for `wrangler d1 exe
 
 **D. Files are missing from many sites** (the live bucket was emptied, or a bug deleted files).
 Run `restore-files --ref <ref> --yes` for each site `npm run test-sites` lists (it lists every
-paid or published site; it only refuses deleting after launch). A deploy fix must come first, or
-the next pass moves the copies of anything deleted to the trash: they stay there 30 days, and
-`restore-files` finds them there too.
+paid or published site; it only refuses deleting after launch). A deploy fix must come first.
+The mass-delete guard stops the nightly pass from moving most copies to the trash meanwhile;
+copies it did move stay there 30 days, and `restore-files` finds them there too.
 
 After any restore: `npm run backup -- verify`, open the affected sites, and note what happened
 in `docs/pm/pm-status.md`.
@@ -810,6 +828,8 @@ email. So deleted data lives on in backups for a while:
 - Unfinished sites (deleted after 30 days unused) stay in daily exports up to 30 days more.
 - Paid and published sites stay in monthly exports up to 12 months after they're deleted.
 - Deleted photos and pages stay in `trash/` 30 days.
+- One exception: if backups stop altogether, the newest daily export is kept until they work
+  again (so there's always one to go back to). The dashboard shows ✗ long before that matters.
 
 Expired backups are deleted for good by the nightly run. If a customer asks for their data to be
 erased, delete their site as usual; their data then leaves the backups on the schedule above

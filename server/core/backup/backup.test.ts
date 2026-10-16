@@ -4,30 +4,34 @@ import { describe, expect, it } from 'vitest'
 import { pickExport } from './client'
 import type { Overview } from './client'
 import { MONTHLY, SKIP_DAILY } from './dbExport'
-import { continueFilesPass, EMPTY_PASS } from './files'
-import { DAY, dailyId, idTime, trashKey } from './keys'
+import { continueFilesPass, EMPTY_PASS, TooManyDeletes, TRASH_GUARD } from './files'
+import { DAY, dailyId, idTime, SITE_REF, SRC_UPLOADED, trashKey } from './keys'
 import { pruneBackups } from './retention'
-import { chooseVersions } from './restoreFiles'
+import { chooseVersions, restoreSiteFiles } from './restoreFiles'
+import { runFiles } from './run'
 import type { Version } from './restoreFiles'
 import { restoreTime } from './routes'
-import { parentsFirst, pieces, restoreStatements } from './sql'
+import { parentsFirst, pieces, primaryKey, restoreStatements } from './sql'
 import type { Manifest } from './sql'
-import { EMPTY_STATUS, health } from './status'
+import { EMPTY_STATUS, health, readStatus, writeStatus } from './status'
 import type { Backups, ObjectStore, TableReader } from './types'
 
 /** An in-memory bucket with a clock the test moves. */
-function memoryStore(clock: { now: number }) {
+function memoryStore(clock: { now: number; pageCap: number }) {
   const objects = new Map<string, { bytes: Uint8Array; contentType: string; meta: Record<string, string>; uploaded: number }>()
   const store: ObjectStore = {
+    // The cursor is the last key handed out; pages are short (like R2's) to exercise paging.
     async page(prefix, o = {}) {
-      const keys = [...objects.keys()].filter(k => k.startsWith(prefix) && (!o.startAfter || k > o.startAfter)).sort()
-      const limit = o.limit ?? 1000
+      const after = o.cursor ?? o.startAfter
+      const keys = [...objects.keys()].filter(k => k.startsWith(prefix) && (!after || k > after)).sort()
+      const limit = Math.min(o.limit ?? 1000, clock.pageCap)
       const slice = keys.slice(0, limit)
-      return { objects: slice.map(key => ({ key, size: objects.get(key)!.bytes.length, uploaded: objects.get(key)!.uploaded, meta: objects.get(key)!.meta })), more: keys.length > limit }
+      const objectsOut = slice.map(key => ({ key, size: objects.get(key)!.bytes.length, uploaded: objects.get(key)!.uploaded, meta: o.meta ? objects.get(key)!.meta : {} }))
+      return { objects: objectsOut, cursor: keys.length > limit ? slice[slice.length - 1] : undefined }
     },
     async read(key) {
       const o = objects.get(key)
-      return o ? { bytes: o.bytes.slice().buffer, contentType: o.contentType, meta: { ...o.meta } } : null
+      return o ? { bytes: o.bytes.slice().buffer, contentType: o.contentType, meta: { ...o.meta }, uploaded: o.uploaded } : null
     },
     async write(key, bytes, contentType, meta = {}) {
       const data = typeof bytes === 'string' ? new TextEncoder().encode(bytes) : new Uint8Array(bytes)
@@ -43,15 +47,15 @@ const KEPT = 'a'.repeat(32)
 const UNKEPT = 'b'.repeat(32)
 
 function setup() {
-  const clock = { now: Date.UTC(2026, 9, 16, 2, 47) }
+  const clock = { now: Date.UTC(2026, 9, 16, 2, 47), pageCap: 3 }
   const live = memoryStore(clock)
   const store = memoryStore(clock)
   const db: TableReader = {
     schema: async () => [],
     rows: async () => [],
     keptRefs: async refs => new Set(refs.filter(r => r === KEPT)),
-    refForSlug: async () => null,
-    slugForRef: async () => null,
+    refsForSlugs: async slugs => new Map(slugs.filter(x => x === 'joe').map(x => [x, KEPT])),
+    slugForRef: async ref => (ref === KEPT ? 'joe' : null),
   }
   const b: Backups = { db, live: live.store, store: store.store }
   return { clock, live, store, b }
@@ -98,10 +102,89 @@ describe('files pass', () => {
     clock.now += DAY
     expect(await continueFilesPass(b, state, { now: clock.now, budget: 100 })).toMatchObject({ copied: 0, trashed: 0 })
   })
+
+  it('copies a file again if it was rewritten while being copied', async () => {
+    const { clock, live, store, b } = setup()
+    await live.store.write('sites/joe/index.html', 'v1', 'text/html')
+    clock.now += 1000
+    const read = live.store.read
+    let raced = false
+    live.store.read = async key => {
+      const got = await read(key)
+      if (!raced) {
+        raced = true
+        clock.now += 10
+        await live.store.write(key, 'v2', 'text/html')
+      }
+      return got
+    }
+    const first = await continueFilesPass(b, EMPTY_PASS, { now: clock.now, budget: 100 })
+    expect(store.text('files/sites/joe/index.html')).toBe('v1')
+    clock.now += DAY
+    expect(await continueFilesPass(b, first.state, { now: clock.now, budget: 100 })).toMatchObject({ copied: 1 })
+    expect(store.text('files/sites/joe/index.html')).toBe('v2')
+  })
+
+  it('copes with a listing page that comes back empty with more to come', async () => {
+    const { clock, live, store, b } = setup()
+    for (const n of ['a', 'b', 'c', 'd']) await live.store.write(`sites/joe/${n}.html`, n, 'text/html')
+    const page = live.store.page
+    let first = true
+    live.store.page = async (prefix, o) => {
+      if (first && !o?.cursor) {
+        first = false
+        return { objects: [], cursor: o?.startAfter ?? '\u0000' }
+      }
+      return page(prefix, o)
+    }
+    clock.now += 1000
+    const done = await continueFilesPass(b, EMPTY_PASS, { now: clock.now, budget: 100 })
+    expect(done.done).toBe(true)
+    expect(store.keys('files/')).toHaveLength(4)
+  })
+
+  it('stops instead of moving most of the backups to the trash, unless told to', async () => {
+    const { clock, live, store, b } = setup()
+    for (let i = 0; i < 150; i++) await live.store.write(`sites/joe/${String(i).padStart(3, '0')}.html`, 'x', 'text/html')
+    clock.now += 1000
+    const state = (await continueFilesPass(b, EMPTY_PASS, { now: clock.now, budget: 10_000 })).state
+    await live.store.remove(live.keys('sites/'))
+    clock.now += DAY
+    await expect(continueFilesPass(b, state, { now: clock.now, budget: 10_000 })).rejects.toThrow(TooManyDeletes)
+    // Up to the first 100 went to the trash (still restorable for 30 days), then it stopped.
+    expect(store.keys('trash/')).toHaveLength(TRASH_GUARD.min)
+    expect(store.keys('files/')).toHaveLength(150 - TRASH_GUARD.min)
+    await continueFilesPass(b, state, { now: clock.now, budget: 10_000, allowDeletes: true })
+    expect(store.keys('files/')).toEqual([])
+    expect(store.keys('trash/')).toHaveLength(150)
+  })
+
+  it('lets only one run walk the files at a time', async () => {
+    const { clock, live, store, b } = setup()
+    await live.store.write('sites/joe/index.html', 'v1', 'text/html')
+    clock.now += 1000
+    await writeStatus(store.store, { ...EMPTY_STATUS, files: { ...EMPTY_PASS, busyUntil: clock.now + 60_000 } })
+    expect((await runFiles(b, clock.now, 100)).summary).toMatch(/skipped/)
+    clock.now += 120_000
+    expect((await runFiles(b, clock.now, 100)).summary).toMatch(/pass finished: 1 copied/)
+    expect((await readStatus(store.store)).files.busyUntil).toBeNull()
+  })
+})
+
+describe('restoring a site\'s files', () => {
+  it('uses only copies made while the address was that site\'s', async () => {
+    const { clock, store, live, b } = setup()
+    const OTHER = 'c'.repeat(32)
+    await store.store.write('files/sites/joe/index.html', 'new owner', 'text/html', { [SRC_UPLOADED]: String(clock.now), [SITE_REF]: OTHER })
+    await store.store.write(trashKey('sites/joe/index.html', clock.now - DAY), 'old owner', 'text/html', { [SRC_UPLOADED]: String(clock.now - 2 * DAY), [SITE_REF]: KEPT })
+    const plan = await restoreSiteFiles(b, { ref: KEPT, slug: 'joe' }, { dryRun: false })
+    expect(plan.files.map(f => f.key)).toEqual(['sites/joe/index.html'])
+    expect(live.text('sites/joe/index.html')).toBe('old owner')
+  })
 })
 
 describe('choosing versions to restore', () => {
-  const v = (key: string, written: number, until = Infinity): Version => ({ key, from: `x/${key}/${written}`, written, until })
+  const v = (key: string, written: number, until = Infinity): Version => ({ key, from: `x/${key}/${written}`, written, until, ref: KEPT })
   const versions = [v('a', 10, 20), v('a', 20), v('b', 5, 15), v('c', 25)]
 
   it('takes the newest copy of everything, deleted files included, with no time given', () => {
@@ -196,12 +279,27 @@ describe('restore SQL', () => {
     expect(sql.indexOf(`INSERT INTO "drafts" ("ref", "record") VALUES ('r2', NULL);`)).toBeLessThan(sql.findIndex(s => s.startsWith('INSERT INTO "slugs"')))
   })
 
-  it('restores one site without touching anything else', () => {
+  it('restores one site: its own rows out, the backed-up ones in, plain inserts (never replacing anyone else\'s)', () => {
     const sql = restoreStatements(manifest, parts, { kind: 'site', ref: 'r1' })
     expect(sql).toEqual([
-      `INSERT OR REPLACE INTO "drafts" ("ref", "record") VALUES ('r1', '{"name":"Joe''s"}');`,
-      `INSERT OR REPLACE INTO "slugs" ("slug", "ref") VALUES ('joe', 'r1');`,
+      `DELETE FROM "slugs" WHERE "ref" = 'r1';`,
+      `DELETE FROM "drafts" WHERE "ref" = 'r1';`,
+      `INSERT INTO "drafts" ("ref", "record") VALUES ('r1', '{"name":"Joe''s"}');`,
+      `INSERT INTO "slugs" ("slug", "ref") VALUES ('joe', 'r1');`,
     ])
+  })
+
+  it('leaves out child rows whose site the export no longer has', () => {
+    const orphan = [...parts.slice(0, 1).map(p => ({ ...p, rows: [...p.rows, ['gone', 'r9']] })), ...parts.slice(1)]
+    const sql = restoreStatements(manifest, orphan, { kind: 'replace' })
+    expect(sql.filter(s => s.startsWith('INSERT INTO "slugs"'))).toHaveLength(2)
+    expect(sql.some(s => s.includes("'r9'"))).toBe(false)
+  })
+
+  it('finds an inline primary key', () => {
+    expect(primaryKey('CREATE TABLE drafts (\n  ref TEXT PRIMARY KEY, -- random id\n  key_hash TEXT NOT NULL UNIQUE)')).toBe('ref')
+    expect(primaryKey('CREATE TABLE events (id INTEGER PRIMARY KEY, step TEXT)')).toBe('id')
+    expect(primaryKey('CREATE TABLE x (a TEXT, b TEXT)')).toBeNull()
   })
 
   it('replaces every row in place, child tables emptied first', () => {
@@ -212,12 +310,12 @@ describe('restore SQL', () => {
   it('adds long text in pieces, never splitting a character', () => {
     const text = `${'x'.repeat(9)}😀${'y'.repeat(10)}`
     expect(pieces(text, 10)).toEqual(['x'.repeat(9), `😀${'y'.repeat(8)}`, 'yy'])
-    const sql = restoreStatements(manifest, [{ table: 'drafts', columns: ['ref', 'record'], rows: [['r1', 'abcdefghij']] }], { kind: 'site', ref: 'r1' }, 4)
-    expect(sql).toEqual([
-      `INSERT OR REPLACE INTO "drafts" ("ref", "record") VALUES ('r1', '');`,
-      `UPDATE "drafts" SET "record" = "record" || 'abcd' WHERE rowid = last_insert_rowid();`,
-      `UPDATE "drafts" SET "record" = "record" || 'efgh' WHERE rowid = last_insert_rowid();`,
-      `UPDATE "drafts" SET "record" = "record" || 'ij' WHERE rowid = last_insert_rowid();`,
+    const sql = restoreStatements(manifest, [{ table: 'drafts', columns: ['ref', 'record'], rows: [['r1', 'abcdefghij']] }], { kind: 'recreate' }, 4)
+    expect(sql.filter(s => /^(INSERT|UPDATE)/.test(s))).toEqual([
+      `INSERT INTO "drafts" ("ref", "record") VALUES ('r1', '');`,
+      `UPDATE "drafts" SET "record" = "record" || 'abcd' WHERE "ref" = 'r1';`,
+      `UPDATE "drafts" SET "record" = "record" || 'efgh' WHERE "ref" = 'r1';`,
+      `UPDATE "drafts" SET "record" = "record" || 'ij' WHERE "ref" = 'r1';`,
     ])
   })
 })

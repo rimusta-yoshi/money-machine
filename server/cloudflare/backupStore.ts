@@ -5,16 +5,23 @@ import type { Backups, ObjectStore, TableReader } from '../core/backup/types'
 export function r2Store(bucket: R2Bucket): ObjectStore {
   return {
     async page(prefix, o = {}) {
-      const res = await bucket.list({ prefix, startAfter: o.startAfter, limit: o.limit ?? 1000, include: ['customMetadata'] })
+      const res = await bucket.list({
+        prefix, limit: o.limit ?? 1000,
+        ...(o.cursor ? { cursor: o.cursor } : { startAfter: o.startAfter }),
+        ...(o.meta ? { include: ['customMetadata'] as ('customMetadata')[] } : {}),
+      })
       return {
         objects: res.objects.map(x => ({ key: x.key, size: x.size, uploaded: x.uploaded.getTime(), meta: x.customMetadata ?? {} })),
-        more: res.truncated,
+        cursor: res.truncated ? res.cursor : undefined,
       }
     },
     async read(key) {
       const obj = await bucket.get(key)
       if (!obj) return null
-      return { bytes: await obj.arrayBuffer(), contentType: obj.httpMetadata?.contentType ?? 'application/octet-stream', meta: obj.customMetadata ?? {} }
+      return {
+        bytes: await obj.arrayBuffer(), contentType: obj.httpMetadata?.contentType ?? 'application/octet-stream',
+        meta: obj.customMetadata ?? {}, uploaded: obj.uploaded.getTime(),
+      }
     },
     async write(key, bytes, contentType, meta) {
       await bucket.put(key, bytes, { httpMetadata: { contentType }, customMetadata: meta })
@@ -53,9 +60,12 @@ export function d1Tables(db: D1Database): TableReader {
         .bind(...refs).all<{ ref: string }>()
       return new Set(res.results.map(r => r.ref))
     },
-    async refForSlug(slug) {
-      const row = await db.prepare('SELECT ref FROM slugs WHERE slug = ?1 UNION ALL SELECT ref FROM drafts WHERE slug = ?1 LIMIT 1').bind(slug).first<{ ref: string }>()
-      return row?.ref ?? null
+    async refsForSlugs(slugs) {
+      if (!slugs.length) return new Map()
+      const res = await db.prepare(`SELECT slug, ref FROM drafts WHERE slug IN (${params(slugs.length)})
+        UNION ALL SELECT slug, ref FROM slugs WHERE slug IN (${params(slugs.length)})`).bind(...slugs).all<{ slug: string; ref: string }>()
+      // The site published at an address comes first; a claim (an address held at checkout) only if none is.
+      return res.results.reduce((m, r) => (m.has(r.slug) ? m : m.set(r.slug, r.ref)), new Map<string, string>())
     },
     async slugForRef(ref) {
       const row = await db.prepare('SELECT slug FROM drafts WHERE ref = ?1 AND slug IS NOT NULL UNION ALL SELECT slug FROM slugs WHERE ref = ?1 LIMIT 1').bind(ref).first<{ slug: string }>()
