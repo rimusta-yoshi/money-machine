@@ -5,7 +5,7 @@ import type { Database, DraftRow, TakedownLogEntry, TakedownRecord } from '../co
  * Each change is one conditional UPDATE, so two admins (or a retry) can't both act on one site.
  */
 
-type Takedown = Pick<Database, 'draftBySlug' | 'markTakenDown' | 'markRestored' | 'takedownRecord' | 'slugTakenDown'>
+type Takedown = Pick<Database, 'draftBySlug' | 'markTakenDown' | 'markRestored' | 'takedownRecord' | 'noteTakedownRefund' | 'claimTakedownRefundEmail' | 'slugTakenDown'>
 
 interface TakedownDbRow {
   taken_down_at: number | null; takedown_reason: string | null; takedown_by: string | null
@@ -24,6 +24,10 @@ function logEntries(json: string | null): TakedownLogEntry[] {
 
 /** Appends one entry to the JSON history in SQL (?entry is a JSON object). */
 const APPEND = (entry: string) => `json_insert(COALESCE(takedown_log, '[]'), '$[#]', json(${entry}))`
+
+/** This row's 'refunded' history entry for payment intent ?2, as json_each rows (key: its index). */
+const REFUND_ENTRY = (also = '') => `SELECT key FROM json_each(COALESCE(drafts.takedown_log, '[]'))
+  WHERE json_extract(value, '$.action') = 'refunded' AND json_extract(value, '$.paymentIntent') = ?2${also}`
 
 export function d1Takedown(db: D1Database, draftWhere: (where: string, ...values: unknown[]) => Promise<DraftRow | null>): Takedown {
   const changed = (r: D1Result): boolean => (r.meta.changes ?? 0) > 0
@@ -56,6 +60,22 @@ export function d1Takedown(db: D1Database, draftWhere: (where: string, ...values
         log: logEntries(r.takedown_log),
       }
       return out
+    },
+    async noteTakedownRefund(ref, { now, sessionId, paymentIntent }) {
+      const entry = JSON.stringify({ action: 'refunded', at: now, by: 'stripe', reason: 'Paid while taken down: refunded automatically', sessionId, paymentIntent })
+      await db.prepare(
+        `UPDATE drafts SET takedown_log = ${APPEND('?3')}
+         WHERE ref = ?1 AND NOT EXISTS (${REFUND_ENTRY()})`,
+      ).bind(ref, paymentIntent, entry).run()
+    },
+    async claimTakedownRefundEmail(ref, { now, paymentIntent, refundId }) {
+      // The note's index in the list, if it's not marked emailed yet; nothing changes otherwise.
+      const pending = `${REFUND_ENTRY(" AND json_extract(value, '$.emailedAt') IS NULL")} LIMIT 1`
+      return changed(await db.prepare(
+        `UPDATE drafts SET takedown_log = json_set(takedown_log,
+           '$[' || (${pending}) || '].emailedAt', ?3, '$[' || (${pending}) || '].refundId', ?4)
+         WHERE ref = ?1 AND EXISTS (${pending})`,
+      ).bind(ref, paymentIntent, now, refundId).run())
     },
     async slugTakenDown(slug) {
       const row = await db.prepare(

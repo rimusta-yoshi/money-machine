@@ -267,17 +267,76 @@ describe('taking a site down and restoring it', () => {
     expect(cf.byName(site.host)).toBeNull()
   })
 
-  it('a checkout paid after the take-down is recorded, but the site stays hidden and no welcome email goes', async () => {
+  it('a checkout paid after the take-down is refunded at once: not recorded, not published, one short email', async () => {
     const key = await c.newDraft()
     const email = `takedown${++n}@example.com`
     await c.save(key, finishedSite({ business: { email } }))
     expect((await c.checkout(key, 'takedown-late-pay')).status).toBe(201)
     const session = stripe.lastSession()
     expect((await takedown({ ref: session.ref, reason: 'Scam shop' })).status).toBe(200)
+    const paidEvent = stripe.completed(session.id)
+    expect((await send(paidEvent)).status).toBe(200)
+
+    const refundsFor = () => [...stripe.refunds.entries()].filter(([, r]) => r.paymentIntent === session.paymentIntent)
+    expect(refundsFor().map(([k]) => k)).toEqual([`takedown-${session.paymentIntent}`])
+    const found = await (await lookup(`ref=${session.ref}`)).json() as { site: { takedown: { log: { action: string; paymentIntent?: string }[] } } }
+    expect(found).toMatchObject({ site: { paid: false, refunded: false, published: false, takenDown: true } })
+    expect(found.site.takedown.log.filter(e => e.action === 'refunded')).toMatchObject([{ by: 'stripe', paymentIntent: session.paymentIntent, sessionId: session.id, refundId: expect.stringMatching(/^re_/), emailedAt: expect.any(Number) }])
+    // Never published: the address shows nothing.
+    expect((await free('takedown-late-pay')).status).toBe(404)
+    // One short, neutral email, and no welcome (no edit or refund link).
+    const sent = stripe.emailsTo(email)
+    expect(sent).toHaveLength(1)
+    expect(sent[0].subject).toBe('Your payment of £99 has been refunded')
+    expect(sent[0].text).toContain("Your payment of £99 has been refunded: this site can't be published.")
+    expect(sent[0].text).not.toMatch(/taken down|#edit=|#refund=|Scam/)
+    expect(await (await c.call(`/v1/checkouts/${session.id}`)).json()).toEqual({ state: 'refunded' })
+
+    // Stripe retries: the same delivery, and another event for the same payment. Same refund, no second email.
+    expect(await (await send(paidEvent)).json()).toMatchObject({ duplicate: true })
     expect((await send(stripe.completed(session.id))).status).toBe(200)
-    expect(await (await lookup(`ref=${session.ref}`)).json()).toMatchObject({ site: { paid: true, takenDown: true } })
-    await expectUnavailable(await free('takedown-late-pay'))
+    expect(refundsFor()).toHaveLength(1)
+    expect(stripe.emailsTo(email)).toHaveLength(1)
+
+    // Restored: an unpaid draft again, not a paid site. A retry after the restore still doesn't publish it.
+    expect(await (await restore({ ref: session.ref })).json()).toMatchObject({ stillDown: false, site: { paid: false, refunded: false, published: false, takenDown: false } })
+    expect((await send(stripe.completed(session.id))).status).toBe(200)
+    expect(await (await lookup(`ref=${session.ref}`)).json()).toMatchObject({ site: { paid: false, published: false } })
+    expect((await free('takedown-late-pay')).status).toBe(404)
+    expect(refundsFor()).toHaveLength(1)
+    expect(stripe.emailsTo(email)).toHaveLength(1)
+    expect(await (await c.call(`/v1/checkouts/${session.id}`)).json()).toEqual({ state: 'refunded' })
+
+    // The owner can pay again, and that payment puts it live as usual.
+    expect((await c.checkout(key, 'takedown-late-pay')).status).toBe(201)
+    const again = stripe.lastSession()
+    expect((await send(stripe.completed(again.id))).status).toBe(200)
+    expect(await (await lookup(`ref=${session.ref}`)).json()).toMatchObject({ site: { paid: true, refunded: false, published: true } })
+    expect((await free('takedown-late-pay')).status).toBe(200)
+    expect(stripe.emailsTo(email).map(e => e.subject)).toEqual(['Your payment of £99 has been refunded', expect.stringMatching(/^Your site is live/)])
+  })
+
+  it('a refund that fails is retried by Stripe and still refunds, even after a restore meanwhile', async () => {
+    const key = await c.newDraft()
+    const email = `takedown${++n}@example.com`
+    await c.save(key, finishedSite({ business: { email } }))
+    expect((await c.checkout(key, 'takedown-retry-pay')).status).toBe(201)
+    const session = stripe.lastSession()
+    expect((await takedown({ ref: session.ref, reason: 'Phishing' })).status).toBe(200)
+    stripe.failRefunds(true)
+    try {
+      expect((await send(stripe.completed(session.id))).status).toBe(502)
+    } finally {
+      stripe.failRefunds(false)
+    }
     expect(stripe.emailsTo(email)).toEqual([])
+    // Restored before Stripe tries again: the retry still refunds rather than publishing.
+    expect((await restore({ ref: session.ref })).status).toBe(200)
+    expect((await send(stripe.completed(session.id))).status).toBe(200)
+    expect([...stripe.refunds.keys()]).toContain(`takedown-${session.paymentIntent}`)
+    expect(await (await lookup(`ref=${session.ref}`)).json()).toMatchObject({ site: { paid: false, published: false } })
+    expect((await free('takedown-retry-pay')).status).toBe(404)
+    expect(stripe.emailsTo(email).map(e => e.subject)).toEqual(['Your payment of £99 has been refunded'])
   })
 
   it('an unpaid draft taken down: its preview links stop, and the daily cleanup keeps it as evidence', async () => {

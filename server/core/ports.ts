@@ -59,7 +59,12 @@ export interface TakedownRecord {
   log: TakedownLogEntry[]
 }
 
-export interface TakedownLogEntry { action: 'takedown' | 'restore'; at: number; by: string; reason: string | null }
+/** 'refunded': a checkout paid while the site was taken down, refunded automatically (server/core/takedownRefund.ts). */
+export interface TakedownLogEntry {
+  action: 'takedown' | 'restore' | 'refunded'; at: number; by: string; reason: string | null
+  /** On 'refunded' entries: the payment refunded, the refund, and when the payer was emailed. */
+  sessionId?: string; paymentIntent?: string; refundId?: string; emailedAt?: number
+}
 
 /** A site flagged for review (server/core/reviewWords.ts). */
 export interface ReviewRow {
@@ -206,6 +211,13 @@ export interface Database {
   /** Restores a taken-down site, recording who. False if it wasn't down. */
   markRestored(ref: string, t: { now: number; by: string }): Promise<boolean>
   takedownRecord(ref: string): Promise<TakedownRecord | null>
+  /**
+   * Notes on the take-down log a payment to refund because the site was taken down, before the
+   * refund is made. Once per payment intent: a repeat changes nothing.
+   */
+  noteTakedownRefund(ref: string, r: { now: number; sessionId: string; paymentIntent: string }): Promise<void>
+  /** Marks that note's payer emailed, with the refund made. True only for the first call. */
+  claimTakedownRefundEmail(ref: string, r: { now: number; paymentIntent: string; refundId: string }): Promise<boolean>
   /** Whether the site that holds this address now is taken down (the site worker asks). */
   slugTakenDown(slug: string): Promise<boolean>
   /** Counts one request against a key in a fixed window; returns the count so far. */
