@@ -47,7 +47,8 @@
 .ad-grid--single { grid-template-columns: minmax(0, 1fr); margin-bottom: 16px; }
 
 /* ---- Tables ---- */
-.ad-scroll { overflow-x: auto; }
+/* Positioned, so screen-reader-only text inside (absolutely placed) is clipped here and never widens the page. */
+.ad-scroll { position: relative; overflow-x: auto; }
 .ad-scroll--tall { max-height: 360px; overflow-y: auto; }
 .ad-table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
 .ad-table th, .ad-table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--sb-rule); white-space: nowrap; }

@@ -79,17 +79,20 @@ export function ReviewPanel({ base, adminKey, refresh, onRefused }: Props) {
                   <td><span className={`ad-status ad-status--${TONE(s)}`}>{STATUS(s)}</span></td>
                   <td>{shortDate(s.flaggedAt)}</td>
                   <td>{s.url ? <a href={s.url} target="_blank" rel="noreferrer">{new URL(s.url).host}<span className="sb-sr-only"> (opens in a new tab)</span></a> : '–'}</td>
-                  <td className="ad-actions">
-                    <button type="button" className="sb-text-btn" disabled={busy === s.ref} onClick={() => { void markReviewed(s) }}>
-                      Mark reviewed<span className="sb-sr-only">: {label(s)}</span>
-                    </button>
-                    {/* The form opens below the table (it fits a phone); this button stays, so focus comes back to it. */}
-                    <button
-                      id={`ad-td-${s.ref}`} type="button" className={`sb-text-btn${s.takenDown ? '' : ' ad-danger-text'}`} aria-expanded={acting?.site.ref === s.ref}
-                      onClick={() => setActing(a => (a?.site.ref === s.ref ? null : { site: s, action: s.takenDown ? 'restore' : 'takedown' }))}
-                    >
-                      {s.takenDown ? 'Restore' : 'Take down'}<span className="sb-sr-only">: {label(s)}</span>
-                    </button>
+                  <td>
+                    {/* A wrapper, not a flex cell: a flex <td> stops being a table cell to screen readers. */}
+                    <div className="ad-actions">
+                      <button type="button" className="sb-text-btn" disabled={busy === s.ref} onClick={() => { void markReviewed(s) }}>
+                        Mark reviewed<span className="sb-sr-only">: {label(s)}</span>
+                      </button>
+                      {/* The form opens below the table (it fits a phone); this button stays, so focus comes back to it. */}
+                      <button
+                        id={`ad-td-${s.ref}`} type="button" className={`sb-text-btn${s.takenDown ? '' : ' ad-danger-text'}`} aria-expanded={acting?.site.ref === s.ref}
+                        onClick={() => setActing(a => (a?.site.ref === s.ref ? null : { site: s, action: s.takenDown ? 'restore' : 'takedown' }))}
+                      >
+                        {s.takenDown ? 'Restore' : 'Take down'}<span className="sb-sr-only">: {label(s)}</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
