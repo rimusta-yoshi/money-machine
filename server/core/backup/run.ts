@@ -43,30 +43,32 @@ async function backUpMonth(b: Backups, s: BackupStatus, now: number): Promise<Ba
 
 export interface RunSummary { db: string; files: string; pruned: string }
 
-export async function nightlyBackup(b: Backups, now: number, budget: number = BUDGET.nightly): Promise<RunSummary> {
-  let s = await readStatus(b.store)
-  s = await backUpDatabase(b, s, now)
-  s = await backUpMonth(b, s, now)
-  await writeStatus(b.store, s)
-  let files = 'not run'
+async function backUpFiles(b: Backups, s: BackupStatus, now: number, budget: number): Promise<[BackupStatus, string]> {
   try {
     const pass = await continueFilesPass(b, s.files, { now, budget })
-    s = { ...s, files: pass.state }
-    files = `${pass.done ? 'pass finished' : 'pass continues'}: ${pass.copied} copied, ${pass.trashed} kept as deleted`
+    return [{ ...s, files: pass.state }, `${pass.done ? 'pass finished' : 'pass continues'}: ${pass.copied} copied, ${pass.trashed} kept as deleted`]
   } catch (err) {
     console.error('Backing up files failed', err)
-    files = `failed: ${message(err)}`
+    return [s, `failed: ${message(err)}`]
   }
-  await writeStatus(b.store, s)
-  let pruned = 'not run'
+}
+
+async function prune(b: Backups, s: BackupStatus, now: number): Promise<[BackupStatus, string]> {
   try {
     const p = await pruneBackups(b.store, now)
-    s = { ...s, prunedAt: now }
-    pruned = `${p.exports} old exports and ${p.files} old files deleted`
+    return [{ ...s, prunedAt: now }, `${p.exports} old exports and ${p.files} old files deleted`]
   } catch (err) {
     console.error('Deleting old backups failed', err)
-    pruned = `failed: ${message(err)}`
+    return [s, `failed: ${message(err)}`]
   }
+}
+
+export async function nightlyBackup(b: Backups, now: number, budget: number = BUDGET.nightly): Promise<RunSummary> {
+  const exported = await backUpMonth(b, await backUpDatabase(b, await readStatus(b.store), now), now)
+  await writeStatus(b.store, exported)
+  const [copied, files] = await backUpFiles(b, exported, now, budget)
+  await writeStatus(b.store, copied)
+  const [s, pruned] = await prune(b, copied, now)
   await writeStatus(b.store, s)
   const db = s.dbError?.at === now ? `failed: ${s.dbError.error}` : `${s.db?.id} (${s.db?.rows} rows)`
   return { db, files, pruned }
