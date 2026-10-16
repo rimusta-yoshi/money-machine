@@ -4,15 +4,22 @@ Reports arrive at abuse@localblocks.co.uk (your Gmail notifies you for abuse@ on
 
 ## 1. Check
 - Open the site the report is about. Note the address (`name.localblocks.co.uk` or the customer's own domain) and take a screenshot.
-- Find the site: `npm run test-sites` lists sites before launch; after launch, use the admin dashboard (or ask Claude to look it up by address).
+- Find the site: on the admin dashboard, type its address into **Find a site** (the `name.localblocks.co.uk` address, or their own domain). Or from the command line: `npm run site -- show <address>`. It shows the owner's email, whether it's paid, and any earlier take-downs.
 - Decide:
   - **Clearly harmful** (phishing, fake bank/login pages, scams, malware, illegal content, someone impersonating another business): take it down now, then tell the owner.
   - **Disputed** (copyright photo, a complaint about wording, a review the business disagrees with): don't take down yet; email the owner asking them to fix it within 7 days, then decide.
   - **Not ours or not a problem:** reply politely and close.
 
 ## 2. Take down
-- **Today (until the admin takedown tool exists):** refund the payment in the Stripe dashboard (Payments → the payment → Refund). A refund takes the site down at once and disconnects any own domain. Our terms allow ending the service for breaches; the refund keeps it simple and fair.
-- **Planned:** an admin "take down" action that pauses a site without refunding (for fraud, where a refund could be abused) and can restore it. See the build list.
+- **On the dashboard:** find the site (Find a site, or its row in Sites to review), press **Take down**, write one line on why ("Phishing: copies a bank's login page"), then **Yes, take it down**. Or from the command line: `npm run site -- takedown <address> "<why>"`.
+- What happens, at once (within a minute):
+  - every page of its address and its own domain says "This site isn't available";
+  - its own domain is paused, kept to put back;
+  - the owner's edit link says the site has been taken down and to email hello@; they can't change, publish, download or refund it;
+  - nothing is deleted, no refund is made, and **no email is sent**: write to the owner yourself (step 3).
+- The reason, who did it and when are kept on the site's record (Find a site shows them).
+- **Made a mistake, or they fixed it?** Press **Restore** (or `npm run site -- restore <address>`). The site comes back exactly as it was; its own domain comes back once Cloudflare has checked it again (a few minutes).
+- **Refund as well?** Only if it's right to (say, a genuine customer whose site broke our terms by mistake): refund in the Stripe dashboard (Payments → the payment → Refund). A refunded site stays down for good, even if you press Restore; so does one whose payment dispute was lost. For fraud, don't refund: the bank handles a stolen card through a dispute.
 
 ## 3. Reply
 To the reporter:
