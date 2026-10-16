@@ -122,7 +122,14 @@ async function paid(deps: Deps, session: Session): Promise<void> {
       await putLive(deps, draft, other, site, { paid: true })
     }
   }
-  await sendWelcome(deps, (await deps.db.draftByRef(draft.ref))!)
+  const latest = (await deps.db.draftByRef(draft.ref))!
+  // Taken down while the checkout was open: paid and published, but hidden, and nothing is sent
+  // (a person decides what to tell them).
+  if (latest.takenDownAt) {
+    console.warn(`Site ${draft.ref} paid while taken down: no welcome email`)
+    return
+  }
+  await sendWelcome(deps, latest)
 }
 
 /** A full refund, from the refund link or the Stripe dashboard: the site comes down. */
@@ -168,8 +175,10 @@ async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
   const first = await deps.db.endDispute(draft.ref, true, deps.now())
   const site = storedRecord(draft)
   if (draft.refundedAt || draft.disputeLostAt || !draft.slug || !site) return
-  // Back on Cloudflare, waiting to be live again (the check then puts the site up under it).
-  await resumeDomain(deps, draft.ref)
+  // Back on Cloudflare, waiting to be live again (the check then puts the site up under it). Not
+  // while an admin has it taken down: its files go back up, but it stays hidden until restored.
+  if (!draft.takenDownAt) await resumeDomain(deps, draft.ref)
   const url = await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
-  if (first && draft.payment) await sendQuietly(deps.mailer, disputeWonEmail(deps.config, draft.payment.email, url))
+  // Taken down: it isn't live, so no "it's back" email (and no email at all while it's down).
+  if (first && draft.payment && !draft.takenDownAt) await sendQuietly(deps.mailer, disputeWonEmail(deps.config, draft.payment.email, url))
 }

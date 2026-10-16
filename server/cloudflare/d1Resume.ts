@@ -23,7 +23,7 @@ function reviewWordList(json: string | null): string[] {
 
 interface ReviewDbRow {
   ref: string; slug: string | null; name: unknown; review_words: string | null; review_flagged_at: number
-  paid_at: number | null; refunded_at: number | null; published_at: number | null; disputed_at: number | null
+  paid_at: number | null; refunded_at: number | null; published_at: number | null; disputed_at: number | null; taken_down_at: number | null
 }
 
 export function d1ResumeReview(db: D1Database, draftWhere: (where: string, ...values: unknown[]) => Promise<DraftRow | null>): ResumeReview {
@@ -78,14 +78,15 @@ export function d1ResumeReview(db: D1Database, draftWhere: (where: string, ...va
     async sitesToReview(limit) {
       const rows = await db.prepare(
         `SELECT ref, slug, json_extract(record, '$.business.name') AS name, review_words, review_flagged_at,
-           paid_at, refunded_at, published_at, disputed_at FROM drafts
+           paid_at, refunded_at, published_at, disputed_at, taken_down_at FROM drafts
          WHERE review_flagged_at IS NOT NULL AND (review_cleared_at IS NULL OR review_cleared_at < review_flagged_at)
          ORDER BY review_flagged_at DESC LIMIT ?1`,
       ).bind(limit).all<ReviewDbRow>()
       return rows.results.map((r): ReviewRow => ({
         ref: r.ref, slug: r.slug, name: typeof r.name === 'string' ? r.name : null, words: reviewWordList(r.review_words),
         flaggedAt: r.review_flagged_at, paid: r.paid_at !== null, refunded: r.refunded_at !== null, published: r.published_at !== null,
-        live: r.published_at !== null && r.slug !== null && r.refunded_at === null && r.disputed_at === null,
+        live: r.published_at !== null && r.slug !== null && r.refunded_at === null && r.disputed_at === null && r.taken_down_at === null,
+        takenDown: r.taken_down_at !== null,
       }))
     },
     async clearReview(ref, now) {

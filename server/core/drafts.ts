@@ -10,6 +10,7 @@ import { HttpError, json, readBody, readJson } from './http'
 import { rateLimit, SIZE } from './limits'
 import { draftPhotoKey, draftPhotoPrefix, draftPhotoUrl, ownPhotoName, photoName } from './photos'
 import type { Deps, DraftRow } from './ports'
+import { supportAddress, takenDownMessage } from './takedownText'
 import { DRAFT_KEY, LINK_TOKEN, newDraftKey, newRef, sha256Hex, verifyLink } from './tokens'
 
 /** The draft an edit link (from the welcome email) opens: paid sites only. */
@@ -28,9 +29,11 @@ export const bearerKey = (req: Request): string => /^Bearer (\S+)$/.exec(req.hea
 
 /**
  * The draft whose key is in the Authorization header: the browser's own draft key, or an
- * edit link's token (which works on any device).
+ * edit link's token (which works on any device). A site taken down by an admin is refused
+ * (saving, publishing, previews, downloading, domains…) unless `takenDown: 'allow'` (opening
+ * it, to say it's taken down).
  */
-export async function authDraft(req: Request, deps: Deps): Promise<DraftRow> {
+export async function authDraft(req: Request, deps: Deps, o: { takenDown?: 'allow' } = {}): Promise<DraftRow> {
   const key = bearerKey(req)
   const hash = DRAFT_KEY.test(key) ? await sha256Hex(key) : null
   const draft = hash ? await deps.db.draftByKey(hash)
@@ -47,6 +50,9 @@ export async function authDraft(req: Request, deps: Deps): Promise<DraftRow> {
     throw new HttpError(401, 'unknown_draft', 'We could not find that saved site. It may have been started on another device.')
   }
   await deps.db.touch(draft.ref, deps.now())
+  if (draft.takenDownAt && o.takenDown !== 'allow') {
+    throw new HttpError(403, 'taken_down', takenDownMessage(deps.config), { support: supportAddress(deps.config) })
+  }
   return draft
 }
 
@@ -96,7 +102,14 @@ export async function createDraft(req: Request, deps: Deps): Promise<Response> {
 }
 
 export async function getDraft(req: Request, deps: Deps): Promise<Response> {
-  const draft = await authDraft(req, deps)
+  const draft = await authDraft(req, deps, { takenDown: 'allow' })
+  // Taken down: the builder shows a screen saying so instead of the editor, with nothing to edit.
+  if (draft.takenDownAt) {
+    return json({
+      record: null, slug: draft.slug, publishedUrl: null, updatedAt: draft.updatedAt, paid: !!draft.payment, refunded: !!draft.refundedAt,
+      disputed: !!draft.disputedAt, takenDown: true, message: takenDownMessage(deps.config), support: supportAddress(deps.config),
+    })
+  }
   return json({
     record: storedRecord(draft),
     slug: draft.slug,

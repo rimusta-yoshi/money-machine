@@ -61,6 +61,7 @@ export async function servePreviewHost(req: Request, deps: Deps): Promise<Respon
   const draft = ref ? await deps.db.draftByRef(ref) : null
   const site = draft ? storedRecord(draft) : null
   if (!site) return gone()
+  if (draft?.takenDownAt) return htmlPage(410, 'This site isn’t available', 'It has been taken down.', HEADERS)
 
   const trade = tradeById[site.tradeId]
   const base = `/${page[1]}`

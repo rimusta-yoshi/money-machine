@@ -8,6 +8,7 @@ import { LostLinkScreen } from './LostLinkScreen'
 import { PaidScreen } from './PaidScreen'
 import { RefundScreen } from './RefundScreen'
 import { screenFrom } from './screens'
+import { TakenDownScreen } from './TakenDownScreen'
 
 afterEach(cleanup)
 
@@ -69,6 +70,21 @@ describe('the refund link', () => {
     render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'disputed' as const, support: 'help@localblocks.co.uk' })) })} token={TOKEN} />)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Your payment is being disputed' })).toBeTruthy())
     expect(screen.queryByRole('button')).toBeNull()
+    cleanup()
+    render(<RefundScreen api={fakeApi({ refundStatus: vi.fn(async () => ({ state: 'taken_down' as const, support: 'help@localblocks.co.uk' })) })} token={TOKEN} />)
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Your site has been taken down' })).toBeTruthy())
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('link', { name: 'help@localblocks.co.uk' }).getAttribute('href')).toBe('mailto:help@localblocks.co.uk')
+  })
+})
+
+describe('a taken-down site', () => {
+  it('says so instead of opening the editor, with who to write to', async () => {
+    const { container } = render(<TakenDownScreen support="help@localblocks.co.uk" />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Your site has been taken down' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'help@localblocks.co.uk' }).getAttribute('href')).toBe('mailto:help@localblocks.co.uk')
+    expect(screen.queryByRole('button')).toBeNull()
+    await noViolations(container)
   })
 })
 

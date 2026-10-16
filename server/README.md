@@ -144,11 +144,56 @@ aren't flagged again; changed text with listed words, or a changed list, flags i
 after it was marked reviewed.
 
 The dashboard's **Sites to review** panel lists them: `GET /v1/admin/review` (admin key) →
-`{sites: [{ref, slug, name, words, flaggedAt, paid, refunded, published, url}]}`, newest first,
+`{sites: [{ref, slug, name, words, flaggedAt, paid, refunded, published, takenDown, url}]}`, newest first,
 the latest 100 not yet reviewed. `published` is from `published_at`; `url` is set only while the
-site is live (published, not refunded, no dispute). **Mark reviewed** is
+site is live (published, not refunded, no dispute, not taken down). **Mark reviewed** is
 `POST /v1/admin/review/clear {ref}` (admin key) → `{ok: true}` (`404 not_flagged` if it isn't on
 the list).
+
+### Take down and restore (abuse)
+
+`server/core/takedown.ts`, migration `0009_takedown.sql`. Pulls a harmful site (phishing, scams,
+illegal content) at once **without refunding it**, and puts it back exactly if it was a mistake.
+Admin key only, rate limited like the other admin calls, never refused after launch (unlike the
+test-site delete). Nothing is deleted and no email is sent.
+
+| Call | Body | Answer |
+|---|---|---|
+| `GET /v1/admin/sites/lookup` | `?address=…` or `?ref=…` | `{site}`: address, own domain, owner's email, paid/refunded/disputed, `takenDown`, and `takedown` (latest reason, who and when, restore, and the full `log`) |
+| `POST /v1/admin/sites/takedown` | `{ref \| address, reason (3–500 chars), by?}` | `{site, domainPaused}`; `409 already_taken_down` |
+| `POST /v1/admin/sites/restore` | `{ref \| address, by?}` | `{site, domainResumed, stillDown}`; `409 not_taken_down` |
+
+`address` is the free `<slug>.localblocks.co.uk` (or just the slug), or the customer's own domain,
+bare or www (a pasted URL is fine). Exactly one of `ref` and `address`; `422` otherwise.
+
+While a site is taken down (`drafts.taken_down_at` set):
+
+- **Every request** to its free address (pages, photos, fonts) and to its own domain answers
+  `410 Gone` "This site isn't available", `noindex`, `no-store`. 410 rather than 451: 451 is for a
+  block a legal authority demands, while our take-downs are under our own terms, and 410 gets
+  search engines and safe-browsing lists to drop the pages fastest. The site worker reads this from
+  the database (remembered `HOST_CACHE_SECONDS`, 60 s); if the database can't be read it serves as
+  ever, like the own-domain lookups. The published files stay in R2 untouched.
+- **Its own domain is paused** (`pauseDomain`, off Cloudflare, kept), as a dispute pauses it; if
+  Cloudflare can't be reached the cron pauses it (the "disputed" sweep now includes taken-down
+  sites), and meanwhile any request that reaches us gets the 410 page. The cron never resumes a
+  taken-down site's domain.
+- **The owner** can't save, upload, preview, publish, download, use the domain page or send resume
+  links (`403 taken_down`, from `authDraft`); `GET /v1/draft` answers `{takenDown: true, record:
+  null, support}`, and the builder shows "Your site has been taken down" instead of the editor. The
+  self-serve refund link answers `taken_down` (no refund: a person decides). Preview links show the
+  410 page. The daily cleanup never deletes a taken-down draft (kept as evidence).
+
+**Restore** clears `taken_down_at` (the reason, who and when stay, and `takedown_log` keeps every
+take-down and restore) and resumes the own domain (pending until Cloudflare checks it again, as
+after a won dispute; served meanwhile). It only undoes the take-down: a site refunded, or with a
+dispute open or lost, stays down (`stillDown: true`), and its domain stays off. A dispute won while
+a site is taken down puts its files back but keeps it hidden, domain paused, until it's restored.
+
+From the command line: `npm run site -- show|takedown|restore <address|ref> ["<reason>"]`
+(`scripts/site.mjs`, same admin key and `--api` as `npm run test-sites`). On the dashboard: **Find
+a site** (by address) and **Sites to review** both have Take down (asks why, then confirms) and
+Restore.
 
 ### Privacy (draft line for legal check)
 

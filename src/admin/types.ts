@@ -60,9 +60,37 @@ export interface ReviewSite {
   refunded: boolean
   /** Published at some point (paid, or with the admin key). Missing from an older server. */
   published?: boolean
+  /** Taken down by an admin. Missing from an older server. */
+  takenDown?: boolean
   /** The live site, only while it's live. */
   url: string | null
 }
 
 /** The source filter's value for visits with no source (matches server/core/admin.ts). */
 export const DIRECT = '(direct)'
+
+/** One take-down or restore (server/core/takedown.ts). */
+export interface TakedownEntry { action: 'takedown' | 'restore'; at: number; by: string; reason: string | null }
+
+/** A site found by address or reference (GET /v1/admin/sites/lookup), with its take-down record. */
+export interface SiteSummary {
+  ref: string
+  name: string | null
+  /** The free address, once it has one. */
+  url: string | null
+  ownDomain: { hostname: string; status: 'pending' | 'active' | 'paused' | 'removing' } | null
+  /** The payment email, to reply to by hand. */
+  email: string | null
+  paid: boolean
+  published: boolean
+  refunded: boolean
+  disputed: boolean
+  disputeLost: boolean
+  takenDown: boolean
+  takedown: {
+    takenDownAt: number | null; reason: string | null; by: string | null; restoredAt: number | null; restoredBy: string | null; log: TakedownEntry[]
+  } | null
+}
+
+/** What a take-down or restore answers. */
+export interface TakedownResult { site: SiteSummary; domainPaused?: boolean; domainResumed?: boolean; stillDown?: boolean }

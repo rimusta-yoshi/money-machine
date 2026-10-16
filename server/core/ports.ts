@@ -43,7 +43,23 @@ export interface DraftRow {
   refundedAmount: number | null
   /** The ad or link the site came from, if known. */
   source: Source
+  /** Taken down by an admin (abuse): set until restored (server/core/takedown.ts). */
+  takenDownAt: number | null
 }
+
+/** A site's take-down record: the latest take-down and restore, and every one before. */
+export interface TakedownRecord {
+  /** Set while it's taken down. */
+  takenDownAt: number | null
+  /** The latest take-down's reason and who did it (kept after a restore). */
+  reason: string | null
+  by: string | null
+  restoredAt: number | null
+  restoredBy: string | null
+  log: TakedownLogEntry[]
+}
+
+export interface TakedownLogEntry { action: 'takedown' | 'restore'; at: number; by: string; reason: string | null }
 
 /** A site flagged for review (server/core/reviewWords.ts). */
 export interface ReviewRow {
@@ -57,8 +73,10 @@ export interface ReviewRow {
   refunded: boolean
   /** Published at some point (paid, or with the admin key). */
   published: boolean
-  /** Live now: published, not refunded, no dispute open or lost. */
+  /** Live now: published, not refunded, no dispute open or lost, not taken down. */
   live: boolean
+  /** Taken down by an admin (abuse). */
+  takenDown: boolean
 }
 
 export interface CheckoutRow {
@@ -181,6 +199,15 @@ export interface Database {
   sitesToReview(limit: number): Promise<ReviewRow[]>
   /** "Mark reviewed". False if there's no such flagged site. */
   clearReview(ref: string, now: number): Promise<boolean>
+  /** The site published at this address now (the address's current owner first, else the latest site to use it). */
+  draftBySlug(slug: string): Promise<DraftRow | null>
+  /** Takes a site down (abuse), recording why and who. False if it was already down (nothing changes). */
+  markTakenDown(ref: string, t: { now: number; reason: string; by: string }): Promise<boolean>
+  /** Restores a taken-down site, recording who. False if it wasn't down. */
+  markRestored(ref: string, t: { now: number; by: string }): Promise<boolean>
+  takedownRecord(ref: string): Promise<TakedownRecord | null>
+  /** Whether the site that holds this address now is taken down (the site worker asks). */
+  slugTakenDown(slug: string): Promise<boolean>
   /** Counts one request against a key in a fixed window; returns the count so far. */
   hit(key: string, windowStart: number): Promise<number>
   /** Housekeeping: drops expired preview links, old counters, old checkouts and old event ids. */
@@ -339,7 +366,7 @@ export interface Mailer {
 
 /**
  * A customer's own domain: pending (waiting for their DNS record), active (live), paused (a
- * payment dispute is open: off Cloudflare, kept here to put back) or removing (Cloudflare
+ * payment dispute is open or the site is taken down: off Cloudflare, kept here to put back) or removing (Cloudflare
  * still to be told: the cron retries).
  */
 export type DomainStatus = 'pending' | 'active' | 'paused' | 'removing'
@@ -376,8 +403,10 @@ export interface DomainRow {
 export interface DomainWithSite extends DomainRow {
   slug: string | null
   email: string | null
-  /** The site has a live, paying customer: paid, published, not refunded, no dispute. */
+  /** The site has a live, paying customer: paid, published, not refunded, no dispute, not taken down. */
   siteLive: boolean
+  /** The site is taken down by an admin (abuse). */
+  takenDown: boolean
 }
 
 export type DomainPatch = Partial<Pick<DomainRow, 'apex' | 'cfId' | 'cfApexId' | 'status' | 'dnsSeen' | 'verify' | 'verifiedAt' | 'checkedAt' | 'activeAt'>>
@@ -403,9 +432,9 @@ export interface DomainStore {
   due(statuses: readonly DomainStatus[], before: number, limit: number): Promise<DomainWithSite[]>
   /** Domains to take off Cloudflare: their site is gone, refunded or lost a dispute, or they're being removed. */
   ended(limit: number): Promise<DomainWithSite[]>
-  /** Domains still on Cloudflare whose site has a dispute open: to pause. */
+  /** Domains still on Cloudflare whose site has a dispute open or is taken down: to pause. */
   disputed(limit: number): Promise<DomainWithSite[]>
-  /** Paused domains whose site is live again (a dispute won): to put back. */
+  /** Paused domains whose site is live again (a dispute won, a take-down restored): to put back. */
   resumable(limit: number): Promise<DomainWithSite[]>
   counts(): Promise<Record<DomainStatus, number>>
   /** Every domain, newest first (the dashboard). */
