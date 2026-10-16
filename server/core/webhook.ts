@@ -168,8 +168,9 @@ async function disputeClosed(deps: Deps, dispute: Dispute): Promise<void> {
   const first = await deps.db.endDispute(draft.ref, true, deps.now())
   const site = storedRecord(draft)
   if (draft.refundedAt || draft.disputeLostAt || !draft.slug || !site) return
-  // Back on Cloudflare, waiting to be live again (the check then puts the site up under it).
-  await resumeDomain(deps, draft.ref)
+  // Back on Cloudflare, waiting to be live again (the check then puts the site up under it). Not
+  // while an admin has it taken down: its files go back up, but it stays hidden until restored.
+  if (!draft.takenDownAt) await resumeDomain(deps, draft.ref)
   const url = await putLive(deps, { ...draft, disputedAt: null }, draft.slug, site, { paid: true })
   if (first && draft.payment) await sendQuietly(deps.mailer, disputeWonEmail(deps.config, draft.payment.email, url))
 }

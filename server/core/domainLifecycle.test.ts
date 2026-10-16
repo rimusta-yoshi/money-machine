@@ -22,7 +22,7 @@ function store(initial: DomainRow[], o: { beforeUpdate?: (rows: Map<string, Doma
       return true
     },
     delete: async ref => { rows.delete(ref) },
-    ended: async () => [...rows.values()].filter(r => r.status === 'removing').map(r => ({ ...r, slug: null, email: null, siteLive: false })),
+    ended: async () => [...rows.values()].filter(r => r.status === 'removing').map(r => ({ ...r, slug: null, email: null, siteLive: false, takenDown: false })),
     disputed: async () => [],
     resumable: async () => [],
     due: async () => [],

@@ -162,7 +162,7 @@ export async function resumeDomain(deps: Deps, ref: string): Promise<boolean> {
 export interface DomainSweep { removed: number; paused: number; resumed: number; checked: number; gaveUp: number }
 
 /**
- * The background check (cron): finishes removals, pauses domains of disputed sites, puts back
+ * The background check (cron): finishes removals, pauses domains of disputed or taken-down sites, puts back
  * paused ones whose site is live again, gives up on domains left waiting for 30 days, and asks
  * Cloudflare about waiting domains (and, daily, live ones).
  */

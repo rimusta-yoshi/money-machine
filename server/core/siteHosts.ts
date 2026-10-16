@@ -10,6 +10,8 @@ export interface HostSite {
   slug: string
   /** The address visitors should be on: a bare domain sends them here. */
   hostname: string
+  /** Taken down by an admin: every page says the site isn't available. */
+  down: boolean
 }
 
 const MAX_ENTRIES = 2000
@@ -38,14 +40,23 @@ const orNull = <T>(what: string, p: Promise<T | null>): Promise<T | null> => p.c
 /**
  * The site an own domain shows, or null. Only once we've seen the domain's ownership TXT record
  * (pointing a CNAME at us isn't enough to claim it), while Cloudflare finishes (pending) and
- * once it's live. Never for a site that's refunded, disputed or not live.
+ * once it's live. Never for a site that's refunded, disputed or not live. A taken-down site's
+ * domain (until its pause reaches Cloudflare) is answered with `down`, to say so.
  */
 export const siteForHost = (deps: Deps, host: string): Promise<HostSite | null> =>
   orNull(host, remembered(deps, `host:${host}`, async () => {
     const d = await deps.domains.byHost(host)
-    if (!d?.slug || !d.siteLive || !d.verifiedAt || (d.status !== 'pending' && d.status !== 'active')) return null
-    return { slug: d.slug, hostname: d.hostname }
+    if (!d?.slug || !(d.siteLive || d.takenDown) || !d.verifiedAt || (d.status !== 'pending' && d.status !== 'active')) return null
+    return { slug: d.slug, hostname: d.hostname, down: d.takenDown }
   }))
+
+/**
+ * Whether the site at a free address is taken down by an admin. If the database can't be read,
+ * the answer is "no" and the site serves as ever (like the own-domain lookups): a take-down shows
+ * within HOST_CACHE_SECONDS.
+ */
+export const slugTakenDown = async (deps: Deps, slug: string): Promise<boolean> =>
+  (await orNull(slug, remembered(deps, `down:${slug}`, () => deps.db.slugTakenDown(slug)))) === true
 
 /** The own domain a free address sends its visitors to, once it's live. */
 export const ownHostForSlug = (deps: Deps, slug: string): Promise<string | null> =>

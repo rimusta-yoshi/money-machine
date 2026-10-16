@@ -69,6 +69,7 @@ type RefundState =
   | { state: 'used' }
   | { state: 'expired'; support: string }
   | { state: 'disputed'; support: string }
+  | { state: 'taken_down'; support: string }
 
 async function refundState(req: Request, deps: Deps): Promise<RefundState> {
   const parsed = tokenBody.safeParse(await readJson(req, SIZE.smallJson))
@@ -79,6 +80,8 @@ async function refundState(req: Request, deps: Deps): Promise<RefundState> {
   const support = deps.config.email.support.replace(/^.*<([^>]+)>$/, '$1')
   // The bank is already handling the money: refunding too would pay it back twice.
   if (draft.disputedAt) return { state: 'disputed', support }
+  // Taken down for abuse: no self-serve refund (a fraudster could get their money back); a person decides.
+  if (draft.takenDownAt) return { state: 'taken_down', support }
   const until = draft.payment.paidAt + deps.config.refundDays * DAY
   if (deps.now() > until) return { state: 'expired', support }
   return { state: 'ok', draft, amount: draft.payment.amount, siteUrl: draft.slug ? `${siteOrigin(deps.config, draft.slug)}/` : '', until: new Date(until).toISOString() }
