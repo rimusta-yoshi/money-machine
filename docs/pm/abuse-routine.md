@@ -16,10 +16,11 @@ Reports arrive at abuse@localblocks.co.uk (your Gmail notifies you for abuse@ on
   - every page of its address and its own domain says "This site isn't available";
   - its own domain is paused, kept to put back;
   - the owner's edit link says the site has been taken down and to email hello@; they can't change, publish, download or refund it;
-  - nothing is deleted, no refund is made, and **no email is sent**: write to the owner yourself (step 3).
+  - nothing is deleted, no refund is made, and **no email is sent**: write to the owner yourself (step 3);
+  - one exception: if they were mid-checkout and the payment lands after the take-down, it's refunded automatically and they get a short "your payment has been refunded, this site can't be published" email (no reason given). Restoring such a site brings it back unpaid.
 - The reason, who did it and when are kept on the site's record (Find a site shows them).
 - **Made a mistake, or they fixed it?** Press **Restore** (or `npm run site -- restore <address>`). The site comes back exactly as it was; its own domain comes back once Cloudflare has checked it again (a few minutes).
-- **Refund as well?** Only if it's right to (say, a genuine customer whose site broke our terms by mistake): refund in the Stripe dashboard (Payments → the payment → Refund). A refunded site stays down for good, even if you press Restore; so does one whose payment dispute was lost.
+- **Refund as well?** Only if it's right to (say, a genuine customer whose site broke our terms by mistake): refund in the Stripe dashboard (Payments → the payment → Refund). Their own refund link stays blocked while the site is down, so this is the only way. A refunded site stays down for good, even if you press Restore; so does one whose payment dispute was lost.
 
 ## 3. Reply
 To the reporter:

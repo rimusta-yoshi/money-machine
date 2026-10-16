@@ -16,6 +16,8 @@ interface Props {
 }
 
 const when = (t: number | null): string => (t ? shortDate(t) : '–')
+/** The latest payment refunded because it landed while the site was taken down, if any. */
+const refundedAt = (t: SiteSummary['takedown'] | undefined): number | null => t?.log.filter(x => x.action === 'refunded').at(-1)?.at ?? null
 
 /**
  * "Find a site by address": the free address, the customer's own domain (bare or www) or the
@@ -73,6 +75,7 @@ export function FindSitePanel({ base, adminKey, onRefused }: Props) {
             {t?.reason && (
               <div><dt>{site.takenDown ? 'Taken down' : 'Last taken down'}</dt><dd>{t.reason} <span className="ad-detail">· {t.by ?? '–'} · {when(t.log.filter(x => x.action === 'takedown').at(-1)?.at ?? t.takenDownAt)}</span></dd></div>
             )}
+            {refundedAt(t) && <div><dt>Refunded automatically</dt><dd>Paid while taken down <span className="ad-detail">· {when(refundedAt(t))}</span></dd></div>}
             {t?.restoredAt && <div><dt>Last restored</dt><dd>{t.restoredBy ?? '–'} <span className="ad-detail">· {when(t.restoredAt)}</span></dd></div>}
           </dl>
           {/* One button, kept while the form is open, so focus comes back to it. */}

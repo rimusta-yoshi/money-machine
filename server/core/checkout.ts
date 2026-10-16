@@ -8,6 +8,7 @@ import type { Deps, Payments } from './ports'
 import { checkReady, sitePhotoFiles, suggestion, validSlug } from './publish'
 import { flagForReview } from './review'
 import { DRAFT_KEY, sameSecret, sha256Hex } from './tokens'
+import { refundedForTakedown } from './takedownRefund'
 
 const MINUTE = 60 * 1000
 /** Stripe needs at least 30 minutes; a minute more allows for clocks that differ. */
@@ -99,5 +100,8 @@ export async function checkoutStatus(req: Request, deps: Deps, sessionId: string
   if (!draft) throw new HttpError(404, 'unknown_checkout', 'We could not find that payment.')
   if (draft.refundedAt) return json({ state: 'refunded' })
   const live = draft.payment?.sessionId === sessionId && draft.slug && draft.publishedAt && draft.publishedAt >= draft.payment.paidAt
-  return json(live ? { state: 'live', url: `${siteOrigin(deps.config, draft.slug!)}/` } : { state: 'waiting' })
+  if (live) return json({ state: 'live', url: `${siteOrigin(deps.config, draft.slug!)}/` })
+  // Paid while the site was taken down, and refunded for it (takedownRefund.ts).
+  if (await refundedForTakedown(deps, draft.ref, { sessionId })) return json({ state: 'refunded' })
+  return json({ state: 'waiting' })
 }

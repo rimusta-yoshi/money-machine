@@ -19,7 +19,9 @@ import { REF } from './tokens'
  *   the self-serve refund link are refused (drafts.ts, account.ts).
  *
  * A restore only undoes the take-down: a site refunded, or with a dispute open or lost, stays down.
- * No email is sent either way; replies are written by hand (docs/pm/abuse-routine.md).
+ * No email is sent either way; replies are written by hand (docs/pm/abuse-routine.md). The one
+ * refund: a checkout completing while the site is down is refunded and never recorded as paid
+ * (takedownRefund.ts), so a restore brings that site back unpaid.
  *
  * GET  /v1/admin/sites/lookup?address=… | ?ref=…  the site and its take-down record
  * POST /v1/admin/sites/takedown {ref | address, reason, by?}

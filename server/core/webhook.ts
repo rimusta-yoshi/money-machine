@@ -13,6 +13,7 @@ import { recordFeeLater } from './fees'
 import { putLive, suggestion, takeDownOwn } from './publish'
 import { dropDomain, pauseDomain, resumeDomain } from './domainLifecycle'
 import { verifyStripeSignature } from './stripe'
+import { refundedForTakedown, refundTakenDown } from './takedownRefund'
 
 /**
  * POST /v1/stripe/webhook: the only thing that puts a paid site live (and takes a refunded
@@ -91,6 +92,16 @@ async function paid(deps: Deps, session: Session): Promise<void> {
     await paymentsOn(deps).refund(session.payment_intent, `late-${session.payment_intent}`)
     return
   }
+  // Taken down before this payment landed (or refunded for that already, then restored): we won't
+  // show the site, so the money goes back and the payment is never recorded on it.
+  if (!before.payment && (before.takenDownAt || await refundedForTakedown(deps, before.ref, { paymentIntent: session.payment_intent }))) {
+    await refundTakenDown(deps, before, {
+      sessionId: session.id, paymentIntent: session.payment_intent, email: checkout.email,
+      // The email names the amount, so never 0 (markPaid below records what Stripe says).
+      amount: session.amount_total ?? deps.config.pricePence,
+    })
+    return
+  }
   const paidAt = deps.now()
   const first = await deps.db.markPaid(checkout.ref, {
     sessionId: session.id, paymentIntent: session.payment_intent, amount: session.amount_total ?? 0,
@@ -123,8 +134,8 @@ async function paid(deps: Deps, session: Session): Promise<void> {
     }
   }
   const latest = (await deps.db.draftByRef(draft.ref))!
-  // Taken down while the checkout was open: paid and published, but hidden, and nothing is sent
-  // (a person decides what to tell them).
+  // Taken down after the payment was recorded (a retry, or a take-down racing this delivery):
+  // paid and published, but hidden, and nothing is sent (a person decides what to tell them).
   if (latest.takenDownAt) {
     console.warn(`Site ${draft.ref} paid while taken down: no welcome email`)
     return

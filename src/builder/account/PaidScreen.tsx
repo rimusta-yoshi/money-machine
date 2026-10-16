@@ -47,7 +47,8 @@ export function PaidScreen({ api, sessionId, every = 2000 }: Props) {
   if (view.state === 'refunded') {
     return (
       <AccountShell title="This payment was refunded">
-        <p>The site it paid for has been taken down.</p>
+        {/* Neutral: also shown for a payment refunded because the site was taken down, without saying why. */}
+        <p>The site it paid for can’t be published. We’ve emailed you a confirmation.</p>
       </AccountShell>
     )
   }

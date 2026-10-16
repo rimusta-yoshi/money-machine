@@ -181,13 +181,23 @@ While a site is taken down (`drafts.taken_down_at` set):
 - **The owner** can't save, upload, preview, publish, download, use the domain page or send resume
   links (`403 taken_down`, from `authDraft`); `GET /v1/draft` answers `{takenDown: true, record:
   null, support}`, and the builder shows "Your site has been taken down" instead of the editor. The
-  self-serve refund link answers `taken_down` (no refund: a person decides). Preview links show the
-  410 page. The daily cleanup never deletes a taken-down draft (kept as evidence).
+  self-serve refund link answers `taken_down` (no refund: a person decides, and can refund by hand
+  in the Stripe dashboard). Preview links show the 410 page. The daily cleanup never deletes a
+  taken-down draft (kept as evidence).
+- **A checkout that completes while it's down** (opened before the take-down) is refunded in full at
+  once (`server/core/takedownRefund.ts`, idempotency key `takedown-<payment intent>`), noted on the
+  take-down log (`action: "refunded"`, `by: "stripe"`), and never recorded as paid or published; the
+  payer gets one short email ("Your payment of £99 has been refunded: this site can't be published")
+  that doesn't say why, and the checkout page says the payment was refunded (without why). The note is
+  written before the refund, so a retried webhook makes the same refund and sends nothing more, even
+  after a restore. (A take-down landing in the instant between the webhook reading the site and
+  recording the payment leaves the old behaviour: paid, hidden, no email; refund by hand if needed.)
 
 **Restore** clears `taken_down_at` (the reason, who and when stay, and `takedown_log` keeps every
 take-down and restore) and resumes the own domain (pending until Cloudflare checks it again, as
 after a won dispute; served meanwhile). It only undoes the take-down: a site refunded, or with a
-dispute open or lost, stays down (`stillDown: true`), and its domain stays off. A dispute won while
+dispute open or lost, stays down (`stillDown: true`), and its domain stays off. A site whose payment
+was refunded automatically (above) comes back unpaid: its owner can check out again. A dispute won while
 a site is taken down puts its files back but keeps it hidden, domain paused, until it's restored.
 
 From the command line: `npm run site -- show|takedown|restore <address|ref> ["<reason>"]`

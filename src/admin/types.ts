@@ -69,8 +69,8 @@ export interface ReviewSite {
 /** The source filter's value for visits with no source (matches server/core/admin.ts). */
 export const DIRECT = '(direct)'
 
-/** One take-down or restore (server/core/takedown.ts). */
-export interface TakedownEntry { action: 'takedown' | 'restore'; at: number; by: string; reason: string | null }
+/** One take-down or restore, or a payment refunded because it landed while taken down (server/core/takedown.ts). */
+export interface TakedownEntry { action: 'takedown' | 'restore' | 'refunded'; at: number; by: string; reason: string | null }
 
 /** A site found by address or reference (GET /v1/admin/sites/lookup), with its take-down record. */
 export interface SiteSummary {

@@ -78,6 +78,14 @@ export function refundEmail(c: Config, to: string, siteUrl: string, amount: numb
   ])
 }
 
+/** A payment for a site that can't be published (taken down meanwhile): refunded. Says no more than that. */
+export function paymentRefundedEmail(c: Config, to: string, amount: number): Email {
+  return email(c, to, `Your payment of ${money(amount)} has been refunded`, 'Your payment has been refunded', [
+    `Your payment of ${money(amount)} has been refunded: this site can't be published.`,
+    'It usually shows on the card you paid with within 5 to 10 working days.',
+  ])
+}
+
 const supportAddress = (c: Config): string => c.email.support.replace(/^.*<([^>]+)>$/, '$1')
 
 export function disputeOpenedEmail(c: Config, to: string, siteUrl: string): Email {
