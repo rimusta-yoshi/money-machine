@@ -12,14 +12,14 @@ Reports arrive at abuse@localblocks.co.uk (your Gmail notifies you for abuse@ on
 
 ## 2. Take down
 - **On the dashboard:** find the site (Find a site, or its row in Sites to review), press **Take down**, write one line on why ("Phishing: copies a bank's login page"), then **Yes, take it down**. Or from the command line: `npm run site -- takedown <address> "<why>"`.
-- What happens, at once (within a minute):
+- What happens, within a minute or two:
   - every page of its address and its own domain says "This site isn't available";
   - its own domain is paused, kept to put back;
   - the owner's edit link says the site has been taken down and to email hello@; they can't change, publish, download or refund it;
   - nothing is deleted, no refund is made, and **no email is sent**: write to the owner yourself (step 3).
 - The reason, who did it and when are kept on the site's record (Find a site shows them).
 - **Made a mistake, or they fixed it?** Press **Restore** (or `npm run site -- restore <address>`). The site comes back exactly as it was; its own domain comes back once Cloudflare has checked it again (a few minutes).
-- **Refund as well?** Only if it's right to (say, a genuine customer whose site broke our terms by mistake): refund in the Stripe dashboard (Payments → the payment → Refund). A refunded site stays down for good, even if you press Restore; so does one whose payment dispute was lost. For fraud, don't refund: the bank handles a stolen card through a dispute.
+- **Refund as well?** Only if it's right to (say, a genuine customer whose site broke our terms by mistake): refund in the Stripe dashboard (Payments → the payment → Refund). A refunded site stays down for good, even if you press Restore; so does one whose payment dispute was lost.
 
 ## 3. Reply
 To the reporter:

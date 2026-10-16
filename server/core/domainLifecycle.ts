@@ -42,13 +42,14 @@ async function ownershipSeen(deps: Deps, verify: { name: string; value: string }
 async function republish(deps: Deps, ref: string): Promise<void> {
   const draft = await deps.db.draftByRef(ref)
   const site = draft ? storedRecord(draft) : null
-  if (!draft?.payment || !draft.slug || !draft.publishedAt || draft.refundedAt || draft.disputedAt || !site) return
+  if (!draft?.payment || !draft.slug || !draft.publishedAt || draft.refundedAt || draft.disputedAt || draft.takenDownAt || !site) return
   await putLive(deps, draft, draft.slug, site, { paid: true })
 }
 
 async function sendLiveEmail(deps: Deps, row: DomainRow): Promise<void> {
   const draft = await deps.db.draftByRef(row.ref)
-  if (!draft?.payment || !draft.slug || !(await deps.domains.claimLiveEmail(row.ref, deps.now()))) return
+  // Never to a taken-down site (the email can't be claimed later: it's sent once the domain is live again).
+  if (!draft?.payment || !draft.slug || draft.takenDownAt || !(await deps.domains.claimLiveEmail(row.ref, deps.now()))) return
   await sendQuietly(deps.mailer, domainLiveEmail(deps.config, draft.payment.email, {
     url: `https://${row.hostname}/`, freeUrl: `${siteOrigin(deps.config, draft.slug)}/`,
     bareToForward: row.hostname === `www.${row.domain}` && !row.apex ? row.domain : null,

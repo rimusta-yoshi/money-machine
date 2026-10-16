@@ -130,10 +130,12 @@ export async function restoreSite(req: Request, deps: Deps): Promise<Response> {
     throw new HttpError(409, 'not_taken_down', 'That site isn’t taken down.')
   }
   // Refunded, or a dispute open or lost: that keeps it down (and its domain off), whatever the take-down did.
-  const stillDown = !!(draft.refundedAt || draft.disputedAt || draft.disputeLostAt)
+  // Read again after the restore, so a dispute opened meanwhile counts.
+  const after = (await deps.db.draftByRef(draft.ref))!
+  const stillDown = !!(after.refundedAt || after.disputedAt || after.disputeLostAt)
   // Back on Cloudflare, waiting to be live again, as after a won dispute. If Cloudflare can't be
   // reached the cron puts it back later.
   const domainResumed = stillDown ? false : await resumeDomain(deps, draft.ref)
   console.warn(`Site ${draft.ref} restored by ${b.by ?? 'admin'}`)
-  return json({ site: await summary(deps, (await deps.db.draftByRef(draft.ref))!), domainResumed, stillDown }, 200, { 'Cache-Control': 'no-store' })
+  return json({ site: await summary(deps, after), domainResumed, stillDown }, 200, { 'Cache-Control': 'no-store' })
 }

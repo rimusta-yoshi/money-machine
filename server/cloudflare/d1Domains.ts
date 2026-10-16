@@ -93,7 +93,9 @@ export function d1Domains(db: D1Database): DomainStore {
     },
     due(statuses, before, limit) {
       const marks = statuses.map((_, i) => `?${i + 3}`).join(', ')
-      return many(`${WITH_SITE} WHERE d.status IN (${marks}) AND COALESCE(d.checked_at, 0) < ?1 ORDER BY COALESCE(d.checked_at, 0) LIMIT ?2`, before, limit, ...statuses)
+      // Never a taken-down site's: the pause sweep (disputed) takes it off instead.
+      return many(`${WITH_SITE} WHERE d.status IN (${marks}) AND COALESCE(d.checked_at, 0) < ?1 AND s.taken_down_at IS NULL
+        ORDER BY COALESCE(d.checked_at, 0) LIMIT ?2`, before, limit, ...statuses)
     },
     ended: limit => many(
       `${WITH_SITE} WHERE d.status = 'removing' OR s.ref IS NULL OR s.refunded_at IS NOT NULL OR s.dispute_lost_at IS NOT NULL LIMIT ?1`, limit),

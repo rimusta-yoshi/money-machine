@@ -74,7 +74,7 @@ export function TakedownForm({ base, adminKey, target, action, onDone, onCancel,
         {takedown ? `Take down ${target.label}?` : `Restore ${target.label}?`}
       </h3>
       {takedown
-        ? <p className="ad-note">It goes offline at once on its free address and own domain, and the owner can’t edit, publish, download or refund it. Nothing is deleted, no refund is made and no email is sent. You can restore it.</p>
+        ? <p className="ad-note">It goes offline within a minute or two on its free address and own domain, and the owner can’t edit, publish, download or refund it. Nothing is deleted, no refund is made and no email is sent. You can restore it.</p>
         : <p className="ad-note">It comes back exactly as it was, own domain included. A refund or a payment dispute still keeps it down. No email is sent.</p>}
       {takedown && (
         <div className="bf-field">

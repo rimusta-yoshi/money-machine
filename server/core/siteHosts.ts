@@ -17,12 +17,21 @@ export interface HostSite {
 const MAX_ENTRIES = 2000
 const cache = new Map<string, { value: unknown; until: number }>()
 
-/** A failed load throws and isn't remembered, so the next request tries again. */
-async function remembered<T>(deps: Deps, key: string, load: () => Promise<T>): Promise<T> {
+/**
+ * A failed load throws and isn't remembered, so the next request tries again; with `stale`, the
+ * last answer (however old) is used meanwhile, if there is one.
+ */
+async function remembered<T>(deps: Deps, key: string, load: () => Promise<T>, o: { stale?: boolean } = {}): Promise<T> {
   const now = deps.now()
   const hit = cache.get(key)
   if (hit && hit.until > now) return hit.value as T
-  const value = await load()
+  let value: T
+  try {
+    value = await load()
+  } catch (err) {
+    if (o.stale && hit) return hit.value as T
+    throw err
+  }
   if (cache.size >= MAX_ENTRIES) cache.clear()
   cache.set(key, { value, until: now + deps.config.hostCacheSeconds * 1000 })
   return value
@@ -53,12 +62,12 @@ export const siteForHost = (deps: Deps, host: string): Promise<HostSite | null> 
   }))
 
 /**
- * Whether the site at a free address is taken down by an admin. If the database can't be read,
- * the answer is "no" and the site serves as ever (like the own-domain lookups): a take-down shows
- * within HOST_CACHE_SECONDS.
+ * Whether the site at a free address is taken down by an admin; shows within HOST_CACHE_SECONDS.
+ * If the database can't be read, the last answer this worker had stands (a taken-down site stays
+ * down); with none, the answer is "no" and the site serves as ever, like the own-domain lookups.
  */
 export const slugTakenDown = async (deps: Deps, slug: string): Promise<boolean> =>
-  (await orNull(slug, remembered(deps, `down:${slug}`, () => deps.db.slugTakenDown(slug)))) === true
+  (await orNull(slug, remembered(deps, `down:${slug}`, () => deps.db.slugTakenDown(slug), { stale: true }))) === true
 
 /** The own domain a free address sends its visitors to, once it's live. */
 export const ownHostForSlug = (deps: Deps, slug: string): Promise<string | null> =>

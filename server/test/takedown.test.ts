@@ -215,9 +215,12 @@ describe('taking a site down and restoring it', () => {
     const site = await withDomain('takedown-won', 'takedownwon.co.uk')
     expect((await takedown({ ref: site.ref, reason: 'Fake reviews and stolen photos' })).status).toBe(200)
     expect((await send(stripe.dispute(site.session.paymentIntent, 'created'))).status).toBe(200)
+    const sentBefore = stripe.emailsTo(site.email).length
     expect((await send(stripe.dispute(site.session.paymentIntent, 'closed', 'won'))).status).toBe(200)
     await expectUnavailable(await free(site.slug))
     expect(cf.byName(site.host)).toBeNull()
+    // Not live, so no "your site is back" email.
+    expect(stripe.emailsTo(site.email)).toHaveLength(sentBefore)
     expect(await domainRow(site.ref)).toMatchObject({ status: 'paused' })
     await cron('quick')
     expect(cf.byName(site.host)).toBeNull()
@@ -262,6 +265,19 @@ describe('taking a site down and restoring it', () => {
     await cron('quick')
     expect(await domainRow(site.ref)).toMatchObject({ status: 'paused' })
     expect(cf.byName(site.host)).toBeNull()
+  })
+
+  it('a checkout paid after the take-down is recorded, but the site stays hidden and no welcome email goes', async () => {
+    const key = await c.newDraft()
+    const email = `takedown${++n}@example.com`
+    await c.save(key, finishedSite({ business: { email } }))
+    expect((await c.checkout(key, 'takedown-late-pay')).status).toBe(201)
+    const session = stripe.lastSession()
+    expect((await takedown({ ref: session.ref, reason: 'Scam shop' })).status).toBe(200)
+    expect((await send(stripe.completed(session.id))).status).toBe(200)
+    expect(await (await lookup(`ref=${session.ref}`)).json()).toMatchObject({ site: { paid: true, takenDown: true } })
+    await expectUnavailable(await free('takedown-late-pay'))
+    expect(stripe.emailsTo(email)).toEqual([])
   })
 
   it('an unpaid draft taken down: its preview links stop, and the daily cleanup keeps it as evidence', async () => {
