@@ -53,8 +53,8 @@ Cavendish House, 28-32 St Andrews Street, Norwich NR2 4AE · 01603 753285. One-t
 - [ ] Cloudflare Access on localblocks.co.uk/admin (one-time email code, rob only).
 - [ ] Cloudflare Web Analytics: add localblocks.co.uk, send token to the coding work.
 - [x] Abuse routine written: docs/pm/abuse-routine.md. Banned-word check flags suspicious sites (mobile brief).
-- [ ] Admin "take down" action (pause a live site without a refund, and restore it): small brief after the mobile builder. Until then, a Stripe refund takes a site down.
-- [ ] Backups of D1 site records and R2 photos.
+- [x] Admin "take down" and "restore" (16 Oct, PR #48).
+- [x] Backups of D1 site records and R2 photos (16 Oct, PR #49 + #50; nightly, verified). Privacy policy line about backups: for the legal check.
 - [ ] Delete pre-launch test sites before launch (`npm run test-sites`, live since 14 Oct; refused once LAUNCHED).
 - [x] Remove the 'Bash(python -)' allow entry from .claude/settings.local.json (14 Oct).
 - [x] Billing alert on. Upgrade to Workers Paid at launch / before a big ad push.
