@@ -1,6 +1,7 @@
 import { STOCK_PHOTO_FILES } from '../../src/sample/stockPhotoFiles'
 import { refund, refundStatus, requestEditLink } from './account'
 import { adminStats } from './admin'
+import { backupGet, backupPost } from './backup/routes'
 import { clearReview, sitesToReview } from './review'
 import { openResumeLink, sendResumeLink } from './resume'
 import { checkoutStatus, createCheckout, shopConfig } from './checkout'
@@ -56,6 +57,8 @@ const ROUTES: [method: string, path: RegExp, handler: Handler][] = [
   ['POST', /^\/v1\/draft\/domain$/, connectDomain],
   ['POST', /^\/v1\/draft\/domain\/disconnect$/, disconnectDomain],
   ['POST', /^\/v1\/admin\/domains\/disconnect$/, adminDisconnectDomain],
+  ['GET', /^\/v1\/admin\/backups(?:\/(file))?$/, backupGet],
+  ['POST', /^\/v1\/admin\/backups\/(run|restore-files)$/, backupPost],
   ['GET', /^\/v1\/config$/, shopConfig],
   ['GET', /^\/v1\/checkouts\/([A-Za-z0-9_]{1,255})$/, checkoutStatus],
   ['POST', /^\/v1\/stripe\/webhook$/, stripeWebhook],

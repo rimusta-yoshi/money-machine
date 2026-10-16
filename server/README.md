@@ -437,7 +437,8 @@ Check: https://api.localblocks.co.uk/health answers `{"ok":true}`.
 
 A daily cron (03:17 UTC) clears expired preview links, address holds and rate-limit counters,
 deletes dashboard events older than 13 months (and requested business types not asked for
-since), then runs the cleanup above and sends the resume-link reminders that are due.
+since), then runs the cleanup above and sends the resume-link reminders that are due. Half an
+hour earlier (02:47 UTC) another cron makes the nightly backup (see "Backups and restore").
 
 ## Moving to localblocks.co.uk (October 2026)
 
@@ -693,6 +694,214 @@ npm run cf:deploy:app
 ```
 
 Migration `0004_events.sql` only adds tables and columns.
+
+## Backups and restore
+
+Written for Claude to follow. rob's plain-English version: `docs/pm/backups.md`.
+
+### What's protected
+
+| What | How | Kept |
+|---|---|---|
+| The database (D1 `siteblocks`), every table | **Time Travel**, built into D1, always on: put the whole database back to any minute | 30 days on Workers Paid (7 on Free) |
+| The database, every table but `rate_limits` | **Daily export** at 02:47 UTC by the API worker into the `siteblocks-backups` bucket, `db/daily/<id>/` | 30 days (the newest is always kept, even if backups stop) |
+| Paid and published sites' rows only, plus the anonymous dashboard tables | **Monthly export**, the first night of each month, `db/monthly/<YYYY-MM>/` | 12 months |
+| Published sites (`sites/<slug>/…`) and the photos of paid or published sites (`drafts/<ref>/photos/…`) | **Nightly copy** of new or rewritten files into `files/<key>` | as long as the original exists |
+| Those files' earlier versions, and files deleted from the live bucket | moved to `trash/<key>~<ms when moved>` | 30 days |
+
+Not backed up: the builder's sample photos (`samples/`, put back by `npm run cf:samples`), the
+"no longer available" markers (`gone/`, tiny, rewritten by a refund), unfinished sites' photos
+(nobody has paid; the builder asks for them again), and `rate_limits` (hourly counters).
+No secrets are in the database (only hashes of keys and links), so none are in the backups.
+
+### Why this design
+
+- **R2 has no object versioning** (it isn't in R2's S3 API list; lifecycle rules can only expire
+  or move objects), so files are copied into a second bucket by the worker.
+- **D1 Time Travel** is the quickest undo for a bad deploy or bad cleanup in the last 30 days,
+  but only for the whole database at once, and not beyond 30 days. The **exports** add a longer
+  history and let one site's rows be put back without touching anyone else's.
+- The worker writes the export itself with ordinary queries (JSON per table, gzipped): no
+  Cloudflare API token as a secret (Cloudflare's own D1-to-R2 example needs one), no Workflows.
+- Everything stays in the same Cloudflare account. That protects against our mistakes and bugs,
+  not against losing the account itself (a later step could copy the backup bucket elsewhere).
+
+### How it runs (`server/core/backup/`, `server/cloudflare/backupStore.ts`)
+
+- Cron `47 2 * * *` (`nightlyBackup`): the daily export, the monthly one if this month has
+  none, as much of the files as the budget allows, then deleting expired backups
+  (`retention.ts`). Half an hour before the 03:17 cleanup, so anything the cleanup deletes by
+  mistake was copied minutes earlier.
+- **Files, a budget at a time** (`files.ts`): the live keys and their copies are walked side by
+  side in key order, 100 live keys a page. Each copy notes when the bytes it holds were written
+  (`src_uploaded`, from the read itself) and which site they belonged to (`site_ref`); a file is
+  copied again when its live write time differs. A copy whose original is gone, or about to be
+  replaced, moves to `trash/`. A run stops after about 700 storage and database calls in all
+  (what the exports used comes off that; 250 for the catch-up), checked file by file, well under
+  the Worker limits (1,000 per run on Workers Free, 10,000 on Paid), and saves where it got to in
+  `state/status.json` after every page. The quarter-hourly cron (`*/15`) carries an unfinished
+  pass on, so a large first backup finishes over a few hours. Files are read whole (photos are at
+  most 2 MB).
+- **One run at a time**: a run walking the files holds a 15-minute lease (`busyUntil`); any other
+  run (the catch-up, `npm run backup -- run`) skips the files meanwhile.
+- **Mass-delete guard**: a pass that would move more than a quarter of the copies it has seen to
+  the trash (past the first 100) stops and says so on the dashboard: a wrong bucket binding or an
+  emptied database must not empty the backups. If the deletes were meant (say, test sites cleared
+  before launch): `npm run backup -- run --allow-deletes`.
+- **The export** (`dbExport.ts`): 50 rows per query in rowid order, part files of about 4 MB
+  (`<table>.0001.json.gz`: `{table, columns, rows}`), then `manifest.json` last (schema, tables,
+  row counts, part keys). An export without a manifest never counts and is deleted after a day.
+  A new table must be added to `MONTHLY` in `dbExport.ts` (a test fails otherwise): decide
+  whether its rows belong in the 12-month backups.
+- **Health** (`status.ts`): healthy when the last good export is under 36 hours old, the last
+  export didn't fail, and the files were last gone through all the way under 48 hours ago. The
+  dashboard shows "Last backup: <time> ✓/✗" under its heading.
+- Every step catches its own failure (logged, and on the dashboard); a failed backup never stops
+  the cleanup or the domains cron.
+
+Admin endpoints (admin key; `npm run backup` calls them, so it needs no Cloudflare login):
+`GET /v1/admin/backups` (health, status, exports), `GET /v1/admin/backups/file?key=db/…` (one
+export file as stored), `POST /v1/admin/backups/run` (`{}` back up now, `{"files": true}` only
+carry the files on), `POST /v1/admin/backups/restore-files` (`{slug | ref, at?, dryRun}`).
+503 `backups_off` if the bucket isn't bound.
+
+### Checking
+
+```bash
+npm run backup -- verify
+```
+
+Says ✓ or ✗ (exit code 1): backups healthy, and the newest export downloads, every part parses
+and the row counts match the manifest. `npm run backup -- list` shows the exports. Run verify
+after every deploy that touches the server, and if the dashboard shows ✗.
+
+The admin key comes from `ADMIN_KEY` or `admin-key.local` (as for `npm run test-sites`).
+`--api https://api.localblocks.localhost:8787` points any command at the local dev stack.
+
+### Restoring (pick the case)
+
+Always: write down what went wrong and when (UTC), and don't deploy anything until it's back.
+Nothing live changes without `--yes`; without it, each command says what it would do.
+
+**A. A bad deploy, migration or cleanup damaged the database in the last 30 days.** Time Travel
+puts the whole database back to a moment; everything written since is lost (payments too: check
+the Stripe dashboard afterwards and resend missed webhooks with `stripe events resend evt_…`).
+
+```bash
+npm run backup -- time-travel --at 2026-10-16T09:30:00Z
+```
+
+```bash
+npm run backup -- time-travel --at 2026-10-16T09:30:00Z --yes
+```
+
+The second prints the bookmark of the database as it was just before; to undo the restore:
+`npx wrangler d1 time-travel restore siteblocks --bookmark=<that bookmark> -c server/wrangler.api.jsonc`.
+Needs `CLOUDFLARE_API_TOKEN` (setup step 1, with D1 Edit).
+
+**B. One customer's site was deleted or damaged** (rows, files or both). Put back only that
+site; nobody else's data changes. Use the export from before it went wrong (`--from` a date
+picks that day's newest export; `list` shows ids).
+
+```bash
+npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-local
+```
+
+This finds the site's id in the backup (it may be gone from the live database), writes just its
+rows into the local dev database (stop `npm run dev:stack` first) and leaves the SQL in
+`.wrangler/backups/`: read it to check these are the right rows. The SQL deletes that site's
+current rows and inserts the backed-up ones with plain INSERTs, so it never deletes another
+site. Before a production import the command checks the live database: if another site has
+taken the address or domain since, it stops with nothing changed (tell rob: the address is no
+longer this customer's). It also refuses a backup that doesn't have the site. Then:
+
+```bash
+npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-production --yes
+```
+
+```bash
+npm run backup -- restore-files --site joes-plumbing
+```
+
+```bash
+npm run backup -- restore-files --site joes-plumbing --yes
+```
+
+The production import prints the Time Travel bookmark first (the undo), then counts the site's
+rows afterwards and says ✓ if they match the backup, or ✗ with the undo command.
+
+`restore-files` puts back the newest backed-up copy of each of the site's pages and photos
+(deleted ones too), or with `--from 2026-10-15` (end of that day, UTC) or `--from <ISO time>`
+the files as they were then. An address is looked up in the live database, so put the rows back
+first; only copies made while the files belonged to that site are used, so an address that has
+gone to someone else never gets the old pages. It only writes files, never deletes any. Then
+check the site, and re-publish it from the edit link if its pages should match the restored
+record.
+
+**C. The database is lost or damaged beyond 30 days, or Time Travel can't help.** Check the
+export locally first (this replaces the local dev database):
+
+```bash
+npm run backup -- restore-db --from 2026-09-01 --to-local
+```
+
+then put every row of the live database back to it (the schema and `d1_migrations` stay;
+Time Travel can undo this import for 30 days):
+
+```bash
+npm run backup -- restore-db --from 2026-09-01 --to-production --yes
+```
+
+If the database itself was deleted: create a new D1 database, put its id in
+`server/wrangler.api.jsonc` and `wrangler.site.jsonc`, `npm run cf:migrate`, deploy, then the
+command above. The SQL is also left in `.wrangler/backups/` for `wrangler d1 execute`.
+
+**D. Files are missing from many sites** (the live bucket was emptied, or a bug deleted files).
+Run `restore-files --ref <ref> --yes` for each site `npm run test-sites` lists (it lists every
+paid or published site; it only refuses deleting after launch). A deploy fix must come first.
+The mass-delete guard stops the nightly pass from moving most copies to the trash meanwhile;
+copies it did move stay there 30 days, and `restore-files` finds them there too.
+
+After any restore: `npm run backup -- verify`, open the affected sites, and note what happened
+in `docs/pm/pm-status.md`.
+
+### Privacy and retention
+
+Backups hold the same personal data as the database: payment emails, site records (business
+names, phone numbers, addresses, photos) and, for unfinished sites, the "finish on your computer"
+email. So deleted data lives on in backups for a while:
+
+- Unfinished sites (deleted after 30 days unused) stay in daily exports up to 30 days more.
+- Paid and published sites stay in monthly exports up to 12 months after they're deleted.
+- Deleted photos and pages stay in `trash/` 30 days.
+- One exception: if backups stop altogether, the newest daily export is kept until they work
+  again (so there's always one to go back to). The dashboard shows ✗ long before that matters.
+
+Expired backups are deleted for good by the nightly run. If a customer asks for their data to be
+erased, delete their site as usual; their data then leaves the backups on the schedule above
+(say so in the reply). Draft privacy line for legal check (not on the live page yet):
+
+> We keep backups so we can recover your website if something goes wrong. Backups are copies of
+> the same information described above. Daily backups are kept for 30 days and a monthly backup
+> of live and paid-for websites for 12 months; after that they're deleted for good. If you ask us
+> to delete your information, it is removed from our live systems straight away and from our
+> backups when they expire.
+
+### One-off setup (before the deploy that brings this)
+
+1. Create the bucket: dashboard → **R2 Object Storage** → **Create bucket** → name
+   `siteblocks-backups`, Location Automatic, Standard storage, **Create**. Leave public access
+   off, no CORS. (Or `npx wrangler r2 bucket create siteblocks-backups`.) The deploy fails
+   until it exists: the API worker binds it as `BACKUPS`.
+2. `npm run cf:deploy` (the binding and the new 02:47 cron come with it). No migration, no
+   secret.
+3. `npm run backup -- run`, then `npm run backup -- verify` until it says OK (a big first pass of
+   the files finishes over the next few quarter-hours).
+4. Workers Paid (planned for launch) gives Time Travel 30 days instead of 7 and the CPU the
+   export needs as the database grows (Workers Free allows a cron 10 ms of CPU).
+
+Cost: R2 storage is $0.015 per GB-month after the free 10 GB; the copies roughly double the
+photos and sites, plus a few MB of exports a day.
 
 ## Own domains (Cloudflare for SaaS)
 

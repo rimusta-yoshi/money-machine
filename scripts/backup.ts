@@ -1,0 +1,257 @@
+// Backups and restores (server/README.md "Backups and restore"). Talks to the API's admin
+// endpoints with the admin key, so it needs no Cloudflare login, except the two production
+// database commands, which run wrangler.
+//
+//   npm run backup -- list                                   the exports there are, and whether backups are healthy
+//   npm run backup -- verify                                 checks the newest export downloads and adds up (exit 1 if not)
+//   npm run backup -- run [--allow-deletes]                  backs up now (as the nightly cron does); --allow-deletes
+//                                                            lets a pass trash most copies (only after checking it's meant)
+//   npm run backup -- restore-db --from <when> --to-local [--site <address> | --ref <ref>]
+//                                                            into the local dev database (stop npm run dev:stack first)
+//   npm run backup -- restore-db --from <when> --to-production [--site <address> | --ref <ref>] --yes
+//                                                            imports an export into the live database (prints the undo first)
+//   npm run backup -- time-travel --at <ISO time> --yes      puts the live database back to a moment in the last 30 days
+//   npm run backup -- restore-files --site <address> | --ref <ref> [--from <YYYY-MM-DD or ISO time>] --yes
+//                                                            puts one site's pages and photos back (newest copies, or as at --from)
+//
+// <when> (restore-db): latest, an export id, YYYY-MM-DD (that day's newest export) or YYYY-MM (a monthly one).
+// Without --yes nothing live changes: it says what it would do.
+// The admin key comes from ADMIN_KEY, else admin-key.local (gitignored). --api <url> points it
+// elsewhere, e.g. --api https://api.localblocks.localhost:8787 for the local dev stack.
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
+import { join } from 'node:path'
+import { downloadExport, fetchOverview, pickExport, verifyBackups } from '../server/core/backup/client.ts'
+import type { AdminGet } from '../server/core/backup/client.ts'
+import { restoreStatements } from '../server/core/backup/sql.ts'
+import type { Part, RestoreMode } from '../server/core/backup/sql.ts'
+
+const args = process.argv.slice(2)
+const flag = (name: string) => args.includes(name)
+const option = (name: string) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined }
+const api = (option('--api') ?? 'https://api.localblocks.co.uk').replace(/\/+$/, '')
+const local = new URL(api).hostname.endsWith('.localhost')
+const DATABASE = 'siteblocks'
+const CONFIG = 'server/wrangler.api.jsonc'
+
+function fail(message: string): never {
+  console.error(message)
+  process.exit(1)
+}
+
+const keyFile = join(process.cwd(), 'admin-key.local')
+const adminKey = process.env.ADMIN_KEY?.trim() || (existsSync(keyFile) ? readFileSync(keyFile, 'utf8').trim() : '')
+if (!adminKey) fail('No admin key: set ADMIN_KEY or put it in admin-key.local.')
+
+// The local dev stack: *.localhost names go to this computer, with its self-signed certificate.
+const lookup = (_host: string, opts: { all?: boolean }, done: (...a: unknown[]) => void) =>
+  (opts?.all ? done(null, [{ address: '127.0.0.1', family: 4 }]) : done(null, '127.0.0.1', 4))
+
+function call(path: string, body?: unknown): Promise<Response> {
+  const payload = body === undefined ? undefined : JSON.stringify(body)
+  const url = `${api}${path}`
+  const request = url.startsWith('https:') ? httpsRequest : httpRequest
+  return new Promise((resolve, reject) => {
+    const req = request(url, {
+      method: payload ? 'POST' : 'GET',
+      headers: { 'X-Admin-Key': adminKey, ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}) },
+      ...(local ? { lookup, rejectUnauthorized: false } : {}),
+    } as never, res => {
+      const chunks: Buffer[] = []
+      res.on('data', (c: Buffer) => chunks.push(c))
+      res.on('end', () => resolve(new Response(Buffer.concat(chunks), { status: res.statusCode ?? 500, headers: { 'Content-Type': String(res.headers['content-type'] ?? '') } })))
+    })
+    req.on('error', reject)
+    req.end(payload)
+  })
+}
+
+const get: AdminGet = path => call(path)
+
+async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const res = await call(path, body)
+  const data = (await res.json().catch(() => ({}))) as T & { message?: string }
+  if (!res.ok) fail(`${res.status}: ${data.message ?? 'request failed'}`)
+  return data
+}
+
+const when = (ms: number | null | undefined) => (ms ? new Date(ms).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : 'never')
+
+async function list() {
+  const o = await fetchOverview(get)
+  console.log(`Backups: ${o.health.healthy ? 'healthy ✓' : 'NOT healthy ✗'}  (last database backup ${when(o.health.lastBackupAt)}, files last gone through ${when(o.status.files.lastFullPassAt)})`)
+  for (const p of o.health.problems) console.log(`  ✗ ${p}`)
+  console.log(`\nDaily exports (kept 30 days):\n${o.daily.map(e => `  ${e.id}`).join('\n') || '  none'}`)
+  console.log(`Monthly exports (paid and published sites only, kept 12 months):\n${o.monthly.map(e => `  ${e.id}`).join('\n') || '  none'}`)
+}
+
+async function verify() {
+  const r = await verifyBackups(get)
+  for (const line of r.lines) console.log(`${r.ok ? '✓' : '✗'} ${line}`)
+  console.log(r.ok ? '\nBackups OK ✓' : '\nBackups NOT OK ✗')
+  if (!r.ok) process.exit(1)
+}
+
+async function run() {
+  const r = await postJson<{ ran: Record<string, string> }>('/v1/admin/backups/run', flag('--allow-deletes') ? { allowDeletes: true } : {})
+  for (const [k, v] of Object.entries(r.ran)) console.log(`${k}: ${v}`)
+}
+
+function wrangler(wranglerArgs: string[]): void {
+  console.log(`> npx wrangler ${wranglerArgs.join(' ')}`)
+  const r = spawnSync('npx', ['wrangler', ...wranglerArgs], { stdio: 'inherit', shell: process.platform === 'win32' })
+  if (r.status !== 0) fail('wrangler failed: nothing after this step was done.')
+}
+
+/** The id of the site at an address, from the backup itself (the site may be gone from the live database). */
+function siteRef(parts: Part[], address: string | undefined): string | undefined {
+  if (!address) return undefined
+  const slug = address.replace(/^https?:\/\//, '').split(/[./]/)[0]
+  for (const table of ['slugs', 'drafts']) {
+    for (const p of parts.filter(x => x.table === table)) {
+      const row = p.rows.find(r => r[p.columns.indexOf('slug')] === slug)
+      if (row) return String(row[p.columns.indexOf('ref')])
+    }
+  }
+  return fail(`The backup has no site at "${slug}".`)
+}
+
+async function restoreDb() {
+  const from = option('--from') ?? fail('Say which backup: --from latest, an id, YYYY-MM-DD or YYYY-MM.')
+  const toLocal = flag('--to-local')
+  if (toLocal === flag('--to-production')) fail('Say where: --to-local (inspect first) or --to-production.')
+  // Never put anything but the live API's backups into the live database.
+  if (!toLocal && option('--api') !== undefined) fail('--to-production takes backups from the live API only: leave out --api.')
+  const chosen = pickExport(await fetchOverview(get), from)
+  const d = await downloadExport(get, chosen)
+  const ref = option('--ref') ?? siteRef(d.parts, option('--site'))
+  if (ref && !/^[0-9a-f]{32}$/.test(ref)) fail('--ref is a site\'s 32-character id.')
+  const mode: RestoreMode = ref ? { kind: 'site', ref } : toLocal ? { kind: 'recreate' } : { kind: 'replace' }
+  const statements = restoreStatements(d.manifest, d.parts, mode)
+  const dir = join(process.cwd(), '.wrangler', 'backups')
+  mkdirSync(dir, { recursive: true })
+  const file = join(dir, `restore-${chosen.id}${ref ? `-${ref}` : ''}.sql`)
+  writeFileSync(file, statements.join('\n'))
+  const what = ref ? `site ${ref}'s rows` : `every table (${d.manifest.tables.map(t => `${t.name} ${t.rows}`).join(', ')})`
+  console.log(`Backup ${chosen.kind} ${chosen.id}: ${what}. SQL written to ${file}`)
+  if (toLocal) return restoreLocal(statements, mode.kind === 'site')
+  if (!flag('--yes')) {
+    console.log('\nNothing changed. To put this into the LIVE database, run the same command with --yes.')
+    console.log(ref ? 'Only that site\'s rows are replaced.' : 'Every row of the live database is replaced by the backup\'s.')
+    return
+  }
+  if (ref) refuseClashes(d.parts, ref)
+  console.log('\nThe bookmark to undo this (wrangler d1 time-travel restore --bookmark=…):')
+  wrangler(['d1', 'time-travel', 'info', DATABASE, '-c', CONFIG])
+  wrangler(['d1', 'execute', DATABASE, '--remote', '--file', file, '-c', CONFIG, '--yes'])
+  checkCounts(statements, ref)
+  console.log('Check the site(s), then run: npm run backup -- restore-files … if their files are missing too.')
+}
+
+/** Runs one read-only query on the live database; null if it couldn't. Values must need no quoting beyond '…'. */
+function liveQuery(sql: string): Record<string, unknown>[] | null {
+  const windows = process.platform === 'win32'
+  const r = spawnSync('npx', ['wrangler', 'd1', 'execute', DATABASE, '--remote', '--json', '--command', windows ? `"${sql}"` : sql, '-c', CONFIG], { encoding: 'utf8', shell: windows })
+  try {
+    return (JSON.parse(r.stdout) as { results: Record<string, unknown>[] }[])[0].results
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Before a one-site import: its addresses and domains must not belong to another site now. The
+ * import would fail on them part-way, after deleting the site's current rows.
+ */
+function refuseClashes(parts: Part[], ref: string): void {
+  const values = (table: string, column: string) => parts.filter(p => p.table === table).flatMap(p => {
+    const at = p.columns.indexOf(column)
+    return p.rows.filter(r => r[p.columns.indexOf('ref')] === ref && typeof r[at] === 'string').map(r => String(r[at]))
+  })
+  const slugs = [...new Set([...values('slugs', 'slug'), ...values('drafts', 'slug')])]
+  const hosts = [...new Set([...values('custom_domains', 'hostname'), ...values('custom_domains', 'apex')])]
+  if (![...slugs, ...hosts].every(v => /^[a-z0-9.-]+$/.test(v))) fail('Unexpected characters in an address or domain: import by hand.')
+  const list = (vs: string[]) => vs.map(v => `'${v}'`).join(', ') || "''"
+  const rows = liveQuery(`SELECT slug AS taken FROM slugs WHERE slug IN (${list(slugs)}) AND ref <> '${ref}'`
+    + ` UNION SELECT slug FROM drafts WHERE slug IN (${list(slugs)}) AND ref <> '${ref}'`
+    + ` UNION SELECT hostname FROM custom_domains WHERE (hostname IN (${list(hosts)}) OR apex IN (${list(hosts)})) AND ref <> '${ref}'`)
+  if (rows === null) fail('Could not check the live database for clashes: nothing changed.')
+  if (rows.length) fail(`Nothing changed: ${rows.map(r => r.taken).join(', ')} now belong(s) to another site.`)
+}
+
+/** Rows each table should have after the import: the INSERTs written for it. */
+function expectedRows(statements: string[]): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const s of statements) {
+    const t = /^INSERT INTO "([^"]+)"/.exec(s)?.[1]
+    if (t) out.set(t, (out.get(t) ?? 0) + 1)
+  }
+  return out
+}
+
+/** Counts the live rows after an import and compares them with what was imported. */
+function checkCounts(statements: string[], ref: string | undefined): void {
+  const expected = expectedRows(statements)
+  // Table names are plain words and the ref is hex: no quoting needed, so the shell can't mangle it.
+  if (![...expected.keys()].every(t => /^\w+$/.test(t))) return console.log('Check the row counts by hand.')
+  const count = (t: string) => `(SELECT COUNT(*) FROM ${t}${ref ? ` WHERE ref = '${ref}'` : ''}) AS ${t}`
+  const actual = liveQuery(`SELECT ${[...expected.keys()].map(count).join(', ')}`)?.[0]
+  if (!actual) return console.log('Could not count the rows afterwards: check the site(s) by hand.')
+  const wrong = [...expected].filter(([t, n]) => actual[t] !== n)
+  if (!wrong.length) return console.log(`Row counts match the backup ✓ (${[...expected].map(([t, n]) => `${t} ${n}`).join(', ')})`)
+  console.log(`✗ Row counts differ from the backup: ${wrong.map(([t, n]) => `${t} has ${actual[t]}, expected ${n}`).join('; ')}.`)
+  console.log('Undo with the bookmark above: npx wrangler d1 time-travel restore siteblocks --bookmark=<bookmark> -c server/wrangler.api.jsonc')
+  process.exitCode = 1
+}
+
+async function restoreLocal(statements: string[], oneSite: boolean) {
+  const { startStack } = await import('../server/test/stack.ts')
+  const stack = await startStack({ baseDomain: 'localblocks.localhost:8787', persistTo: join(process.cwd(), '.wrangler', 'dev-stack') })
+  try {
+    const db = await stack.db()
+    // One site goes in as one batch (all or nothing); a whole database in steps.
+    const step = oneSite ? statements.length : 50
+    for (let i = 0; i < statements.length; i += step) await db.batch(statements.slice(i, i + step).map(s => db.prepare(s)))
+    console.log('Restored into the local dev database (.wrangler/dev-stack). Run npm run dev:stack to look at it.')
+  } finally {
+    await stack.close()
+  }
+}
+
+function timeTravel() {
+  const at = Date.parse(option('--at') ?? '')
+  if (Number.isNaN(at)) fail('Say when: --at 2026-10-16T09:30:00Z (any time in the last 30 days).')
+  const restoreArgs = ['d1', 'time-travel', 'restore', DATABASE, `--timestamp=${Math.floor(at / 1000)}`, '-c', CONFIG]
+  if (!flag('--yes')) {
+    console.log(`Nothing changed. This would put the LIVE database back to ${new Date(at).toISOString()}, losing every change since:\n  npx wrangler ${restoreArgs.join(' ')}\nRun again with --yes to do it.`)
+    return
+  }
+  console.log('The bookmark to undo this:')
+  wrangler(['d1', 'time-travel', 'info', DATABASE, '-c', CONFIG])
+  wrangler(restoreArgs)
+}
+
+async function restoreFilesCmd() {
+  const site = option('--site')?.replace(/^https?:\/\//, '').split(/[./]/)[0]
+  const ref = option('--ref')
+  if (!site === !ref) fail('Say which site: --site <address> or --ref <id>.')
+  const from = option('--from')
+  const dryRun = !flag('--yes')
+  const r = await postJson<{ files: { key: string; written: string }[]; restored: number; prefixes: string[] }>(
+    '/v1/admin/backups/restore-files', { ...(site ? { slug: site } : { ref }), ...(from ? { at: from } : {}), dryRun },
+  )
+  console.log(r.files.map(f => `  ${f.key}  (written ${f.written})`).join('\n') || '  no backed-up files')
+  console.log(dryRun
+    ? `\n${r.files.length} file(s) would be put back (${r.prefixes.join(', ') || 'no folders found'}). Nothing changed: run again with --yes.`
+    : `\n${r.restored} file(s) put back.`)
+}
+
+const COMMANDS: Record<string, () => unknown> = { list, verify, run, 'restore-db': restoreDb, 'time-travel': timeTravel, 'restore-files': restoreFilesCmd }
+const command = COMMANDS[args[0] ?? ''] ?? fail(`Commands: ${Object.keys(COMMANDS).join(', ')}. See the top of scripts/backup.ts.`)
+try {
+  await command()
+} catch (err) {
+  fail(err instanceof Error ? err.message : String(err))
+}

@@ -46,13 +46,18 @@
   "d1_databases": [
     { "binding": "DB", "database_name": "siteblocks", "database_id": "400a2f77-8ebe-4878-8576-c9747999bc80", "migrations_dir": "migrations" }
   ],
-  "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "siteblocks" }],
+  "r2_buckets": [
+    { "binding": "BUCKET", "bucket_name": "siteblocks" },
+    // Backups (server/README.md "Backups and restore"): create this bucket before deploying.
+    { "binding": "BACKUPS", "bucket_name": "siteblocks-backups" }
+  ],
   // Caps the builder's dashboard events per address (counted in memory at the edge, never stored).
   "ratelimits": [{ "name": "EVENT_LIMIT", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }],
   // Self-hosted fonts, deployed with the code. The worker decides what to serve.
   "assets": { "directory": "../public/fonts", "binding": "ASSETS", "run_worker_first": true },
   // Daily: expired links and holds, unused drafts, dashboard events older than 13 months, ended
-  // sites' own domains. Every 15 minutes: own domains waiting to go live.
-  "triggers": { "crons": ["17 3 * * *", "*/15 * * * *"] },
+  // sites' own domains. Every 15 minutes: own domains waiting to go live (and a backup of the
+  // files that didn't finish overnight). 02:47: the nightly backup, before the cleanup.
+  "triggers": { "crons": ["17 3 * * *", "*/15 * * * *", "47 2 * * *"] },
   "observability": { "enabled": true }
 }

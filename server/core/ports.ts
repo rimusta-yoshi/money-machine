@@ -1,6 +1,7 @@
 import type { Source } from '../../src/analytics/source'
 import type { Step } from '../../src/analytics/funnel'
 import type { Config } from './config'
+import type { Backups } from './backup/types'
 
 /**
  * Everything the server needs from its host, as plain interfaces. The Cloudflare adapter
@@ -508,4 +509,6 @@ export interface Deps {
   later: (work: Promise<unknown>) => void
   /** Whether to record a builder event from this caller (a per-address limit kept by the host, never stored). */
   allowEvent: (req: Request) => Promise<boolean>
+  /** The backup bucket and what's backed up (server/core/backup). Null or absent: backups aren't set up. */
+  backups?: Backups | null
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AdminError, fetchStats } from './adminApi'
+import { BackupLine } from './BackupLine'
 import type { StatsQuery } from './adminApi'
 import { Filters } from './Filters'
 import type { FilterState } from './Filters'
@@ -63,6 +64,7 @@ export function Dashboard({ base, adminKey, onRefused }: Props) {
   return (
     <main className="ad-main" aria-busy={loading}>
       <h1 className="ad-h1">How people get to paying</h1>
+      <BackupLine base={base} adminKey={adminKey} refresh={query} />
       <Filters value={filters} onChange={apply} sources={stats?.sources ?? []} invalid={!query} onRefresh={() => apply({ ...filters })} />
       <p role="status" className="ad-note ad-status-line">{loading ? 'Loading the numbers…' : ''}</p>
       {result && 'error' in result && !loading && <p className="bf-error" role="alert">{result.error}</p>}

@@ -10,6 +10,7 @@ import { d1Database } from './d1'
 import { d1Domains } from './d1Domains'
 import { d1Insights } from './d1Insights'
 import { r2Blobs, workerAssets } from './r2'
+import { cloudflareBackups } from './backupStore'
 
 /**
  * The thin Cloudflare layer: bindings in, plain interfaces out. Everything Cloudflare-specific
@@ -17,6 +18,8 @@ import { r2Blobs, workerAssets } from './r2'
  */
 export interface Env {
   BUCKET: R2Bucket
+  /** API worker: the backup bucket (siteblocks-backups). Unbound: backups are off. */
+  BACKUPS?: R2Bucket
   ASSETS: Fetcher
   /** The API worker; the site worker reads it only to know which site an own domain shows. */
   DB?: D1Database
@@ -98,5 +101,6 @@ export function depsFrom(env: Env, ctx?: Pick<ExecutionContext, 'waitUntil'>): D
         return true
       }
     },
+    backups: cloudflareBackups(env.DB, env.BUCKET, env.BACKUPS),
   }
 }
