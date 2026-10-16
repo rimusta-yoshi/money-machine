@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { finishedSite } from '../../src/publish/test/sites'
-import { ADMIN, API, BASE, client, photoBytes } from './client'
+import { ADMIN, API, BASE, client } from './client'
 import { DOMAIN_VARS, fakeCloudflare } from './fakeCloudflare'
 import { fakeStripe, PAYMENT_VARS } from './fakeStripe'
 import { startStack } from './stack'

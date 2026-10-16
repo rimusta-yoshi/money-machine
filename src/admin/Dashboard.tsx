@@ -14,6 +14,7 @@ import { LayoutPicksPanel } from './panels/LayoutPicksPanel'
 import { RequestedTypesPanel } from './panels/RequestedTypesPanel'
 import { DomainsPanel } from './panels/DomainsPanel'
 import { ReviewPanel } from './panels/ReviewPanel'
+import { FindSitePanel } from './panels/FindSitePanel'
 
 interface Props {
   base: string
@@ -67,6 +68,7 @@ export function Dashboard({ base, adminKey, onRefused }: Props) {
       {result && 'error' in result && !loading && <p className="bf-error" role="alert">{result.error}</p>}
       {/* All time and loaded on its own, so it shows even when the numbers don't. */}
       <div className="ad-grid ad-grid--single">
+        <FindSitePanel base={base} adminKey={adminKey} onRefused={onRefused} />
         <ReviewPanel base={base} adminKey={adminKey} refresh={query} onRefused={onRefused} />
       </div>
       {stats && (

@@ -54,7 +54,7 @@ export async function sitesToReview(req: Request, deps: Deps): Promise<Response>
   return json({
     sites: rows.map(r => ({
       ref: r.ref, slug: r.slug, name: r.name, words: r.words, flaggedAt: r.flaggedAt, paid: r.paid, refunded: r.refunded,
-      published: r.published, url: r.live && r.slug ? `${siteOrigin(deps.config, r.slug)}/` : null,
+      published: r.published, takenDown: r.takenDown, url: r.live && r.slug ? `${siteOrigin(deps.config, r.slug)}/` : null,
     })),
   })
 }

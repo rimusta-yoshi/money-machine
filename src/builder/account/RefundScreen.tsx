@@ -60,6 +60,12 @@ export function RefundScreen({ api, token }: Props) {
           <p>Your bank is looking into this payment, so it can’t be refunded here as well. Get in touch at <a href={`mailto:${view.support}`}>{view.support}</a> if you need help.</p>
         </AccountShell>
       )
+    case 'taken_down':
+      return (
+        <AccountShell title="Your site has been taken down">
+          <p>Your site breaks our terms, so we’ve taken it down and it can’t be refunded here. If you think this is a mistake, email <a href={`mailto:${view.support}`}>{view.support}</a>.</p>
+        </AccountShell>
+      )
     case 'refunded':
       return (
         <AccountShell title="Your refund is on its way">

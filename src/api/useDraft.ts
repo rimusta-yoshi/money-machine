@@ -30,8 +30,11 @@ interface Options {
 /** An edit link opened in a browser that holds a different site: the two business names. */
 export interface EditConflict { here: string; link: string }
 
-/** After paying: re-publishing is free; after a refund the site is down for good. */
-export interface Account { paid: boolean; refunded: boolean }
+/**
+ * After paying: re-publishing is free; after a refund the site is down for good. Taken down by us
+ * (abuse): nothing can be changed, and `support` is who to write to.
+ */
+export interface Account { paid: boolean; refunded: boolean; takenDown?: boolean; support?: string }
 
 const AUTOSAVE_MS = 2000
 const NOT_KEPT = 'This browser won’t keep your site (storage is off or full). Finish in one go, or allow site data.'
@@ -72,7 +75,7 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
 
   const applyState = useCallback((d: DraftState) => {
     setPublished(d.slug && d.publishedUrl ? { slug: d.slug, url: d.publishedUrl } : null)
-    setAccount({ paid: !!d.paid, refunded: !!d.refunded })
+    setAccount({ paid: !!d.paid, refunded: !!d.refunded, ...(d.takenDown ? { takenDown: true, support: d.support } : {}) })
   }, [])
 
   /**
@@ -139,6 +142,12 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
     reopening.current = k
     return api.loadDraft(k).then(d => {
       reopening.current = null
+      // Taken down by us: the builder says so instead. Nothing opens, and this browser keeps its own key.
+      if (d.takenDown) {
+        if (fromLink) clearHash()
+        applyState(d)
+        return
+      }
       const loaded = d.record ? parseSite(d.record) : null
       // An edit link in a browser that holds another site: ask before replacing it.
       if (fromLink && here && loaded && JSON.stringify(loaded) !== JSON.stringify(here.site)) {
@@ -164,7 +173,7 @@ export function useDraft({ api, site, autosave, onLoaded, onUploaded, source }: 
       console.error('Could not open the saved site', err)
       setStatus({ state: 'error', message: 'We couldn’t open your saved site. Check your connection and retry.' })
     })
-  }, [api, apply, openLocal])
+  }, [api, apply, applyState, openLocal])
 
   /** The answer to "replace the site in this browser?": true opens the edit link's site. */
   const resolveConflict = useCallback((openLink: boolean) => {

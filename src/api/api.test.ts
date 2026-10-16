@@ -240,6 +240,21 @@ describe('useDraft', () => {
     expect(result.current.account.paid).toBe(true)
   })
 
+  it('says a taken-down site is taken down, opens nothing, and keeps this browser’s own site', async () => {
+    const mine = finishedSite({ business: { name: 'Mine Ltd' } })
+    saveLocalSite(mine)
+    rememberDraftKey(KEY)
+    window.location.hash = `#edit=${EDIT}`
+    const api = { ...fakeApi(), loadDraft: vi.fn(async () => ({ record: null, slug: 'scam', publishedUrl: null, updatedAt: 1, paid: true, takenDown: true, support: 'help@x.co' })) }
+    const onLoaded = vi.fn()
+    const { result } = renderHook(() => useDraft({ api, site: null, autosave: false, onLoaded, onUploaded: vi.fn() }))
+    await waitFor(() => expect(result.current.account).toEqual({ paid: true, refunded: false, takenDown: true, support: 'help@x.co' }))
+    expect(onLoaded).not.toHaveBeenCalled()
+    expect(window.location.hash).toBe('')
+    expect(storedDraftKey()).toBe(KEY)
+    expect(loadLocalSite()).toEqual(mine)
+  })
+
   it('asks before an edit link replaces a different site this browser is building', async () => {
     const mine = finishedSite({ business: { name: 'Unpaid Ltd' } })
     const paid = finishedSite({ business: { name: 'Paid Ltd' } })
