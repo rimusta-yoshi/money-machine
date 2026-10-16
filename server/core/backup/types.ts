@@ -55,7 +55,7 @@ export interface Backups {
   db: TableReader
   /** The live bucket (siteblocks). */
   live: ObjectStore
-  /** The backup bucket (siteblocks-backups). */
+  /** The backup bucket (siteblocks-backups-weur). */
   store: ObjectStore
 }
 

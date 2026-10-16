@@ -47,7 +47,7 @@ policy should say this: a draft line is in the backups pull request for your leg
 
 ## One-off setup (Claude or the PM does this at deploy)
 
-1. Create a storage bucket called `siteblocks-backups` in the Cloudflare dashboard (R2).
+1. Create a storage bucket called `siteblocks-backups-weur` in the Cloudflare dashboard (R2).
 2. Deploy, then run the first backup and check it.
 
 Cost: pennies a month at our size (R2 storage is $0.015 per GB a month after the free 10 GB).
