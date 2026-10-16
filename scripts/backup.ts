@@ -5,15 +5,15 @@
 //   npm run backup -- list                                   the exports there are, and whether backups are healthy
 //   npm run backup -- verify                                 checks the newest export downloads and adds up (exit 1 if not)
 //   npm run backup -- run                                    backs up now (as the nightly cron does)
-//   npm run backup -- restore-db --from <when> --to-local [--ref <ref>]
+//   npm run backup -- restore-db --from <when> --to-local [--site <address> | --ref <ref>]
 //                                                            into the local dev database (stop npm run dev:stack first)
-//   npm run backup -- restore-db --from <when> --to-production [--ref <ref>] --yes
+//   npm run backup -- restore-db --from <when> --to-production [--site <address> | --ref <ref>] --yes
 //                                                            imports an export into the live database (prints the undo first)
 //   npm run backup -- time-travel --at <ISO time> --yes      puts the live database back to a moment in the last 30 days
-//   npm run backup -- restore-files --site <address> | --ref <ref> [--from <when>] --yes
-//                                                            puts one site's pages and photos back
+//   npm run backup -- restore-files --site <address> | --ref <ref> [--from <YYYY-MM-DD or ISO time>] --yes
+//                                                            puts one site's pages and photos back (newest copies, or as at --from)
 //
-// <when>: latest, an export id, YYYY-MM-DD (that day's newest export) or YYYY-MM (a monthly one).
+// <when> (restore-db): latest, an export id, YYYY-MM-DD (that day's newest export) or YYYY-MM (a monthly one).
 // Without --yes nothing live changes: it says what it would do.
 // The admin key comes from ADMIN_KEY, else admin-key.local (gitignored). --api <url> points it
 // elsewhere, e.g. --api https://api.localblocks.localhost:8787 for the local dev stack.
@@ -25,7 +25,7 @@ import { join } from 'node:path'
 import { downloadExport, fetchOverview, pickExport, verifyBackups } from '../server/core/backup/client.ts'
 import type { AdminGet } from '../server/core/backup/client.ts'
 import { restoreStatements } from '../server/core/backup/sql.ts'
-import type { RestoreMode } from '../server/core/backup/sql.ts'
+import type { Part, RestoreMode } from '../server/core/backup/sql.ts'
 
 const args = process.argv.slice(2)
 const flag = (name: string) => args.includes(name)
@@ -104,16 +104,29 @@ function wrangler(wranglerArgs: string[]): void {
   if (r.status !== 0) fail('wrangler failed: nothing after this step was done.')
 }
 
+/** The id of the site at an address, from the backup itself (the site may be gone from the live database). */
+function siteRef(parts: Part[], address: string | undefined): string | undefined {
+  if (!address) return undefined
+  const slug = address.replace(/^https?:\/\//, '').split(/[./]/)[0]
+  for (const table of ['slugs', 'drafts']) {
+    for (const p of parts.filter(x => x.table === table)) {
+      const row = p.rows.find(r => r[p.columns.indexOf('slug')] === slug)
+      if (row) return String(row[p.columns.indexOf('ref')])
+    }
+  }
+  return fail(`The backup has no site at "${slug}".`)
+}
+
 async function restoreDb() {
   const from = option('--from') ?? fail('Say which backup: --from latest, an id, YYYY-MM-DD or YYYY-MM.')
-  const ref = option('--ref')
-  if (ref && !/^[0-9a-f]{32}$/.test(ref)) fail('--ref is a site\'s 32-character id.')
   const toLocal = flag('--to-local')
   if (toLocal === flag('--to-production')) fail('Say where: --to-local (inspect first) or --to-production.')
   // Never put a local backup into the live database.
   if (!toLocal && local) fail('--to-production takes backups from the live API only (leave out --api).')
   const chosen = pickExport(await fetchOverview(get), from)
   const d = await downloadExport(get, chosen)
+  const ref = option('--ref') ?? siteRef(d.parts, option('--site'))
+  if (ref && !/^[0-9a-f]{32}$/.test(ref)) fail('--ref is a site\'s 32-character id.')
   const mode: RestoreMode = ref ? { kind: 'site', ref } : toLocal ? { kind: 'recreate' } : { kind: 'replace' }
   const statements = restoreStatements(d.manifest, d.parts, mode)
   const dir = join(process.cwd(), '.wrangler', 'backups')
