@@ -69,18 +69,24 @@ async function mirrorRange(store: ObjectStore, prefix: string, after: string | n
 async function owners(b: Backups, files: ObjectInfo[], w: Walk): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const photoRefs = [...new Set(files.map(f => photoRef(f.key)).filter((r): r is string => !!r))]
+  const kept = new Set<string>()
   for (let i = 0; i < photoRefs.length; i += BATCH) {
-    const kept = await b.db.keptRefs(photoRefs.slice(i, i + BATCH))
+    for (const r of await b.db.keptRefs(photoRefs.slice(i, i + BATCH))) kept.add(r)
     w.calls++
-    for (const f of files) if (kept.has(photoRef(f.key) ?? '')) out.set(f.key, photoRef(f.key)!)
   }
   const slugOf = (key: string) => /^sites\/([^/]+)\//.exec(key)?.[1]
   const slugs = [...new Set(files.map(f => slugOf(f.key)).filter((s): s is string => !!s))]
+  const refs = new Map<string, string>()
   for (let i = 0; i < slugs.length; i += BATCH) {
-    const refs = await b.db.refsForSlugs(slugs.slice(i, i + BATCH))
+    for (const [slug, ref] of await b.db.refsForSlugs(slugs.slice(i, i + BATCH))) refs.set(slug, ref)
     w.calls++
+  }
+  for (const f of files) {
+    const ref = photoRef(f.key)
+    const slug = slugOf(f.key)
+    if (ref && kept.has(ref)) out.set(f.key, ref)
     // A site file with no site in the database is still kept: the database may be the thing that broke.
-    for (const f of files) if (slugOf(f.key)) out.set(f.key, refs.get(slugOf(f.key)!) ?? '')
+    if (slug) out.set(f.key, refs.get(slug) ?? '')
   }
   return out
 }

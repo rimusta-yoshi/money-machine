@@ -125,6 +125,19 @@ describe('files pass', () => {
     expect(store.text('files/sites/joe/index.html')).toBe('v2')
   })
 
+  it('notes the owner of every site file, however many addresses a page holds', async () => {
+    const { clock, live, store, b } = setup()
+    clock.pageCap = 1000
+    const slugs = Array.from({ length: 60 }, (_, i) => `site${String(i).padStart(2, '0')}`)
+    for (const slug of slugs) await live.store.write(`sites/${slug}/index.html`, slug, 'text/html')
+    const owners: Backups = { ...b, db: { ...b.db, refsForSlugs: async list => new Map(list.map(x => [x, `ref-${x}`])) } }
+    clock.now += 1000
+    await continueFilesPass(owners, EMPTY_PASS, { now: clock.now, budget: 10_000, pageSize: 100 })
+    const copies = await store.store.page('files/sites/', { meta: true })
+    expect(copies.objects).toHaveLength(60)
+    expect(copies.objects.every(o => o.meta[SITE_REF] === `ref-${o.key.split('/')[2]}`)).toBe(true)
+  })
+
   it('copes with a listing page that comes back empty with more to come', async () => {
     const { clock, live, store, b } = setup()
     for (const n of ['a', 'b', 'c', 'd']) await live.store.write(`sites/joe/${n}.html`, n, 'text/html')
@@ -287,6 +300,10 @@ describe('restore SQL', () => {
       `INSERT INTO "drafts" ("ref", "record") VALUES ('r1', '{"name":"Joe''s"}');`,
       `INSERT INTO "slugs" ("slug", "ref") VALUES ('joe', 'r1');`,
     ])
+  })
+
+  it('refuses to restore a site the backup doesn\'t have (it would only delete it)', () => {
+    expect(() => restoreStatements(manifest, parts, { kind: 'site', ref: 'r9' })).toThrow(/no site r9/)
   })
 
   it('leaves out child rows whose site the export no longer has', () => {

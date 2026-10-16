@@ -143,6 +143,8 @@ export function restoreStatements(m: Manifest, parts: Part[], mode: RestoreMode,
   const createSql = (t: string) => m.schema.find(s => s.type === 'table' && s.name === t)?.sql ?? ''
   const draftRefs = new Set((byTable.get('drafts') ?? []).flatMap(p => p.rows.map(r => r[p.columns.indexOf('ref')])))
   const siteTables = order.filter(t => t === 'drafts' || referencesDrafts(m, t) || SITE_EXTRA.has(t))
+  // Never delete a site's rows to put back nothing.
+  if (mode.kind === 'site' && !draftRefs.has(mode.ref)) throw new Error(`This backup has no site ${mode.ref}.`)
   const out: string[] = []
   if (mode.kind === 'recreate') {
     for (const t of [...order].reverse()) out.push(`DROP TABLE IF EXISTS ${ident(t)};`)

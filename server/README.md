@@ -765,9 +765,10 @@ npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-local
 This finds the site's id in the backup (it may be gone from the live database), writes just its
 rows into the local dev database (stop `npm run dev:stack` first) and leaves the SQL in
 `.wrangler/backups/`: read it to check these are the right rows. The SQL deletes that site's
-current rows and inserts the backed-up ones with plain INSERTs: if another site has taken its
-address or domain since, the import fails (it never deletes the other site); tell rob, the
-address is no longer this customer's. Then:
+current rows and inserts the backed-up ones with plain INSERTs, so it never deletes another
+site. Before a production import the command checks the live database: if another site has
+taken the address or domain since, it stops with nothing changed (tell rob: the address is no
+longer this customer's). It also refuses a backup that doesn't have the site. Then:
 
 ```bash
 npm run backup -- restore-db --from 2026-10-15 --site joes-plumbing --to-production --yes

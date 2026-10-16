@@ -142,11 +142,43 @@ async function restoreDb() {
     console.log(ref ? 'Only that site\'s rows are replaced.' : 'Every row of the live database is replaced by the backup\'s.')
     return
   }
+  if (ref) refuseClashes(d.parts, ref)
   console.log('\nThe bookmark to undo this (wrangler d1 time-travel restore --bookmark=…):')
   wrangler(['d1', 'time-travel', 'info', DATABASE, '-c', CONFIG])
   wrangler(['d1', 'execute', DATABASE, '--remote', '--file', file, '-c', CONFIG, '--yes'])
   checkCounts(statements, ref)
   console.log('Check the site(s), then run: npm run backup -- restore-files … if their files are missing too.')
+}
+
+/** Runs one read-only query on the live database; null if it couldn't. Values must need no quoting beyond '…'. */
+function liveQuery(sql: string): Record<string, unknown>[] | null {
+  const windows = process.platform === 'win32'
+  const r = spawnSync('npx', ['wrangler', 'd1', 'execute', DATABASE, '--remote', '--json', '--command', windows ? `"${sql}"` : sql, '-c', CONFIG], { encoding: 'utf8', shell: windows })
+  try {
+    return (JSON.parse(r.stdout) as { results: Record<string, unknown>[] }[])[0].results
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Before a one-site import: its addresses and domains must not belong to another site now. The
+ * import would fail on them part-way, after deleting the site's current rows.
+ */
+function refuseClashes(parts: Part[], ref: string): void {
+  const values = (table: string, column: string) => parts.filter(p => p.table === table).flatMap(p => {
+    const at = p.columns.indexOf(column)
+    return p.rows.filter(r => r[p.columns.indexOf('ref')] === ref && typeof r[at] === 'string').map(r => String(r[at]))
+  })
+  const slugs = [...new Set([...values('slugs', 'slug'), ...values('drafts', 'slug')])]
+  const hosts = [...new Set([...values('custom_domains', 'hostname'), ...values('custom_domains', 'apex')])]
+  if (![...slugs, ...hosts].every(v => /^[a-z0-9.-]+$/.test(v))) fail('Unexpected characters in an address or domain: import by hand.')
+  const list = (vs: string[]) => vs.map(v => `'${v}'`).join(', ') || "''"
+  const rows = liveQuery(`SELECT slug AS taken FROM slugs WHERE slug IN (${list(slugs)}) AND ref <> '${ref}'`
+    + ` UNION SELECT slug FROM drafts WHERE slug IN (${list(slugs)}) AND ref <> '${ref}'`
+    + ` UNION SELECT hostname FROM custom_domains WHERE (hostname IN (${list(hosts)}) OR apex IN (${list(hosts)})) AND ref <> '${ref}'`)
+  if (rows === null) fail('Could not check the live database for clashes: nothing changed.')
+  if (rows.length) fail(`Nothing changed: ${rows.map(r => r.taken).join(', ')} now belong(s) to another site.`)
 }
 
 /** Rows each table should have after the import: the INSERTs written for it. */
@@ -165,16 +197,8 @@ function checkCounts(statements: string[], ref: string | undefined): void {
   // Table names are plain words and the ref is hex: no quoting needed, so the shell can't mangle it.
   if (![...expected.keys()].every(t => /^\w+$/.test(t))) return console.log('Check the row counts by hand.')
   const count = (t: string) => `(SELECT COUNT(*) FROM ${t}${ref ? ` WHERE ref = '${ref}'` : ''}) AS ${t}`
-  const sql = `SELECT ${[...expected.keys()].map(count).join(', ')}`
-  const windows = process.platform === 'win32'
-  const r = spawnSync('npx', ['wrangler', 'd1', 'execute', DATABASE, '--remote', '--json', '--command', windows ? `"${sql}"` : sql, '-c', CONFIG], { encoding: 'utf8', shell: windows })
-  let actual: Record<string, number> = {}
-  try {
-    actual = (JSON.parse(r.stdout) as { results: Record<string, number>[] }[])[0].results[0]
-  } catch {
-    console.log('Could not count the rows afterwards: check the site(s) by hand.')
-    return
-  }
+  const actual = liveQuery(`SELECT ${[...expected.keys()].map(count).join(', ')}`)?.[0]
+  if (!actual) return console.log('Could not count the rows afterwards: check the site(s) by hand.')
   const wrong = [...expected].filter(([t, n]) => actual[t] !== n)
   if (!wrong.length) return console.log(`Row counts match the backup ✓ (${[...expected].map(([t, n]) => `${t} ${n}`).join(', ')})`)
   console.log(`✗ Row counts differ from the backup: ${wrong.map(([t, n]) => `${t} has ${actual[t]}, expected ${n}`).join('; ')}.`)
