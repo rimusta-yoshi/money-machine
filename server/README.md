@@ -704,7 +704,7 @@ Written for Claude to follow. rob's plain-English version: `docs/pm/backups.md`.
 | What | How | Kept |
 |---|---|---|
 | The database (D1 `siteblocks`), every table | **Time Travel**, built into D1, always on: put the whole database back to any minute | 30 days on Workers Paid (7 on Free) |
-| The database, every table but `rate_limits` | **Daily export** at 02:47 UTC by the API worker into the `siteblocks-backups` bucket, `db/daily/<id>/` | 30 days (the newest is always kept, even if backups stop) |
+| The database, every table but `rate_limits` | **Daily export** at 02:47 UTC by the API worker into the `siteblocks-backups-weur` bucket, `db/daily/<id>/` | 30 days (the newest is always kept, even if backups stop) |
 | Paid and published sites' rows only, plus the anonymous dashboard tables | **Monthly export**, the first night of each month, `db/monthly/<YYYY-MM>/` | 12 months |
 | Published sites (`sites/<slug>/…`) and the photos of paid or published sites (`drafts/<ref>/photos/…`) | **Nightly copy** of new or rewritten files into `files/<key>` | as long as the original exists |
 | Those files' earlier versions, and files deleted from the live bucket | moved to `trash/<key>~<ms when moved>` | 30 days |
@@ -890,8 +890,8 @@ erased, delete their site as usual; their data then leaves the backups on the sc
 ### One-off setup (before the deploy that brings this)
 
 1. Create the bucket: dashboard → **R2 Object Storage** → **Create bucket** → name
-   `siteblocks-backups`, Location Automatic, Standard storage, **Create**. Leave public access
-   off, no CORS. (Or `npx wrangler r2 bucket create siteblocks-backups`.) The deploy fails
+   `siteblocks-backups-weur`, Location **Western Europe (WEUR)**, same as the main bucket (an Automatic placement put it in North America), Standard storage, **Create**. Leave public access
+   off, no CORS. (Or `npx wrangler r2 bucket create siteblocks-backups-weur --location weur`.) The deploy fails
    until it exists: the API worker binds it as `BACKUPS`.
 2. `npm run cf:deploy` (the binding and the new 02:47 cron come with it). No migration, no
    secret.

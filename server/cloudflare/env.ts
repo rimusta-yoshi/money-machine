@@ -18,7 +18,7 @@ import { cloudflareBackups } from './backupStore'
  */
 export interface Env {
   BUCKET: R2Bucket
-  /** API worker: the backup bucket (siteblocks-backups). Unbound: backups are off. */
+  /** API worker: the backup bucket (siteblocks-backups-weur). Unbound: backups are off. */
   BACKUPS?: R2Bucket
   ASSETS: Fetcher
   /** The API worker; the site worker reads it only to know which site an own domain shows. */
