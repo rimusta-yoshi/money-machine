@@ -104,6 +104,8 @@ export async function startStack(o: StackOptions): Promise<Stack> {
     workers: [
       {
         ...shared, name: 'api', script: apiScript, d1Databases: { DB: 'siteblocks' }, routes: [`api.${host}/*`, `preview.${host}/*`],
+        // The backup bucket (server/core/backup), as in wrangler.api.jsonc.
+        r2Buckets: { BUCKET: 'siteblocks', BACKUPS: 'siteblocks-backups' },
         bindings: { ...vars, ...o.vars }, ...(o.outbound ? { outboundService: o.outbound } : {}),
       },
       // Customers' own domains come here too (Cloudflare for SaaS: the */* route). It reads the
