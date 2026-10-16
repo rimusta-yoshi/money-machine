@@ -8,13 +8,15 @@ interface DomainDbRow {
   dns_seen: string | null; verify_name: string | null; verify_value: string | null; verified_at: number | null; created_at: number; checked_at: number | null; active_at: number | null; live_email_at: number | null
 }
 
-interface WithSiteDbRow extends DomainDbRow { slug: string | null; email: string | null; site_live: number | null }
+interface WithSiteDbRow extends DomainDbRow { slug: string | null; email: string | null; site_live: number | null; taken_down: number | null }
 
 const COLUMNS = `d.ref, d.hostname, d.domain, d.apex, d.cf_id, d.cf_apex_id, d.status, d.provider, d.dc_provider_id, d.dc_provider_name,
   d.dc_sync_url, d.dns_seen, d.verify_name, d.verify_value, d.verified_at, d.created_at, d.checked_at, d.active_at, d.live_email_at`
-/** The site's address and payment email, and whether it has a live, paying customer. */
+/** The site's address and payment email, whether it has a live, paying customer, and whether it's taken down. */
 const WITH_SITE = `SELECT ${COLUMNS}, s.slug, s.email,
-  (s.paid_at IS NOT NULL AND s.published_at IS NOT NULL AND s.slug IS NOT NULL AND s.refunded_at IS NULL AND s.disputed_at IS NULL) AS site_live
+  (s.paid_at IS NOT NULL AND s.published_at IS NOT NULL AND s.slug IS NOT NULL AND s.refunded_at IS NULL AND s.disputed_at IS NULL
+    AND s.taken_down_at IS NULL) AS site_live,
+  (s.taken_down_at IS NOT NULL) AS taken_down
   FROM custom_domains d LEFT JOIN drafts s ON s.ref = d.ref`
 
 const toRow = (r: DomainDbRow): DomainRow => ({
@@ -24,7 +26,7 @@ const toRow = (r: DomainDbRow): DomainRow => ({
   dc: r.dc_provider_id && r.dc_sync_url ? { providerId: r.dc_provider_id, name: r.dc_provider_name ?? r.dc_provider_id, syncUx: r.dc_sync_url } : null,
 })
 
-const toWithSite = (r: WithSiteDbRow): DomainWithSite => ({ ...toRow(r), slug: r.slug, email: r.email, siteLive: !!r.site_live })
+const toWithSite = (r: WithSiteDbRow): DomainWithSite => ({ ...toRow(r), slug: r.slug, email: r.email, siteLive: !!r.site_live, takenDown: !!r.taken_down })
 
 /** Patch fields to their columns and values (column names are fixed here, never taken from the caller). */
 function patchColumns(patch: DomainPatch): [string, unknown][] {
@@ -61,7 +63,7 @@ export function d1Domains(db: D1Database): DomainStore {
     async activeHostForSlug(slug) {
       const r = await db.prepare(
         `SELECT d.hostname FROM custom_domains d JOIN drafts s ON s.ref = d.ref
-         WHERE s.slug = ?1 AND d.status = 'active' AND s.refunded_at IS NULL AND s.disputed_at IS NULL`,
+         WHERE s.slug = ?1 AND d.status = 'active' AND s.refunded_at IS NULL AND s.disputed_at IS NULL AND s.taken_down_at IS NULL`,
       ).bind(slug).first<{ hostname: string }>()
       return r?.hostname ?? null
     },
@@ -91,12 +93,16 @@ export function d1Domains(db: D1Database): DomainStore {
     },
     due(statuses, before, limit) {
       const marks = statuses.map((_, i) => `?${i + 3}`).join(', ')
-      return many(`${WITH_SITE} WHERE d.status IN (${marks}) AND COALESCE(d.checked_at, 0) < ?1 ORDER BY COALESCE(d.checked_at, 0) LIMIT ?2`, before, limit, ...statuses)
+      // Never a taken-down site's: the pause sweep (disputed) takes it off instead.
+      return many(`${WITH_SITE} WHERE d.status IN (${marks}) AND COALESCE(d.checked_at, 0) < ?1 AND s.taken_down_at IS NULL
+        ORDER BY COALESCE(d.checked_at, 0) LIMIT ?2`, before, limit, ...statuses)
     },
     ended: limit => many(
       `${WITH_SITE} WHERE d.status = 'removing' OR s.ref IS NULL OR s.refunded_at IS NOT NULL OR s.dispute_lost_at IS NOT NULL LIMIT ?1`, limit),
-    resumable: limit => many(`${WITH_SITE} WHERE d.status = 'paused' AND s.disputed_at IS NULL AND s.refunded_at IS NULL AND s.dispute_lost_at IS NULL AND s.ref IS NOT NULL LIMIT ?1`, limit),
-    disputed: limit => many(`${WITH_SITE} WHERE s.disputed_at IS NOT NULL AND s.dispute_lost_at IS NULL AND d.status IN ('pending', 'active') LIMIT ?1`, limit),
+    resumable: limit => many(`${WITH_SITE} WHERE d.status = 'paused' AND s.disputed_at IS NULL AND s.refunded_at IS NULL AND s.dispute_lost_at IS NULL
+      AND s.taken_down_at IS NULL AND s.ref IS NOT NULL LIMIT ?1`, limit),
+    disputed: limit => many(`${WITH_SITE} WHERE ((s.disputed_at IS NOT NULL AND s.dispute_lost_at IS NULL) OR s.taken_down_at IS NOT NULL)
+      AND d.status IN ('pending', 'active') LIMIT ?1`, limit),
     async counts() {
       const rows = await db.prepare('SELECT status, COUNT(*) AS n FROM custom_domains GROUP BY status').all<{ status: DomainStatus; n: number }>()
       const out: Record<DomainStatus, number> = { pending: 0, active: 0, paused: 0, removing: 0 }

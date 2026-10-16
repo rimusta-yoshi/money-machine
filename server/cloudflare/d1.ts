@@ -1,12 +1,13 @@
 import type { CheckoutRow, Database, DraftRow } from '../core/ports'
 import { d1ResumeReview } from './d1Resume'
+import { d1Takedown } from './d1Takedown'
 
 interface DraftDbRow {
   ref: string; record: string | null; slug: string | null; updated_at: number; published_at: number | null
   email: string | null; paid_at: number | null; stripe_session_id: string | null; stripe_payment_intent: string | null
   amount: number | null; currency: string | null; welcome_sent_at: number | null; refunded_at: number | null; link_version: number
   link_floor: number; disputed_at: number | null; dispute_lost_at: number | null; refunded_amount: number | null
-  src: string | null; campaign: string | null
+  src: string | null; campaign: string | null; taken_down_at: number | null
 }
 
 interface CheckoutDbRow { session_id: string; ref: string; slug: string; email: string; record: string; created_at: number; expires_at: number }
@@ -20,14 +21,14 @@ const toDraft = (r: DraftDbRow | null): DraftRow | null =>
     },
     welcomeSentAt: r.welcome_sent_at, refundedAt: r.refunded_at, linksIssued: r.link_version ?? 0, linkFloor: r.link_floor ?? 0,
     disputedAt: r.disputed_at, disputeLostAt: r.dispute_lost_at, refundedAmount: r.refunded_amount,
-    source: { src: r.src ?? null, campaign: r.campaign ?? null },
+    source: { src: r.src ?? null, campaign: r.campaign ?? null }, takenDownAt: r.taken_down_at ?? null,
   }
 
 const toCheckout = (r: CheckoutDbRow | null): CheckoutRow | null =>
   r && { sessionId: r.session_id, ref: r.ref, slug: r.slug, email: r.email, record: r.record, createdAt: r.created_at, expiresAt: r.expires_at }
 
 const DRAFT_COLUMNS = `ref, record, slug, updated_at, published_at, email, paid_at, stripe_session_id, stripe_payment_intent,
-  amount, currency, welcome_sent_at, refunded_at, link_version, link_floor, disputed_at, dispute_lost_at, refunded_amount, src, campaign`
+  amount, currency, welcome_sent_at, refunded_at, link_version, link_floor, disputed_at, dispute_lost_at, refunded_amount, src, campaign, taken_down_at`
 const DAY_SEC = 24 * 60 * 60
 const DAY_MS = DAY_SEC * 1000
 /** Stripe retries an event for up to 3 days; ids (and old checkouts) are kept well past that. */
@@ -165,7 +166,7 @@ export function d1Database(db: D1Database): Database {
     },
     async staleDrafts(before, limit) {
       const rows = await db.prepare(
-        `SELECT ref FROM drafts WHERE paid_at IS NULL AND published_at IS NULL AND MAX(updated_at, COALESCE(seen_at, 0)) < ?1
+        `SELECT ref FROM drafts WHERE paid_at IS NULL AND published_at IS NULL AND taken_down_at IS NULL AND MAX(updated_at, COALESCE(seen_at, 0)) < ?1
          ORDER BY updated_at LIMIT ?2`,
       ).bind(before, limit).all<{ ref: string }>()
       return rows.results.map(r => r.ref)
@@ -173,9 +174,9 @@ export function d1Database(db: D1Database): Database {
     async deleteDrafts(refs, before) {
       if (!refs.length) return []
       // Previews, address holds and checkouts go with them (ON DELETE CASCADE). Never a paid,
-      // published or since-used one (checked again here, in case it was opened meanwhile).
+      // published, taken-down (kept as evidence) or since-used one (checked again here, in case it was opened meanwhile).
       const rows = await db.prepare(
-        `DELETE FROM drafts WHERE paid_at IS NULL AND published_at IS NULL AND MAX(updated_at, COALESCE(seen_at, 0)) < ?1
+        `DELETE FROM drafts WHERE paid_at IS NULL AND published_at IS NULL AND taken_down_at IS NULL AND MAX(updated_at, COALESCE(seen_at, 0)) < ?1
          AND ref IN (${params(refs.length, 1)}) RETURNING ref`,
       ).bind(before, ...refs).all<{ ref: string }>()
       return rows.results.map(r => r.ref)
@@ -205,6 +206,7 @@ export function d1Database(db: D1Database): Database {
       return new Set(rows.results.map(r => r.ref))
     },
     ...d1ResumeReview(db, draftWhere),
+    ...d1Takedown(db, draftWhere),
     async hit(key, windowStart) {
       const row = await db.prepare(
         `INSERT INTO rate_limits (key, window_start, count) VALUES (?1, ?2, 1)

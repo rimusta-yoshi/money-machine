@@ -47,7 +47,8 @@
 .ad-grid--single { grid-template-columns: minmax(0, 1fr); margin-bottom: 16px; }
 
 /* ---- Tables ---- */
-.ad-scroll { overflow-x: auto; }
+/* Positioned, so screen-reader-only text inside (absolutely placed) is clipped here and never widens the page. */
+.ad-scroll { position: relative; overflow-x: auto; }
 .ad-scroll--tall { max-height: 360px; overflow-y: auto; }
 .ad-table { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
 .ad-table th, .ad-table td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--sb-rule); white-space: nowrap; }
@@ -94,6 +95,33 @@
 .ad-status--paid { background: var(--sb-lawn-tint); color: #155C43; }
 .ad-status--published { background: #E3EBFC; color: var(--sb-pipe-hover); }
 .ad-status--refunded, .ad-status--disputed { background: #FDE7E4; color: var(--sb-error); }
+
+.ad-status--down { background: var(--sb-night); color: var(--sb-white); }
+
+/* ---- Find a site, take down and restore ---- */
+.ad-find { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.ad-find-field { flex: 1 1 260px; }
+.ad-found { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; padding: 16px 18px; border-radius: 14px; background: var(--sb-mist); }
+.ad-found .ad-h3 { flex-wrap: wrap; justify-content: flex-start; gap: 10px; }
+.ad-facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px 20px; width: 100%; margin: 0; font-size: 15px; }
+.ad-facts dt { font-size: 13px; font-weight: 700; color: var(--sb-muted-mist); text-transform: uppercase; letter-spacing: 0.04em; }
+.ad-facts dd { margin: 0; overflow-wrap: anywhere; }
+.ad-actions { display: flex; gap: 12px; }
+/* Take down: the one destructive action, red with white text (6.5:1), never the brick main button. */
+.ad-danger-btn {
+  appearance: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 10px 16px; border: 2px solid var(--sb-error); border-radius: 12px; background: var(--sb-error);
+  color: var(--sb-white); font: inherit; font-weight: 700; font-size: 15px;
+}
+.ad-danger-btn:hover { background: #912018; border-color: #912018; }
+.ad-danger-btn:disabled { cursor: progress; opacity: 0.7; }
+.ad-danger-text { color: var(--sb-error); }
+.ad-td { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 640px; padding: 18px; border: 2px solid var(--sb-error); border-radius: 14px; background: var(--sb-white); }
+.ad-td .ad-h3:focus { outline: none; }
+.ad-td .ad-h3:focus-visible { outline: 3px solid var(--sb-pipe); outline-offset: 2px; }
+.ad-td--restore { border-color: var(--sb-night); }
+.ad-td-why { min-height: 90px; }
+.ad-td-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 
 /* ---- Layout picks ---- */
 .ad-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }

@@ -5,6 +5,8 @@ import type { Browser, Page } from 'playwright-core'
 import { createServer } from 'vite'
 import type { ViteDevServer } from 'vite'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { finishedSite } from '../src/publish/test/sites'
+import { client } from '../server/test/client'
 import { startStack } from '../server/test/stack'
 import type { Stack } from '../server/test/stack'
 import { launchBrowser } from '../scripts/browser.mjs'
@@ -120,5 +122,57 @@ describe('admin dashboard', () => {
     await page.screenshot({ path: join(SCREENS, 'admin-phone.png'), fullPage: true })
     expect(errors).toEqual([])
     await close()
+  })
+
+  it('takes a site down by its address and restores it, and Sites to review can too, on a phone, passing axe', async () => {
+    const c = client(stack, BASE)
+    const key = await c.newDraft()
+    expect((await c.save(key, finishedSite({ business: { name: 'E2E Bank Helpers', about: 'Online banking help: log in here' } }))).status).toBe(200)
+    expect((await c.publish(key, 'e2e-takedown', ADMIN)).status).toBe(200)
+    const siteUrl = `https://e2e-takedown.${BASE}/`
+    expect((await stack.fetch(siteUrl)).status).toBe(200)
+
+    const { page, errors, close } = await open({ width: 1360, height: 900 })
+    await signIn(page, ADMIN)
+    await page.getByLabel('Site address').fill(`e2e-takedown.${BASE}`)
+    await page.getByRole('button', { name: 'Find', exact: true }).click()
+    const found = page.getByRole('region', { name: 'Found: E2E Bank Helpers' })
+    await found.getByText('Published (admin)').waitFor()
+    await found.getByRole('button', { name: 'Take down E2E Bank Helpers' }).click()
+    await page.getByLabel('Why is it coming down?').fill('E2E: phishing login page')
+    expect(await axe(page)).toEqual([])
+    await page.screenshot({ path: join(SCREENS, 'admin-takedown-desktop.png'), fullPage: true })
+    await page.getByRole('button', { name: 'Yes, take it down' }).click()
+    await page.getByText('E2E Bank Helpers is taken down.').waitFor()
+    await found.getByText('E2E: phishing login page').waitFor()
+    expect((await stack.fetch(siteUrl)).status).toBe(410)
+
+    await found.getByRole('button', { name: 'Restore E2E Bank Helpers' }).click()
+    await page.getByRole('button', { name: 'Yes, restore it' }).click()
+    await page.getByText('E2E Bank Helpers is back online.').waitFor()
+    expect((await stack.fetch(siteUrl)).status).toBe(200)
+    expect(errors).toEqual([])
+    await close()
+
+    // On a phone, from its row in Sites to review: the form fits, and passes axe.
+    const phone = await open({ width: 390, height: 844 }, true)
+    await signIn(phone.page, ADMIN)
+    const row = phone.page.getByRole('row').filter({ hasText: 'E2E Bank Helpers' })
+    // The screen-reader-only part of the name may come with a space before it.
+    await row.getByRole('button', { name: /^Take down\s*: E2E Bank Helpers$/ }).click()
+    await phone.page.getByLabel('Why is it coming down?').fill('E2E: scam')
+    // The phone's own width (a page wider than it would make a mobile browser zoom out, widening innerWidth too).
+    expect(await phone.page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+    expect(await axe(phone.page)).toEqual([])
+    await phone.page.screenshot({ path: join(SCREENS, 'admin-takedown-phone.png'), fullPage: true })
+    await phone.page.getByRole('button', { name: 'Yes, take it down' }).click()
+    await row.getByText('Taken down').waitFor()
+    expect((await stack.fetch(siteUrl)).status).toBe(410)
+    await row.getByRole('button', { name: /^Restore\s*: E2E Bank Helpers$/ }).click()
+    await phone.page.getByRole('button', { name: 'Yes, restore it' }).click()
+    await phone.page.getByText('E2E Bank Helpers is back online.').waitFor()
+    expect((await stack.fetch(siteUrl)).status).toBe(200)
+    expect(phone.errors).toEqual([])
+    await phone.close()
   })
 })

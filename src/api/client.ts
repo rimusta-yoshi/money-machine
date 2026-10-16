@@ -22,7 +22,11 @@ export class ApiError extends Error {
   }
 }
 
-export interface DraftState { record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number; paid?: boolean; refunded?: boolean; disputed?: boolean }
+export interface DraftState {
+  record: unknown; slug: string | null; publishedUrl: string | null; updatedAt: number; paid?: boolean; refunded?: boolean; disputed?: boolean
+  /** Taken down by us (abuse): the builder says so instead of opening the editor. */
+  takenDown?: boolean; support?: string
+}
 /** What the server says about paying (GET /v1/config): the price lives only there. */
 export interface Shop { pricePence: number; currency: string; launched: boolean; refundDays: number }
 export type CheckoutState = { state: 'waiting' } | { state: 'live'; url: string } | { state: 'refunded' }
@@ -31,6 +35,7 @@ export type RefundState =
   | { state: 'used' }
   | { state: 'expired'; support: string }
   | { state: 'disputed'; support: string }
+  | { state: 'taken_down'; support: string }
   | { state: 'refunded'; amount: number }
 /** A customer's own domain, as GET /v1/draft/domain describes it (server/core/domains.ts). */
 export interface OwnDomain {

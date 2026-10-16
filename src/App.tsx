@@ -45,6 +45,7 @@ import { sendRequestedType } from './analytics/sendRequested'
 import { storedDraftKey, editTokenFromHash, downloadTokenFromHash, domainTokenFromHash } from './api/draftKey'
 import { loadLocalSite } from './api/localSite'
 import { EditLinkChoice } from './builder/account/EditLinkChoice'
+import { TakenDownScreen } from './builder/account/TakenDownScreen'
 
 /** What a live site needs before changes can be published, or null. */
 function publishGap(site: Site | null): string | null {
@@ -178,6 +179,7 @@ function Builder({ cancelled }: { cancelled: boolean }) {
     ? <PublishChanges verify={verify} publish={async checked => (await draft.publish(undefined, undefined, checked)).url} missing={() => publishGap(siteRef.current)} />
     : null
   if (draft.conflict) return <EditLinkChoice conflict={draft.conflict} onChoose={draft.resolveConflict} />
+  if (draft.account.takenDown) return <TakenDownScreen support={draft.account.support} />
   if (step === 'basics' || !site || !trade) {
     return (
       <BasicsStep

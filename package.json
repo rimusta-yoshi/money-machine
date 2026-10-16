@@ -25,6 +25,7 @@
     "stress": "node scripts/stress-browser.mjs",
     "repro": "node scripts/repro.mjs",
     "test-sites": "node scripts/test-sites.mjs",
+    "site": "node scripts/site.mjs",
     "pack:check": "node scripts/pack-check.mjs",
     "pack:images": "node scripts/pack-images.mjs",
     "page-shots": "node scripts/page-shots.mjs"
